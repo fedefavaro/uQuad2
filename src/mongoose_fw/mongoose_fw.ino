@@ -42,6 +42,7 @@
 #include <EEPROM.h>
 #include <Wire.h>
 #include "uquad_kalman.h"
+#include "imu_comm.h"
 
 #include <utility/twi.h> // For CPU_FREQ
 
@@ -255,12 +256,33 @@ float DCM_Matrix[3][3]       = {{1,0,0},{0,1,0},{0,0,1}};
 float Update_Matrix[3][3]    = {{0,1,2},{3,4,5},{6,7,8}}; 
 float Temporary_Matrix[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
 
+int retval;
+static imu_t *imu = NULL;
+imu_data_t imu_data;
+static kalman_io_t *kalman = NULL;
+double weight = MASA_DEFAULT;
+
+void quit()
+{
+#if DEBUG
+  //encender algun led
+#endif  
+while (1);
+}
+
 void setup()
 { 
   Serial.begin(115200);
-  
+
+//  imu_raw_t raw_data;  
   struct kalman_io_t* kalman;
   kalman = kalman_init();
+  retval = imu_data_alloc(&imu_data);
+  imu = imu_comm_init(/*device_imu*/);
+  if(imu == NULL)
+  {
+    quit_log_if(ERROR_FAIL,"imu init failed!");
+  }
     
   pinMode (STATUS_LED,OUTPUT);  // Status LED
   pinMode (debugPin,OUTPUT);  // debug LED
@@ -317,7 +339,7 @@ void setup()
 unsigned long Dt;
 unsigned long loop_in_us;
 unsigned long t_loop_chico;
-unsigned long pezon_viejo;
+//unsigned long pezon_viejo;
 
 void loop() //Main Loop
 {
@@ -341,15 +363,27 @@ void loop() //Main Loop
 	if(loop_counter != 0)
 	{
 	    // Average acc, gyro and compass
-	    sen_data.gyro_x_raw = (int)(acum_reads.gyro[0]/loop_counter);
-	    sen_data.gyro_y_raw = (int)(acum_reads.gyro[1]/loop_counter);
-	    sen_data.gyro_z_raw = (int)(acum_reads.gyro[2]/loop_counter);
-	    sen_data.accel_x_raw = (int)(acum_reads.acc[0]/loop_counter);
-	    sen_data.accel_y_raw = (int)(acum_reads.acc[1]/loop_counter);
-	    sen_data.accel_z_raw = (int)(acum_reads.acc[2]/loop_counter);
-	    sen_data.magnetom_x_raw = (int)(acum_reads.magnetom[0]/loop_counter);
-	    sen_data.magnetom_y_raw = (int)(acum_reads.magnetom[1]/loop_counter);
-	    sen_data.magnetom_z_raw = (int)(acum_reads.magnetom[2]/loop_counter);
+/*	    sen_data.gyro_x_raw = (int)(acum_reads.gyro[0]/loop_counter);*/
+/*	    sen_data.gyro_y_raw = (int)(acum_reads.gyro[1]/loop_counter);*/
+/*	    sen_data.gyro_z_raw = (int)(acum_reads.gyro[2]/loop_counter);*/
+/*	    sen_data.accel_x_raw = (int)(acum_reads.acc[0]/loop_counter);*/
+/*	    sen_data.accel_y_raw = (int)(acum_reads.acc[1]/loop_counter);*/
+/*	    sen_data.accel_z_raw = (int)(acum_reads.acc[2]/loop_counter);*/
+/*	    sen_data.magnetom_x_raw = (int)(acum_reads.magnetom[0]/loop_counter);*/
+/*	    sen_data.magnetom_y_raw = (int)(acum_reads.magnetom[1]/loop_counter);*/
+/*	    sen_data.magnetom_z_raw = (int)(acum_reads.magnetom[2]/loop_counter);*/
+            imu_raw_t raw_data;
+
+            raw_data.T_us = Dt;
+            raw_data.acc[0] = (int)(acum_reads.acc[0]/loop_counter);
+	    raw_data.acc[1] = (int)(acum_reads.acc[1]/loop_counter);
+	    raw_data.acc[2] = (int)(acum_reads.acc[2]/loop_counter);
+            raw_data.gyro[0] = (int)(acum_reads.gyro[0]/loop_counter);
+            raw_data.gyro[1] = (int)(acum_reads.gyro[1]/loop_counter);
+            raw_data.gyro[2] = (int)(acum_reads.gyro[2]/loop_counter);
+            raw_data.magn[0] = (int)(acum_reads.magnetom[0]/loop_counter);
+            raw_data.magn[1] = (int)(acum_reads.magnetom[1]/loop_counter);
+            raw_data.magn[2] = (int)(acum_reads.magnetom[2]/loop_counter);
 	    // Reset
 	    loop_counter=0;
 	    acum_reads.acc[0] = 0;acum_reads.acc[1] = 0;acum_reads.acc[2] = 0;
@@ -364,7 +398,23 @@ void loop() //Main Loop
 	    /* Serial.print("B:"); */
 	    /* Serial.println(micros()-Dt); */
 
-	    printdata(); 
+	    raw_data.temp = sen_data.baro_temp;
+            raw_data.pres = sen_data.baro_pres;
+
+	    retval = imu_comm_raw2data(imu, &imu->calib.null_est, NULL, &imu_data);
+	    kalman->x_hat->m_full[SV_PSI]   = imu_data.magn->m_full[0];
+	    kalman->x_hat->m_full[SV_PHI]   = imu_data.magn->m_full[1];
+	    kalman->x_hat->m_full[SV_THETA] = imu_data.magn->m_full[2];
+
+	    retval = uquad_kalman(kalman,
+			      /*(uquad_state == ST_RUNNING)?
+			      mot->w_curr:w,*/
+			      &imu_data,
+			      /*tv_diff.tv_usec,*/ weight
+			      /*mot->weight,
+			      gps_update?gps_dat:NULL*/);
+
+	//    printdata(); 
 
 	    StatusLEDToggle();        
 	    digitalWrite(debugPin,LOW);

@@ -28,7 +28,8 @@
 #ifndef UQUAD_KALMAN_H
 #define UQUAD_KALMAN_H
 #include "uquad_aux_math.h"
-//#include "imu_comm.h"
+#include "uquad_types.h"
+#include "imu_comm.h"
 //#include "uquad_gps_comm.h"
 
 #define KALMAN_ROWS_H_GPS 12
@@ -102,9 +103,9 @@ struct kalman_io_t {
 // *
 // * @return error code.
 // */
-//int uquad_kalman(kalman_io_t * kd, struct uquad_mat* w,
-//		 imu_data_t* data, double T_us,
-//		 double weight, gps_comm_data_t *gps_i_data);
+int uquad_kalman(kalman_io_t * kd, /*struct uquad_mat* w,*/
+		 imu_data_t* data, /*double T_us,*/
+		 double weight/*, gps_comm_data_t *gps_i_data*/);
 
 //int uquad_kalman_gps(kalman_io_t* kd, gps_comm_data_t* gps_i_data);
 

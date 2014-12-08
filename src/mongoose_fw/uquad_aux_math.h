@@ -104,6 +104,7 @@ struct uquad_mat {
     int r;           // rows
     int c;           // columns
 };
+typedef struct uquad_mat uquad_mat_t;
 
 ///**
 // * -- -- -- -- -- -- -- -- -- -- -- --
@@ -126,7 +127,7 @@ struct uquad_mat {
 // *
 // * @return Error code.
 // */
-//int uquad_mat_prod(struct uquad_mat *C, struct uquad_mat *A,struct uquad_mat *B);
+int uquad_mat_prod(struct uquad_mat *C, struct uquad_mat *A,struct uquad_mat *B);
 
 //int uquad_mat_det(struct uquad_mat *m, double *res);
 
@@ -143,7 +144,7 @@ struct uquad_mat {
 // *
 // * @return error code
 // */
-//int uquad_mat_scalar_mul(struct uquad_mat *Mk, struct uquad_mat *M, double k);
+int uquad_mat_scalar_mul(struct uquad_mat *Mk, struct uquad_mat *M, double k);
 //int uquad_mat_scalar_div(struct uquad_mat *Mk, struct uquad_mat *M, double k);
 
 ///**
@@ -161,8 +162,8 @@ struct uquad_mat {
 // *
 // * @return Error code.
 // */
-//int uquad_mat_sub(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B);
-//int uquad_mat_add(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B);
+int uquad_mat_sub(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B);
+int uquad_mat_add(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B);
 
 ///**
 // * Solves linear system using gaussian elimination:
@@ -179,7 +180,7 @@ struct uquad_mat {
 // *
 // * @return Error code.
 // */
-//int uquad_solve_lin(struct uquad_mat *A, struct uquad_mat *B, struct uquad_mat *x, struct uquad_mat *maux);
+int uquad_solve_lin(struct uquad_mat *A, struct uquad_mat *B, struct uquad_mat *x, struct uquad_mat *maux);
 
 ///**
 // * Solves a system a*x^2 + b*x + c for real values.
@@ -207,7 +208,7 @@ struct uquad_mat {
 // *
 // * @return Error code.
 // */
-//int uquad_mat_inv(struct uquad_mat *Minv, struct uquad_mat *M, struct uquad_mat *Meye, struct uquad_mat *Maux);
+int uquad_mat_inv(struct uquad_mat *Minv, struct uquad_mat *M, struct uquad_mat *Meye, struct uquad_mat *Maux);
 
 ///**
 // * Transposes a matrix
@@ -217,7 +218,7 @@ struct uquad_mat {
 // *
 // * @return error code
 // */
-//int struct uquad_matranspose(struct uquad_mat *Mt, struct uquad_mat *M);
+//int struct uquad_matranspose(uquad_mat_t *Mt, uquad_mat_t *M);
 
 ///**
 // * Transposes a matrix, in place.
@@ -240,7 +241,7 @@ struct uquad_mat {
 // *
 // * @return error code
 // */
-//int uquad_mat_dot_product(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B);
+int uquad_mat_dot_product(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B);
 
 ///**
 // * Will load matrix from text file.
@@ -296,7 +297,7 @@ struct uquad_mat {
 // *
 // * @return Error code
 // */
-//int uquad_mat_eye(struct uquad_mat *m);
+int uquad_mat_eye(struct uquad_mat *m);
 
 ///**
 // * Fills a matrix with zeros.
@@ -384,7 +385,7 @@ int uquad_mat_copy(struct uquad_mat *dest, struct uquad_mat *src);
 // *
 // * @return Answer or -1.0 if error.
 // */
-//double uquad_mat_norm( struct uquad_mat *A);
+double uquad_mat_norm( struct uquad_mat *A);
 
 ///**
 // * Performs the integral of A^t for ti<t<tf with an integration step of step.

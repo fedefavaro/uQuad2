@@ -29,48 +29,48 @@
 /*#include <math.h> // for pow()*/
 /*#include <fcntl.h> // for open()*/
 /// Aux mem
-/*static uquad_mat_t *m3x3;*/
-/*static uquad_mat_t *m3x1_0;*/
-/*static uquad_mat_t *m3x1_1;*/
+static uquad_mat_t *m3x3;
+static uquad_mat_t *m3x1_0;
+static uquad_mat_t *m3x1_1;
 
 /*imu_status_t imu_comm_get_status(imu_t *imu){*/
 /*    return imu->status;*/
 /*}*/
 
-/*int imu_data_alloc(imu_data_t *imu_data)*/
-/*{*/
-/*    int retval = ERROR_OK;*/
-/*    imu_data->acc = uquad_mat_alloc(3,1);*/
-/*    imu_data->gyro = uquad_mat_alloc(3,1);*/
-/*    imu_data->magn = uquad_mat_alloc(3,1);*/
-/*    if(imu_data->acc == NULL ||*/
-/*       imu_data->acc == NULL ||*/
-/*       imu_data->acc == NULL)*/
-/*    {*/
-/*	uquad_mat_free(imu_data->acc);*/
-/*	uquad_mat_free(imu_data->gyro);*/
-/*	uquad_mat_free(imu_data->magn);*/
-/*	err_propagate(ERROR_MALLOC);*/
-/*    }*/
-/*    // initialize data to zeros*/
-/*    retval = uquad_mat_zeros(imu_data->acc);*/
-/*    err_propagate(retval);*/
-/*    retval = uquad_mat_zeros(imu_data->gyro);*/
-/*    err_propagate(retval);*/
-/*    retval = uquad_mat_zeros(imu_data->magn);*/
-/*    err_propagate(retval);*/
-/*    imu_data->acc_ok = false;*/
-/*    imu_data->magn_ok = false;*/
+int imu_data_alloc(imu_data_t *imu_data)
+{
+    int retval = ERROR_OK;
+    imu_data->acc = uquad_mat_alloc(3,1);
+    imu_data->gyro = uquad_mat_alloc(3,1);
+    imu_data->magn = uquad_mat_alloc(3,1);
+    if(imu_data->acc == NULL ||
+       imu_data->acc == NULL ||
+       imu_data->acc == NULL)
+    {
+	uquad_mat_free(imu_data->acc);
+	uquad_mat_free(imu_data->gyro);
+	uquad_mat_free(imu_data->magn);
+	err_propagate(ERROR_MALLOC);
+    }
+    // initialize data to zeros
+    retval = uquad_mat_zeros(imu_data->acc);
+    err_propagate(retval);
+    retval = uquad_mat_zeros(imu_data->gyro);
+    err_propagate(retval);
+    retval = uquad_mat_zeros(imu_data->magn);
+    err_propagate(retval);
+    imu_data->acc_ok = false;
+    imu_data->magn_ok = false;
 
-/*    return ERROR_OK;*/
-/*}*/
+    return ERROR_OK;
+}
 
-/*void imu_data_free(imu_data_t *imu_data)*/
-/*{*/
-/*    uquad_mat_free(imu_data->acc);*/
-/*    uquad_mat_free(imu_data->gyro);*/
-/*    uquad_mat_free(imu_data->magn);*/
-/*}*/
+void imu_data_free(imu_data_t *imu_data)
+{
+    uquad_mat_free(imu_data->acc);
+    uquad_mat_free(imu_data->gyro);
+    uquad_mat_free(imu_data->magn);
+}
 
 /*int imu_data_zero(imu_data_t *imu_data)*/
 /*{*/
@@ -202,12 +202,12 @@
  *
  * @param imu
  */
-/*static void imu_comm_calibration_clear(imu_t *imu){*/
-/*    imu->calib.calib_estim_ready = false;*/
-/*    imu->calib.calibration_counter = -1;*/
+static void imu_comm_calibration_clear(imu_t *imu){
+    imu->calib.calib_estim_ready = false;
+    imu->calib.calibration_counter = -1;
 /*    imu->calib.timestamp_estim.tv_sec = 0;*/
 /*    imu->calib.timestamp_estim.tv_usec = 0;*/
-/*}*/
+}
 
 /**
  * Configures IMU to use default params and start sampling.
@@ -217,16 +217,16 @@
  *
  *@return error code
  */
-/*static int imu_comm_run_default(imu_t *imu){*/
-/*    int retval = ERROR_OK;*/
-/*#if !IMU_COMM_FAKE*/
-/*    // Set run*/
+static int imu_comm_run_default(imu_t *imu){
+    int retval = ERROR_OK;
+#if !IMU_COMM_FAKE
+    // Set run
 /*    retval = imu_comm_send_cmd(imu,IMU_COMMAND_DEF);*/
 /*    err_propagate(retval);*/
-/*#endif*/
-/*    imu->status = IMU_COMM_STATE_RUNNING;*/
-/*    return retval;*/
-/*}*/
+#endif
+    imu->status = IMU_COMM_STATE_RUNNING;
+    return retval;
+}
 
 /**
  * Configure IMU.
@@ -235,15 +235,15 @@
  *
  *@return error code
  */
-/*static int imu_comm_configure(imu_t *imu){*/
-/*    int retval = ERROR_OK;*/
-/*    if(imu == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"Invalid arg.");*/
-/*    }*/
-/*    //TODO configure stuff?*/
-/*    return retval;*/
-/*}*/
+static int imu_comm_configure(imu_t *imu){
+    int retval = ERROR_OK;
+    if(imu == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"Invalid arg.");
+    }
+    //TODO configure stuff?
+    return retval;
+}
 
 /**
  * Open a connection to the IMU.
@@ -255,22 +255,22 @@
  *
  * @return error code.
  */
-/*static int imu_comm_connect(imu_t *imu, const char *device){*/
-/*#if IMU_COMM_FAKE*/
+static int imu_comm_connect(imu_t *imu/*, const char *device*/){
+#if IMU_COMM_FAKE
 /*    if( (strlen(device) >= 5) && (strncmp(device,"/dev/",5) == 0))*/
 /*    {*/
 /*	err_check(ERROR_INVALID_ARG,*/
 /*		  "Expected an ascii log file!\n"			\*/
 /*		  "To read from UART, IMU_COMM_FAKE must be disabled!");*/
 /*    }*/
-/*    // we don't want to write to the log file, just read.*/
+    // we don't want to write to the log file, just read.
 /*    imu->device = fopen(device,"rb+");*/
 /*    if(imu->device == NULL)*/
 /*    {*/
 /*	err_log_stderr("fopen()");*/
 /*	err_propagate(ERROR_OPEN);*/
 /*    }*/
-/*#else*/
+#else
 /*    char str[256];*/
 /*    int retval;*/
 /*    if( (strlen(device) < 3) || (strncmp(device,"/dev/",5) != 0))*/
@@ -297,9 +297,9 @@
 /*	err_log_stderr("system()");*/
 /*	return ERROR_IO;*/
 /*    }*/
-/*#endif*/
-/*    return ERROR_OK;*/
-/*}*/
+#endif
+    return ERROR_OK;
+}
 
 /*/***/
 /* * Closes any connections opened by the imu, if any.*/
@@ -308,26 +308,26 @@
 /* **/
 /* * @return error code.*/
 /* */
-/*static int imu_comm_disconnect(imu_t *imu){*/
-/*    int retval = ERROR_OK;*/
-/*#if IMU_COMM_FAKE*/
+static int imu_comm_disconnect(imu_t *imu){
+    int retval = ERROR_OK;
+#if IMU_COMM_FAKE
 /*    if(imu->device != NULL)*/
 /*    {*/
 /*	retval = fclose(imu->device);*/
 /*	if(retval == 0)*/
 /*	    imu->device = NULL;*/
 /*    }*/
-/*#else*/
+#else
 /*    if(imu->device > 0)*/
 /*	retval = close(imu->device);*/
-/*#endif*/
+#endif
 /*    if(retval < 0)*/
 /*    {*/
 /*	err_log_stderr("Failed to close device!");*/
 /*	err_propagate(ERROR_CLOSE);*/
 /*    }*/
-/*    return ERROR_OK;*/
-/*}*/
+    return ERROR_OK;
+}
 
 /**
  * Allocates memory for three linear calibration structures.
@@ -337,26 +337,26 @@
  *
  * @return error code.
  */
-/*int imu_comm_alloc_calib_lin(imu_t *imu)*/
-/*{*/
-/*    int i;*/
-/*    for (i = 0; i < 3; ++i)*/
-/*    {*/
-/*	// TK_inv*/
-/*	imu->calib.m_lin[i].TK_inv = uquad_mat_alloc(3,3);*/
-/*	if (imu->calib.m_lin[i].TK_inv == NULL)*/
-/*	{*/
-/*	    err_check(ERROR_MALLOC, "Failed to allocate K");*/
-/*	}*/
-/*	// b*/
-/*	imu->calib.m_lin[i].b = uquad_mat_alloc(3,1);*/
-/*	if (imu->calib.m_lin[i].b == NULL)*/
-/*	{*/
-/*	    err_check(ERROR_MALLOC, "Failed to allocate K");*/
-/*	}*/
-/*    }*/
-/*    return ERROR_OK;*/
-/*}*/
+int imu_comm_alloc_calib_lin(imu_t *imu)
+{
+    int i;
+    for (i = 0; i < 3; ++i)
+    {
+	// TK_inv
+	imu->calib.m_lin[i].TK_inv = uquad_mat_alloc(3,3);
+	if (imu->calib.m_lin[i].TK_inv == NULL)
+	{
+	    err_check(ERROR_MALLOC, "Failed to allocate K");
+	}
+	// b
+	imu->calib.m_lin[i].b = uquad_mat_alloc(3,1);
+	if (imu->calib.m_lin[i].b == NULL)
+	{
+	    err_check(ERROR_MALLOC, "Failed to allocate K");
+	}
+    }
+    return ERROR_OK;
+}
 
 /**
  * Frees memory for three linear calibration structures.
@@ -366,21 +366,21 @@
  *
  * @return error code.
  */
-/*int imu_comm_free_calib(imu_calib_t calib)*/
-/*{*/
-/*    int i;*/
-/*    for (i = 0; i < 3; ++i)*/
-/*    {*/
-/*	// TK_inv*/
-/*	uquad_mat_free(calib.m_lin[i].TK_inv);*/
-/*	// b*/
-/*	uquad_mat_free(calib.m_lin[i].b);*/
-/*    }*/
-/*    imu_data_free(&calib.null_est_data);*/
-/*    uquad_mat_free(calib.acc_t_off);*/
-/*    uquad_mat_free(calib.gyro_t_off);*/
-/*    return ERROR_OK;*/
-/*}*/
+int imu_comm_free_calib(imu_calib_t calib)
+{
+    int i;
+    for (i = 0; i < 3; ++i)
+    {
+	// TK_inv
+	uquad_mat_free(calib.m_lin[i].TK_inv);
+	// b
+	uquad_mat_free(calib.m_lin[i].b);
+    }
+    imu_data_free(&calib.null_est_data);
+    uquad_mat_free(calib.acc_t_off);
+    uquad_mat_free(calib.gyro_t_off);
+    return ERROR_OK;
+}
 
 /**
  * Will load calibration for linear model from text file.
@@ -395,8 +395,62 @@
  *
  * @return error code.
  */
-/*int imu_comm_load_calib(imu_t *imu, const char *path)*/
-/*{*/
+int imu_comm_load_calib(imu_t *imu/*, const char *path*/)
+{
+
+/* hecho por Berru */
+
+  //TK_inv
+  //acc
+  imu->calib.m_lin[0].TK_inv->m_full[0] = 0.0373731133647986;
+  imu->calib.m_lin[0].TK_inv->m_full[1] = -1.85959854552299e-05;
+  imu->calib.m_lin[0].TK_inv->m_full[2] = 9.64444775629508e-05;
+  imu->calib.m_lin[0].TK_inv->m_full[3] = 0.000557812846991947;
+  imu->calib.m_lin[0].TK_inv->m_full[4] = 0.0369549837158209;
+  imu->calib.m_lin[0].TK_inv->m_full[5] = -8.72927629174908e-05;
+  imu->calib.m_lin[0].TK_inv->m_full[6] = -1.39341034395527e-06;
+  imu->calib.m_lin[0].TK_inv->m_full[7] = -0.000285345151446407;
+  imu->calib.m_lin[0].TK_inv->m_full[8] = 0.0384855683254305;
+  //gyro
+  imu->calib.m_lin[1].TK_inv->m_full[0] = 0.00125523336230927;
+  imu->calib.m_lin[1].TK_inv->m_full[1] = -1.15084040327189e-05;
+  imu->calib.m_lin[1].TK_inv->m_full[2] = 8.19684378866183e-05;
+  imu->calib.m_lin[1].TK_inv->m_full[3] = 1.17306447655883e-05;
+  imu->calib.m_lin[1].TK_inv->m_full[4] = 0.00123725332662238;
+  imu->calib.m_lin[1].TK_inv->m_full[5] = -1.5982900000789e-05;
+  imu->calib.m_lin[1].TK_inv->m_full[6] = 3.14054244764443e-05;
+  imu->calib.m_lin[1].TK_inv->m_full[7] = 6.82882805398049e-05;
+  imu->calib.m_lin[1].TK_inv->m_full[8] = 0.00124463531671983;
+  //mag
+  imu->calib.m_lin[2].TK_inv->m_full[0] = 0.00402824066832922;
+  imu->calib.m_lin[2].TK_inv->m_full[1] = -8.96774717665988e-06;
+  imu->calib.m_lin[2].TK_inv->m_full[2] = 0.000363980178696652;
+  imu->calib.m_lin[2].TK_inv->m_full[3] = 0;
+  imu->calib.m_lin[2].TK_inv->m_full[4] = 0.00405222522881617;
+  imu->calib.m_lin[2].TK_inv->m_full[5] = -0.000155928970260749;
+  imu->calib.m_lin[2].TK_inv->m_full[6] = 0;
+  imu->calib.m_lin[2].TK_inv->m_full[7] = 0;
+  imu->calib.m_lin[2].TK_inv->m_full[8] = 0.00460429864076721;
+
+  //b
+  //acc
+  imu->calib.m_lin[0].b->m_full[0] = 16.937408636394;
+  imu->calib.m_lin[0].b->m_full[1] = -0.244587410618034;
+  imu->calib.m_lin[0].b->m_full[2] = -47.786254768961;
+  //gyro
+  imu->calib.m_lin[1].b->m_full[0] = -25.381918771483;
+  imu->calib.m_lin[1].b->m_full[1] = -15.7209688725843;
+  imu->calib.m_lin[1].b->m_full[2] = -1.88703693133698;
+  //mag
+  imu->calib.m_lin[2].b->m_full[0] = -63.9019715992965;
+  imu->calib.m_lin[2].b->m_full[1] = -38.911556235825;
+  imu->calib.m_lin[2].b->m_full[2] = -75.7517190381074;
+
+}
+
+/* fin hecho por Berru */
+
+
 /*    int i,retval = ERROR_OK;*/
 /*    double dtmp;*/
 /*    FILE *calib_file = fopen(path,"r+");*/
@@ -496,104 +550,103 @@
  *
  * @return error code.
  */
-/*int imu_comm_init_calibration(imu_t *imu)*/
-/*{*/
-/*    int retval = ERROR_OK;*/
-/*    retval = imu_comm_alloc_calib_lin(imu);*/
-/*    err_propagate(retval);*/
-/*    retval = imu_data_alloc(&imu->calib.null_est_data);*/
-/*    err_propagate(retval);*/
-/*    imu->calib.acc_t_off = uquad_mat_alloc(3,1);*/
-/*    imu->calib.gyro_t_off = uquad_mat_alloc(3,1);*/
-/*    if((imu->calib.acc_t_off == NULL) || (imu->calib.gyro_t_off == NULL))*/
-/*    {*/
-/*	err_check(ERROR_MALLOC, "Failed to allocate temp offset!");*/
-/*    }*/
-/*    /// load calibration parameters from file*/
-/*    retval = imu_comm_load_calib(imu, IMU_DEFAULT_CALIB_PATH);*/
-/*    err_propagate(retval);*/
-/*    // Use default p0 until we get a calibration*/
-/*    imu->calib.null_est.pres = IMU_P0_DEFAULT;*/
-/*    return retval;*/
-/*}*/
+int imu_comm_init_calibration(imu_t *imu)
+{
+    int retval = ERROR_OK;
+    retval = imu_comm_alloc_calib_lin(imu);
+    err_propagate(retval);
+    retval = imu_data_alloc(&imu->calib.null_est_data);
+    err_propagate(retval);
+    imu->calib.acc_t_off = uquad_mat_alloc(3,1);
+    imu->calib.gyro_t_off = uquad_mat_alloc(3,1);
+    if((imu->calib.acc_t_off == NULL) || (imu->calib.gyro_t_off == NULL))
+    {
+	err_check(ERROR_MALLOC, "Failed to allocate temp offset!");
+    }
+    /// load calibration parameters from file
+    retval = imu_comm_load_calib(imu/*, IMU_DEFAULT_CALIB_PATH*/);
+    err_propagate(retval);
+    // Use default p0 until we get a calibration
+    imu->calib.null_est.pres = IMU_P0_DEFAULT;
+    return retval;
+}
 
-/*imu_t *imu_comm_init(const char *device){*/
-/*    imu_t *imu;*/
-/*    int*/
-/*	retval = ERROR_OK;*/
-/*    imu = (imu_t *)malloc(sizeof(imu_t));*/
-/*    mem_alloc_check(imu);*/
-/*    memset(imu,0,sizeof(imu_t));*/
-/*    imu->status = IMU_COMM_STATE_UNKNOWN;*/
+imu_t *imu_comm_init(/*const char *device*/){
+    imu_t *imu;
+    int
+	retval = ERROR_OK;
+    imu = (imu_t *)malloc(sizeof(imu_t));
+    mem_alloc_check(imu);
+    memset(imu,0,sizeof(imu_t));
+    imu->status = IMU_COMM_STATE_UNKNOWN;
 
-/*    m3x3 = uquad_mat_alloc(3,3);*/
-/*    m3x1_0 = uquad_mat_alloc(3,1);*/
-/*    m3x1_1 = uquad_mat_alloc(3,1);*/
-/*    if(m3x3 == NULL || m3x1_0 == NULL || m3x1_1 == NULL)*/
-/*	goto cleanup;*/
+    m3x3 = uquad_mat_alloc(3,3);
+    m3x1_0 = uquad_mat_alloc(3,1);
+    m3x1_1 = uquad_mat_alloc(3,1);
+    if(m3x3 == NULL || m3x1_0 == NULL || m3x1_1 == NULL)
+	goto cleanup;
 
-/*    imu->h[0] = 1  ;*/
-/*    // Set up filter, must have IMU_FILTER_LEN coefs*/
-/*    /* imu->h[0] = 0.2; */
-/*    /* imu->h[1] = 0.2; */
-/*    /* imu->h[2] = 0.2; */
-/*    /* imu->h[3] = 0.2; */
-/*    /* imu->h[4] = 0.1; */
-/*    /* imu->h[5] = 0.1; */
+    imu->h[0] = 1  ;
+    // Set up filter, must have IMU_FILTER_LEN coefs
+    /* imu->h[0] = 0.2;*/
+    /* imu->h[1] = 0.2;*/ 
+    /* imu->h[2] = 0.2;*/ 
+    /* imu->h[3] = 0.2;*/ 
+    /* imu->h[4] = 0.1;*/ 
+    /* imu->h[5] = 0.1;*/ 
 
-/*    // now connect to the imu*/
-/*    retval = imu_comm_connect(imu,device);*/
-/*    cleanup_if(retval);*/
+    // now connect to the imu
+    retval = imu_comm_connect(imu/*,device*/);
+    cleanup_if(retval);
 
-/*    // Get aux memory*/
-/*    retval = imu_data_alloc(&imu->tmp_filt);*/
-/*    cleanup_if(retval);*/
+    // Get aux memory
+    retval = imu_data_alloc(&imu->tmp_filt);
+    cleanup_if(retval);
 
-/*    // Send default values to IMU, then get it running, just in case it wasn't*/
-/*    retval = imu_comm_configure(imu);*/
-/*    cleanup_if(retval);*/
+    // Send default values to IMU, then get it running, just in case it wasn't
+    retval = imu_comm_configure(imu);
+    cleanup_if(retval);
 
-/*    retval = imu_comm_run_default(imu);*/
-/*    cleanup_if(retval);*/
+    retval = imu_comm_run_default(imu);
+    cleanup_if(retval);
 
-/*    // Mark IMU as not calibrated*/
-/*    imu_comm_calibration_clear(imu);*/
-/*    // Load/estimate calibration*/
-/*    retval = imu_comm_init_calibration(imu);*/
-/*    cleanup_if(retval);*/
+    // Mark IMU as not calibrated
+    imu_comm_calibration_clear(imu);
+    // Load/estimate calibration
+    retval = imu_comm_init_calibration(imu);
+    cleanup_if(retval);
 
-/*    // Mark initial altitud as unknown*/
-/*    imu->calib.p_z0 = -1;*/
-/*    imu->calib.z0 = -1;*/
+    // Mark initial altitud as unknown
+    imu->calib.p_z0 = -1;
+    imu->calib.z0 = -1;
 
-/*    // Wait 300ms + a bit more for IMU to reset (in case pgm cable is connected)*/
+    // Wait 300ms + a bit more for IMU to reset (in case pgm cable is connected)
 /*    sleep_ms(IMU_COMM_STARTUP_T_MS);*/
-/*    return imu;*/
+    return imu;
 
-/*    cleanup:*/
-/*    imu_comm_deinit(imu);*/
-/*    return NULL;*/
-/*}*/
+    cleanup:
+    imu_comm_deinit(imu);
+    return NULL;
+}
 
-/*int imu_comm_deinit(imu_t *imu){*/
-/*    int*/
-/*	retval = ERROR_OK;*/
-/*    if(imu == NULL)*/
-/*    {*/
-/*	err_log("WARN: Nothing to free.");*/
-/*	return ERROR_OK;*/
-/*    }*/
-/*    retval = imu_comm_disconnect(imu);*/
-/*    // ignore answer and keep dying, leftovers are not reliable*/
-/*    imu_data_free(&imu->tmp_filt);*/
-/*    //TODO chec if more to free*/
-/*    imu_comm_free_calib(imu->calib);*/
-/*    uquad_mat_free(m3x3);*/
-/*    uquad_mat_free(m3x1_0);*/
-/*    uquad_mat_free(m3x1_1);*/
-/*    free(imu);*/
-/*    return retval;*/
-/*}*/
+int imu_comm_deinit(imu_t *imu){
+    int	retval = ERROR_OK;
+    if(imu == NULL)
+    {
+	err_log("WARN: Nothing to free.");
+	return ERROR_OK;
+    }
+    retval = imu_comm_disconnect(imu);
+    // ignore answer and keep dying, leftovers are not reliable
+    imu_data_free(&imu->tmp_filt);
+    //TODO chec if more to free
+    imu_comm_free_calib(imu->calib);
+    uquad_mat_free(m3x3);
+    uquad_mat_free(m3x1_0);
+    uquad_mat_free(m3x1_1);
+    free(imu);
+    return retval;
+}
 
 #if !IMU_COMM_FAKE
 /**
@@ -1202,45 +1255,45 @@
 /*    return ERROR_OK;*/
 /*}*/
 
-/*int convert_2_euler(imu_data_t *data)*/
-/*{*/
-/*    int retval;*/
-/*    double psi;              // rad*/
-/*    double phi;              // rad*/
-/*    double theta;            // rad*/
-/*    double acc_norm = uquad_mat_norm(data->acc);*/
-/*    if(uquad_abs(data->acc->m_full[0]) < IMU_TH_DEADLOCK_ACC_NORM*acc_norm)*/
-/*    {*/
-/*	phi = -asin(data->acc->m_full[0]/acc_norm);*/
-/*	psi = atan2(data->acc->m_full[1],data->acc->m_full[2]);*/
-/*    }else if(data->acc->m_full[0]>0.0){*/
-/*	phi=-PI/2.0;*/
-/*	psi=0.0;*/
-/*    }else{*/
-/*	phi=PI/2.0;*/
-/*	psi=0.0;*/
-/*    }*/
+int convert_2_euler(imu_data_t *data)
+{
+    int retval;
+    double psi;              // rad
+    double phi;              // rad
+    double theta;            // rad
+    double acc_norm = uquad_mat_norm(data->acc);
+    if(uquad_abs(data->acc->m_full[0]) < IMU_TH_DEADLOCK_ACC_NORM*acc_norm)
+    {
+	phi = -asin(data->acc->m_full[0]/acc_norm);
+	psi = atan2(data->acc->m_full[1],data->acc->m_full[2]);
+    }else if(data->acc->m_full[0]>0.0){
+	phi=-PI/2.0;
+	psi=0.0;
+    }else{
+	phi=PI/2.0;
+	psi=0.0;
+    }
 
-/*    m3x3->m[0][0] = cos(phi)/(uquad_square(cos(phi)) + uquad_square(sin(phi)));*/
-/*    m3x3->m[0][1] = (sin(phi)*sin(psi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));*/
-/*    m3x3->m[0][2] = (cos(psi)*sin(phi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));*/
-/*    m3x3->m[1][0] = 0.0;*/
-/*    m3x3->m[1][1] = cos(psi)/(uquad_square(cos(psi)) + uquad_square(sin(psi)));*/
-/*    m3x3->m[1][2] = -sin(psi)/(uquad_square(cos(psi)) + uquad_square(sin(psi)));*/
-/*    m3x3->m[2][0] = -sin(phi)/(uquad_square(cos(phi)) + uquad_square(sin(phi)));*/
-/*    m3x3->m[2][1] = (cos(phi)*sin(psi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));*/
-/*    m3x3->m[2][2] = (cos(phi)*cos(psi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));*/
+    m3x3->m[0][0] = cos(phi)/(uquad_square(cos(phi)) + uquad_square(sin(phi)));
+    m3x3->m[0][1] = (sin(phi)*sin(psi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));
+    m3x3->m[0][2] = (cos(psi)*sin(phi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));
+    m3x3->m[1][0] = 0.0;
+    m3x3->m[1][1] = cos(psi)/(uquad_square(cos(psi)) + uquad_square(sin(psi)));
+    m3x3->m[1][2] = -sin(psi)/(uquad_square(cos(psi)) + uquad_square(sin(psi)));
+    m3x3->m[2][0] = -sin(phi)/(uquad_square(cos(phi)) + uquad_square(sin(phi)));
+    m3x3->m[2][1] = (cos(phi)*sin(psi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));
+    m3x3->m[2][2] = (cos(phi)*cos(psi))/((uquad_square(cos(phi)) + uquad_square(sin(phi)))*(uquad_square(cos(psi)) + uquad_square(sin(psi))));
 
-/*    retval = uquad_mat_prod(m3x1_0,m3x3,data->magn);*/
-/*    err_propagate(retval);*/
+    retval = uquad_mat_prod(m3x1_0,m3x3,data->magn);
+    err_propagate(retval);
 
-/*    theta = -atan2(m3x1_0->m_full[1],m3x1_0->m_full[0]) + IMU_TH_DEADLOCK_ANG;//9.78;*/
+    theta = -atan2(m3x1_0->m_full[1],m3x1_0->m_full[0]) + IMU_TH_DEADLOCK_ANG;//9.78;
 
-/*    data->magn->m_full[0]=psi;*/
-/*    data->magn->m_full[1]=phi;*/
-/*    data->magn->m_full[2]=theta;*/
-/*    return ERROR_OK;*/
-/*}*/
+    data->magn->m_full[0]=psi;
+    data->magn->m_full[1]=phi;
+    data->magn->m_full[2]=theta;
+    return ERROR_OK;
+}
 
 /**
  * Uses linear model provided by calib to convert raw into valid
@@ -1257,39 +1310,39 @@
  *
  * @return error code
  */
-/*static int imu_comm_convert_lin(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *conv, imu_calib_lin_t *calib)*/
-/*{*/
-/*    int i,retval = ERROR_OK;*/
-/*    if(!imu->calib.calib_file_ready && !imu->calib.calib_estim_ready)*/
-/*    {*/
-/*	err_check(ERROR_IMU_NOT_CALIB,"Cannot convert without calibration!");*/
-/*    }*/
+static int imu_comm_convert_lin(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *conv, imu_calib_lin_t *calib)
+{
+    int i,retval = ERROR_OK;
+    if(!imu->calib.calib_file_ready && !imu->calib.calib_estim_ready)
+    {
+	err_check(ERROR_IMU_NOT_CALIB,"Cannot convert without calibration!");
+    }
 
-/*    if((raw == NULL) == (raw_db == NULL))*/
-/*    {*/
-/*	err_check(ERROR_INVALID_ARG, "Either raw or raw_db must be NULL!");*/
-/*    }*/
-/*    if(raw != NULL)*/
-/*    {*/
-/*	for(i=0; i < 3; ++i)*/
-/*	    m3x1_0->m_full[i] = ((double) raw[i]);*/
-/*    }*/
-/*    else*/
-/*    {*/
-/*	retval = uquad_mat_copy(m3x1_0, raw_db);*/
-/*	err_propagate(retval);*/
-/*    }*/
-/*    /// m3x1_0 has tmp answer*/
-/*    /// tmp = raw - b*/
-/*    retval = uquad_mat_sub(m3x1_1,m3x1_0, calib->b);*/
-/*    err_propagate(retval);*/
-/*    /// m3x1_1 has tmp answer*/
-/*    /// conv = k*tmp*/
-/*    retval = uquad_mat_prod(conv, calib->TK_inv, m3x1_1);*/
-/*    err_propagate(retval);*/
-/*    // conv has final answer*/
-/*    return retval;*/
-/*}*/
+    if((raw == NULL) == (raw_db == NULL))
+    {
+	err_check(ERROR_INVALID_ARG, "Either raw or raw_db must be NULL!");
+    }
+    if(raw != NULL)
+    {
+	for(i=0; i < 3; ++i)
+	    m3x1_0->m_full[i] = ((double) raw[i]);
+    }
+    else
+    {
+	retval = uquad_mat_copy(m3x1_0, raw_db);
+	err_propagate(retval);
+    }
+    /// m3x1_0 has tmp answer
+    /// tmp = raw - b
+    retval = uquad_mat_sub(m3x1_1,m3x1_0, calib->b);
+    err_propagate(retval);
+    /// m3x1_1 has tmp answer
+    /// conv = k*tmp
+    retval = uquad_mat_prod(conv, calib->TK_inv, m3x1_1);
+    err_propagate(retval);
+    // conv has final answer
+    return retval;
+}
 
 /**
  * Converts raw acc data to m/s^2
@@ -1305,20 +1358,20 @@
  *
  *@return error code
  */
-/*static int imu_comm_acc_convert(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *acc, double temp)*/
-/*{*/
-/*    int retval = ERROR_OK;*/
-/*    retval = imu_comm_convert_lin(imu, raw, raw_db, acc, imu->calib.m_lin);*/
-/*    err_propagate(retval);*/
-/*    // temperature correction*/
-/*    retval = uquad_mat_scalar_mul(m3x1_0,*/
-/*				  imu->calib.acc_t_off,*/
-/*				  temp - imu->calib.acc_to);*/
-/*    err_propagate(retval);*/
-/*    retval = uquad_mat_sub(acc, acc, m3x1_0);*/
-/*    err_propagate(retval);*/
-/*    return retval;  */
-/*}*/
+static int imu_comm_acc_convert(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *acc, double temp)
+{
+    int retval = ERROR_OK;
+    retval = imu_comm_convert_lin(imu, raw, raw_db, acc, imu->calib.m_lin);
+    err_propagate(retval);
+    // temperature correction
+    retval = uquad_mat_scalar_mul(m3x1_0,
+				  imu->calib.acc_t_off,
+				  temp - imu->calib.acc_to);
+    err_propagate(retval);
+    retval = uquad_mat_sub(acc, acc, m3x1_0);
+    err_propagate(retval);
+    return retval;  
+}
 
 /**
  * Convert raw gyro data using calibration and current temperature.
@@ -1333,23 +1386,23 @@
  *
  *@return error code
  */
-/*static int imu_comm_gyro_convert(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *gyro, double temp)*/
-/*{*/
-/*    int retval = ERROR_OK;*/
-/*    retval = imu_comm_convert_lin(imu, raw, raw_db, gyro, imu->calib.m_lin + 1);*/
-/*    err_propagate(retval);*/
-/*    // temperature compensation*/
-/*    retval = uquad_mat_scalar_mul(m3x1_0,*/
-/*				  imu->calib.gyro_t_off,*/
-/*				  temp - imu->calib.gyro_to);*/
-/*    err_propagate(retval);*/
-/*    retval = uquad_mat_sub(gyro, gyro, m3x1_0);*/
+static int imu_comm_gyro_convert(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *gyro, double temp)
+{
+    int retval = ERROR_OK;
+    retval = imu_comm_convert_lin(imu, raw, raw_db, gyro, imu->calib.m_lin + 1);
+    err_propagate(retval);
+    // temperature compensation
+    retval = uquad_mat_scalar_mul(m3x1_0,
+				  imu->calib.gyro_t_off,
+				  temp - imu->calib.gyro_to);
+    err_propagate(retval);
+    retval = uquad_mat_sub(gyro, gyro, m3x1_0);
 
-/*    // compensate startup-offset*/
-/*    retval = uquad_mat_sub(gyro,gyro,imu->calib.null_est_data.gyro);*/
-/*    err_propagate(retval);*/
-/*    return retval;*/
-/*}*/
+    // compensate startup-offset
+    retval = uquad_mat_sub(gyro,gyro,imu->calib.null_est_data.gyro);
+    err_propagate(retval);
+    return retval;
+}
 
 /**
  * Convert raw magn data using current calibration.
@@ -1363,13 +1416,13 @@
  *
  *@return error code
  */
-/*static int imu_comm_magn_convert(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *magn)*/
-/*{*/
-/*    int retval = ERROR_OK;*/
-/*    retval = imu_comm_convert_lin(imu, raw, raw_db, magn, imu->calib.m_lin + 2);*/
-/*    err_propagate(retval);*/
-/*    return retval;*/
-/*}*/
+static int imu_comm_magn_convert(imu_t *imu, int16_t *raw, uquad_mat_t *raw_db, uquad_mat_t *magn)
+{
+    int retval = ERROR_OK;
+    retval = imu_comm_convert_lin(imu, raw, raw_db, magn, imu->calib.m_lin + 2);
+    err_propagate(retval);
+    return retval;
+}
 
 /**
  * Convert raw temperature data to °C.
@@ -1384,26 +1437,26 @@
  *
  *@return error code
  */
-/*static int imu_comm_temp_convert(imu_t *imu, uint16_t *data, double *data_db, double *temp)*/
-/*{*/
-/*    if(imu == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"Invalid argument.");*/
-/*    }*/
-/*    if((data == NULL) == (data_db == NULL))*/
-/*    {*/
-/*	err_check(ERROR_INVALID_ARG, "Either data or data_db must be NULL!");*/
-/*    }*/
-/*    if(data != NULL)*/
-/*    {*/
-/*	*temp = ((double) *data)/10;*/
-/*    }*/
-/*    else*/
-/*    {*/
-/*	*temp = (*data_db)/10;*/
-/*    }*/
-/*    return ERROR_OK;*/
-/*}*/
+static int imu_comm_temp_convert(imu_t *imu, uint16_t *data, double *data_db, double *temp)
+{
+    if(imu == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"Invalid argument.");
+    }
+    if((data == NULL) == (data_db == NULL))
+    {
+	err_check(ERROR_INVALID_ARG, "Either data or data_db must be NULL!");
+    }
+    if(data != NULL)
+    {
+	*temp = ((double) *data)/10;
+    }
+    else
+    {
+	*temp = (*data_db)/10;
+    }
+    return ERROR_OK;
+}
 
 /**
  * Convert raw pressure data to relative altitud.
@@ -1419,30 +1472,30 @@
  *
  *@return error code
  */
-/*static int imu_comm_pres_convert(imu_t *imu, uint32_t *data, double *data_db, double *alt)*/
-/*{*/
-/*    double p0;*/
-/*    if((data == NULL) == (data_db == NULL))*/
-/*    {*/
-/*	err_check(ERROR_INVALID_ARG, "Either data or data_db must be NULL!");*/
-/*    }*/
-/*    if(imu->calib.p_z0 >= 0)*/
-/*	p0 = imu->calib.p_z0;*/
-/*    else*/
-/*    {*/
-/*	p0 = (imu_comm_calib_estim(imu))?*/
-/*	    // we have a calibration, use it.*/
-/*	    imu->calib.null_est.pres:*/
-/*	    // if not, use default*/
-/*	    IMU_P0_DEFAULT;*/
-/*    }*/
+static int imu_comm_pres_convert(imu_t *imu, uint32_t *data, double *data_db, double *alt)
+{
+    double p0;
+    if((data == NULL) == (data_db == NULL))
+    {
+	err_check(ERROR_INVALID_ARG, "Either data or data_db must be NULL!");
+    }
+    if(imu->calib.p_z0 >= 0)
+	p0 = imu->calib.p_z0;
+    else
+    {
+	p0 = (imu_comm_calib_estim(imu))?
+	    // we have a calibration, use it.
+	    imu->calib.null_est.pres:
+	    // if not, use default
+	    IMU_P0_DEFAULT;
+    }
 
-/*    if(data != NULL)*/
-/*	*alt = PRESS_K*(1.0 - pow((((double)(*data))/p0),PRESS_EXP));*/
-/*    else*/
-/*	*alt = PRESS_K*(1.0 - pow(((*data_db)/p0),PRESS_EXP));*/
-/*    return ERROR_OK;*/
-/*}*/
+    if(data != NULL)
+	*alt = PRESS_K*(1.0 - pow((((double)(*data))/p0),PRESS_EXP));
+    else
+	*alt = PRESS_K*(1.0 - pow(((*data_db)/p0),PRESS_EXP));
+    return ERROR_OK;
+}
 
 /*int imu_comm_set_z0(imu_t *imu, double z0)*/
 /*{*/
@@ -1454,82 +1507,82 @@
 /*    return ERROR_OK;*/
 /*}*/
 
-/*int imu_comm_raw2data(imu_t *imu, imu_raw_t *raw, imu_data_t *raw_db, imu_data_t *data){*/
-/*    int	retval;*/
-/*    if(imu == NULL || data == NULL){*/
-/*	err_check(ERROR_NULL_POINTER,"Non null pointers required as args...");*/
-/*    }*/
-/*    if((raw == NULL) == (raw_db == NULL))*/
-/*    {*/
-/*	err_check(ERROR_INVALID_ARG, "Either raw or raw_db must be NULL!");*/
-/*    }*/
+int imu_comm_raw2data(imu_t *imu, imu_raw_t *raw, imu_data_t *raw_db, imu_data_t *data){
+    int	retval;
+    if(imu == NULL || data == NULL){
+	err_check(ERROR_NULL_POINTER,"Non null pointers required as args...");
+    }
+    if((raw == NULL) == (raw_db == NULL))
+    {
+	err_check(ERROR_INVALID_ARG, "Either raw or raw_db must be NULL!");
+    }
 
-/*    // Get timestamp*/
-/*    if(raw != NULL)*/
-/*    {*/
-/*	data->timestamp = raw->timestamp;*/
-/*	data->T_us = (double) raw->T_us;//TODO check!*/
+    // Get timestamp
+    if(raw != NULL)
+    {
+	//data->timestamp = raw->timestamp;
+	data->T_us = (double) raw->T_us;//TODO check!
 
-/*	// Convert temperature readings*/
-/*	retval = imu_comm_temp_convert(imu, &(raw->temp), NULL, &(data->temp));*/
-/*	err_propagate(retval);*/
+	// Convert temperature readings
+	retval = imu_comm_temp_convert(imu, &(raw->temp), NULL, &(data->temp));
+	err_propagate(retval);
 
-/*	// Convert accelerometer readings*/
-/*	retval = imu_comm_acc_convert(imu, raw->acc, NULL, data->acc, data->temp);*/
-/*	err_propagate(retval);*/
+	// Convert accelerometer readings
+	retval = imu_comm_acc_convert(imu, raw->acc, NULL, data->acc, data->temp);
+	err_propagate(retval);
 
-/*	// Convert gyroscope readings*/
-/*	retval = imu_comm_gyro_convert(imu, raw->gyro, NULL, data->gyro, data->temp);*/
-/*	err_propagate(retval);*/
+	// Convert gyroscope readings
+	retval = imu_comm_gyro_convert(imu, raw->gyro, NULL, data->gyro, data->temp);
+	err_propagate(retval);
 
-/*	// Convert magnetometer readings*/
-/*	retval = imu_comm_magn_convert(imu, raw->magn, NULL, data->magn);*/
-/*	err_propagate(retval);*/
+	// Convert magnetometer readings
+	retval = imu_comm_magn_convert(imu, raw->magn, NULL, data->magn);
+	err_propagate(retval);
 
-/*	// Convert altitud readings*/
-/*	retval = imu_comm_pres_convert(imu, &(raw->pres), NULL, &(data->alt));*/
-/*	err_propagate(retval);*/
-/*    }*/
-/*    else*/
-/*    {*/
-/*	data->timestamp = raw_db->timestamp;*/
-/*	data->T_us = raw_db->T_us;//TODO check!*/
+	// Convert altitud readings
+	retval = imu_comm_pres_convert(imu, &(raw->pres), NULL, &(data->alt));
+	err_propagate(retval);
+    }
+    else
+    {
+	//data->timestamp = raw_db->timestamp;
+	data->T_us = raw_db->T_us;//TODO check!
 
-/*	// Convert temperature readings*/
-/*	retval = imu_comm_temp_convert(imu, NULL, &raw_db->temp, &(data->temp));*/
-/*	err_propagate(retval);*/
+	// Convert temperature readings
+	retval = imu_comm_temp_convert(imu, NULL, &raw_db->temp, &(data->temp));
+	err_propagate(retval);
 
-/*	// Convert accelerometer readings*/
-/*	retval = imu_comm_acc_convert(imu, NULL, raw_db->acc, data->acc, data->temp);*/
-/*	err_propagate(retval);*/
+	// Convert accelerometer readings
+	retval = imu_comm_acc_convert(imu, NULL, raw_db->acc, data->acc, data->temp);
+	err_propagate(retval);
 
-/*	// Convert gyroscope readings*/
-/*	retval = imu_comm_gyro_convert(imu, NULL, raw_db->gyro, data->gyro, data->temp);*/
-/*	err_propagate(retval);*/
+	// Convert gyroscope readings
+	retval = imu_comm_gyro_convert(imu, NULL, raw_db->gyro, data->gyro, data->temp);
+	err_propagate(retval);
 
-/*	// Convert magnetometer readings*/
-/*	retval = imu_comm_magn_convert(imu, NULL, raw_db->magn, data->magn);*/
-/*	err_propagate(retval);*/
+	// Convert magnetometer readings
+	retval = imu_comm_magn_convert(imu, NULL, raw_db->magn, data->magn);
+	err_propagate(retval);
 
-/*	// Convert altitud readings*/
-/*	retval = imu_comm_pres_convert(imu, NULL, &(raw_db->alt), &(data->alt));*/
-/*	err_propagate(retval);*/
-/*    }*/
+	// Convert altitud readings
+	retval = imu_comm_pres_convert(imu, NULL, &(raw_db->alt), &(data->alt));
+	err_propagate(retval);
+    }
 
-/*    // Check if acc and magn reading have the norm() they should have*/
-/*#if DYNAMIC_COV*/
-/*    data->acc_ok = (uquad_abs(uquad_mat_norm(data->acc) - GRAVITY) < IMU_TH_ACC);*/
-/*    data->magn_ok = (uquad_abs(uquad_mat_norm(data->magn) - 1.0) < IMU_TH_MAGN);*/
-/*#else*/
-/*    data->acc_ok = true;*/
-/*    data->magn_ok = true;*/
-/*#endif*/
+    // Check if acc and magn reading have the norm() they should have
+#if DYNAMIC_COV
+    data->acc_ok = (uquad_abs(uquad_mat_norm(data->acc) - GRAVITY) < IMU_TH_ACC);
+    data->magn_ok = (uquad_abs(uquad_mat_norm(data->magn) - 1.0) < IMU_TH_MAGN);
+#else
+    data->acc_ok = true;
+    data->magn_ok = true;
+#endif
 
-/*    retval = convert_2_euler(data);*/
-/*    err_propagate(retval);  */
+    retval = convert_2_euler(data);
+    err_propagate(retval);  
 
-/*    return ERROR_OK;*/
-/*}*/
+    return ERROR_OK;
+}
 
 /*int imu_comm_get_raw_latest(imu_t *imu, imu_raw_t *raw){*/
 /*    int retval;*/
@@ -1618,10 +1671,10 @@
 /*    return imu->calib.calib_file_ready;*/
 /*}	*/
 
-/*uquad_bool_t imu_comm_calib_estim(imu_t *imu)*/
-/*{*/
-/*    return imu->calib.calib_estim_ready;*/
-/*}*/
+uquad_bool_t imu_comm_calib_estim(imu_t *imu)
+{
+    return imu->calib.calib_estim_ready;
+}
 
 /*int imu_comm_calib_save(imu_t *imu, const char *filename)*/
 /*{*/

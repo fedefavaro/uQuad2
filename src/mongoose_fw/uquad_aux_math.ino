@@ -31,25 +31,25 @@
 /* * http://www.mymathlib.com*/
 /* */
 /*#include "copy_matrix.h"*/
-/*#include "join_by_rows.c"*/
+#include "join_by_rows.h"
 /*#include "join_by_cols.c"*/
 #include "zero_matrix.h"
-/*#include "identity_matrix.c"*/
+#include "identity_matrix.h"
 /*#include "set_diagonal.c"*/
 /*#include "get_diagonal.c"*/
 #include "get_submatrix.h"
 /*#include "set_submatrix.h"*/
-/*#include "mul_3x3_matrix_by_scalar.h"*/
-/*#include "add_matrices.c"*/
-/*#include "add_matrices_3x3.h"*/
-/*#include "subtract_matrices.c"*/
-/*#include "subtract_matrices_3x3.h"*/
-/*#include "multiply_matrices.c"*/
-/*#include "multiply_matrices_3x3.c"*/
+#include "mul_3x3_matrix_by_scalar.h"
+#include "add_matrices.h"
+#include "add_matrices_3x3.h"
+#include "subtract_matrices.h"
+#include "subtract_matrices_3x3.h"
+#include "multiply_matrices.h"
+#include "multiply_matrices_3x3.h"
 /*#include "gauss_elimination.c"*/
-/*#include "gauss_aux_elimination.c"*/
-/*#include "transpose_matrix.c"*/
-/*#include "transpose_square_matrix.c"*/
+#include "gauss_aux_elimination.h"
+#include "transpose_matrix.h"
+/*#include "transpose_square_matrix.h"*/
 /*#if USE_EQUILIBRATE*/
 /*#include "equilibrate_matrix.c"*/
 /*#endif // USE_EQUILIBRATE*/
@@ -58,24 +58,24 @@
 /*//#include "doolittle.c"*/
 /*//#include "doolittle_pivot.c"*/
 
-/*int uquad_mat_prod(struct uquad_mat *C, struct uquad_mat *A,struct uquad_mat *B)*/
-/*{*/
-/*    if(A == NULL || B == NULL || C == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");*/
-/*    }*/
+int uquad_mat_prod(struct uquad_mat *C, struct uquad_mat *A,struct uquad_mat *B)
+{
+    if(A == NULL || B == NULL || C == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");
+    }
 
-/*    // check dims*/
-/*    if((A->c != B->r) || !((C->r == A->r) && (C->c == B->c)))*/
-/*    {*/
-/*	err_check(ERROR_MATH_MAT_DIM,"Cannot multiply matrices, dims do not match.");*/
-/*    }*/
-/*    if(C->c == 3 && C->r == 3)*/
-/*	Multiply_Matrices_3x3(C->m_full,A->m_full,B->m_full);*/
-/*    else*/
-/*	Multiply_Matrices(C->m_full,A->m_full,A->r,A->c,B->m_full,B->c);*/
-/*    return ERROR_OK;*/
-/*}*/
+    // check dims
+    if((A->c != B->r) || !((C->r == A->r) && (C->c == B->c)))
+    {
+	err_check(ERROR_MATH_MAT_DIM,"Cannot multiply matrices, dims do not match.");
+    }
+    if(C->c == 3 && C->r == 3)
+	Multiply_Matrices_3x3(C->m_full,A->m_full,B->m_full);
+    else
+	Multiply_Matrices(C->m_full,A->m_full,A->r,A->c,B->m_full,B->c);
+    return ERROR_OK;
+}
 
 /*int uquad_mat_det(struct uquad_mat *m, double *res)*/
 /*{*/
@@ -87,35 +87,35 @@
 /*    err_check(ERROR_FAIL,"Not implemented!");*/
 /*}*/
 
-/*int uquad_mat_scalar_mul(struct uquad_mat *Mk, struct uquad_mat *M, double k)*/
-/*{*/
-/*    int i, size;*/
-/*    if(Mk == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");*/
-/*    }*/
-/*    size = Mk->r * Mk->c;*/
-/*    if(M != NULL)*/
-/*    {*/
-/*	if(Mk->r != M->r || Mk->c != M->c)*/
-/*	{*/
-/*	    err_check(ERROR_MATH_MAT_DIM,"Cannot multiply matrices, dims do not match.");*/
-/*	}*/
-/*	for(i = 0; i < size; ++i)*/
-/*	    Mk->m_full[i] = M->m_full[i]*k;*/
-/*    }*/
-/*    else*/
-/*    {*/
-/*	if((Mk->r == 3) && (Mk->c == 3))*/
-/*	{*/
-/*	    Multiply_3x3_Matrix_by_Scalar(Mk->m_full,k);*/
-/*	}*/
-/*	else*/
-/*	    for(i = 0; i < size; ++i)*/
-/*		Mk->m_full[i] *= k;	*/
-/*    }*/
-/*    return ERROR_OK;*/
-/*}*/
+int uquad_mat_scalar_mul(struct uquad_mat *Mk, struct uquad_mat *M, double k)
+{
+    int i, size;
+    if(Mk == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");
+    }
+    size = Mk->r * Mk->c;
+    if(M != NULL)
+    {
+	if(Mk->r != M->r || Mk->c != M->c)
+	{
+	    err_check(ERROR_MATH_MAT_DIM,"Cannot multiply matrices, dims do not match.");
+	}
+	for(i = 0; i < size; ++i)
+	    Mk->m_full[i] = M->m_full[i]*k;
+    }
+    else
+    {
+	if((Mk->r == 3) && (Mk->c == 3))
+	{
+	    Multiply_3x3_Matrix_by_Scalar(Mk->m_full,k);
+	}
+	else
+	    for(i = 0; i < size; ++i)
+		Mk->m_full[i] *= k;	
+    }
+    return ERROR_OK;
+}
 
 /*int uquad_mat_scalar_div(struct uquad_mat *Mk, struct uquad_mat *M, double k)*/
 /*{*/
@@ -129,155 +129,155 @@
 /*    return ERROR_OK;*/
 /*}*/
 
-/*int uquad_mat_sub(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B)*/
-/*{*/
-/*    if(C == NULL || A == NULL || B == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");*/
-/*    }*/
-/*    if((C->r != B->r) ||*/
-/*       (C->c != B->c) ||*/
-/*       (C->r != A->r) ||*/
-/*       (C->c != A->c))*/
-/*    {*/
-/*	err_check(ERROR_MATH_MAT_DIM,"Dimension mismatch, cannot sub");*/
-/*    }*/
-/*    if((C->r == 3) && (C->c == 3))*/
-/*    {*/
-/*	Subtract_Matrices_3x3(C->m_full,A->m_full,B->m_full);*/
-/*    }*/
-/*    else*/
-/*    {*/
-/*	Subtract_Matrices(C->m_full,A->m_full,B->m_full,A->r,A->c);*/
-/*    }*/
-/*    return ERROR_OK;*/
-/*}*/
+int uquad_mat_sub(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B)
+{
+    if(C == NULL || A == NULL || B == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");
+    }
+    if((C->r != B->r) ||
+       (C->c != B->c) ||
+       (C->r != A->r) ||
+       (C->c != A->c))
+    {
+	err_check(ERROR_MATH_MAT_DIM,"Dimension mismatch, cannot sub");
+    }
+    if((C->r == 3) && (C->c == 3))
+    {
+	Subtract_Matrices_3x3(C->m_full,A->m_full,B->m_full);
+    }
+    else
+    {
+	Subtract_Matrices(C->m_full,A->m_full,B->m_full,A->r,A->c);
+    }
+    return ERROR_OK;
+}
 
-/*int uquad_mat_add(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B)*/
-/*{*/
-/*    if(C == NULL || A == NULL || B == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");*/
-/*    }*/
-/*    if((C->r != B->r) ||*/
-/*       (C->c != B->c) ||*/
-/*       (C->r != A->r) ||*/
-/*       (C->c != A->c))*/
-/*    {*/
-/*	err_check(ERROR_MATH_MAT_DIM,"Dimension mismatch, cannot add");*/
-/*    }*/
-/*    if((C->r == 3) && (C->c == 3))*/
-/*    {*/
-/*	Add_Matrices_3x3(C->m_full,A->m_full,B->m_full);*/
-/*    }*/
-/*    else*/
-/*    {*/
-/*	Add_Matrices(C->m_full,A->m_full,B->m_full,A->r,A->c);*/
-/*    }*/
-/*    return ERROR_OK;*/
-/*}*/
+int uquad_mat_add(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B)
+{
+    if(C == NULL || A == NULL || B == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");
+    }
+    if((C->r != B->r) ||
+       (C->c != B->c) ||
+       (C->r != A->r) ||
+       (C->c != A->c))
+    {
+	err_check(ERROR_MATH_MAT_DIM,"Dimension mismatch, cannot add");
+    }
+    if((C->r == 3) && (C->c == 3))
+    {
+	Add_Matrices_3x3(C->m_full,A->m_full,B->m_full);
+    }
+    else
+    {
+	Add_Matrices(C->m_full,A->m_full,B->m_full,A->r,A->c);
+    }
+    return ERROR_OK;
+}
 
-/*int uquad_solve_lin(struct uquad_mat *A, struct uquad_mat *B, struct uquad_mat *x, struct uquad_mat *maux)*/
-/*{*/
-/*    int retval;*/
-/*    uquad_bool_t local_mem = false;*/
-/*    if(A == NULL || B == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");*/
-/*    }*/
+int uquad_solve_lin(struct uquad_mat *A, struct uquad_mat *B, struct uquad_mat *x, struct uquad_mat *maux)
+{
+    int retval;
+    uquad_bool_t local_mem = false;
+    if(A == NULL || B == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");
+    }
 
-/*    if(A->c != x->r ||*/
-/*       B->r != A->r ||*/
-/*       B->c != x->c)*/
-/*    {*/
-/*	err_check(ERROR_MATH_MAT_DIM,"Dimension mismatch, cannot solve");*/
-/*    }*/
+    if(A->c != x->r ||
+       B->r != A->r ||
+       B->c != x->c)
+    {
+	err_check(ERROR_MATH_MAT_DIM,"Dimension mismatch, cannot solve");
+    }
 
-/*    if(maux == NULL)*/
-/*    {*/
-/*	// create aux matrix*/
-/*	maux = uquad_mat_alloc(A->r,A->c + B->c);*/
-/*	if(maux == NULL)*/
-/*	{*/
-/*	    err_check(ERROR_MALLOC,"Could not allocate aux mem for lin solve.");*/
-/*	}*/
-/*	local_mem = true;*/
-/*    }*/
+    if(maux == NULL)
+    {
+	// create aux matrix
+	maux = uquad_mat_alloc(A->r,A->c + B->c);
+	if(maux == NULL)
+	{
+	    err_check(ERROR_MALLOC,"Could not allocate aux mem for lin solve.");
+	}
+	local_mem = true;
+    }
 
-/*#if USE_EQUILIBRATE*/
-/*    struct uquad_mat *R, *C, *Beq;*/
-/*    R = uquad_mat_alloc(A->r, 1);*/
-/*    C = uquad_mat_alloc(A->c, 1);*/
-/*    Beq = uquad_mat_alloc(B->r,B->c);*/
-/*    if (R == NULL || C == NULL || Beq == NULL)*/
-/*    {*/
-/*	err_log("Could not allocate aux mem for lin solve.");*/
-/*	goto cleanup;*/
-/*    }*/
+#if USE_EQUILIBRATE
+    struct uquad_mat *R, *C, *Beq;
+    R = uquad_mat_alloc(A->r, 1);
+    C = uquad_mat_alloc(A->c, 1);
+    Beq = uquad_mat_alloc(B->r,B->c);
+    if (R == NULL || C == NULL || Beq == NULL)
+    {
+	err_log("Could not allocate aux mem for lin solve.");
+	goto cleanup;
+    }
 
-/*    retval = uquad_mat_copy(Beq, B);*/
-/*    if(retval != ERROR_OK)*/
-/*    {*/
-/*	err_log_num("Failed to copy B.",retval);*/
-/*	goto cleanup;*/
-/*    }*/
+    retval = uquad_mat_copy(Beq, B);
+    if(retval != ERROR_OK)
+    {
+	err_log_num("Failed to copy B.",retval);
+	goto cleanup;
+    }
 
-/*    // equilibrate matrices to reduce condition number*/
-/*#warning "Equilibrate will break matrix A!"*/
-/*    retval = Equilibrate_Matrix(A->m_full, A->r, A->c, R->m_full, C->m_full);*/
-/*    if(retval != ERROR_OK)*/
-/*    {*/
-/*	err_log_num("Equilibrate_Matrix() failed!",retval);*/
-/*	goto cleanup;*/
-/*    }*/
+    // equilibrate matrices to reduce condition number
+#warning "Equilibrate will break matrix A!"
+    retval = Equilibrate_Matrix(A->m_full, A->r, A->c, R->m_full, C->m_full);
+    if(retval != ERROR_OK)
+    {
+	err_log_num("Equilibrate_Matrix() failed!",retval);
+	goto cleanup;
+    }
 
-/*    retval = Equilibrate_Right_Hand_Side(Beq->m_full, R->m_full, R->r);*/
-/*    if(retval != ERROR_OK)*/
-/*    {*/
-/*	err_log_num("Equilibrate_Right_Hand_Side() failed!",retval);*/
-/*	goto cleanup;*/
-/*    }*/
-/*    // we need [A:B]*/
-/*    Join_Matrices_by_Row(maux->m_full,A->m_full,A->r,A->c,Beq->m_full,Beq->c);*/
-/*#else*/
-/*    // we need [A:B]*/
-/*    Join_Matrices_by_Row(maux->m_full,A->m_full,A->r,A->c,B->m_full,B->c);*/
-/*#endif*/
+    retval = Equilibrate_Right_Hand_Side(Beq->m_full, R->m_full, R->r);
+    if(retval != ERROR_OK)
+    {
+	err_log_num("Equilibrate_Right_Hand_Side() failed!",retval);
+	goto cleanup;
+    }
+    // we need [A:B]
+    Join_Matrices_by_Row(maux->m_full,A->m_full,A->r,A->c,Beq->m_full,Beq->c);
+#else
+    // we need [A:B]
+    Join_Matrices_by_Row(maux->m_full,A->m_full,A->r,A->c,B->m_full,B->c);
+#endif
 
-/*    // find inv*/
-/*    retval = Gaussian_Elimination_Aux(maux->m_full,maux->r,maux->c);*/
-/*    if (retval < 0)*/
-/*    {*/
-/*	err_log_num("Gaussian elimination failed, matrix is singular",retval);*/
-/*	goto cleanup;*/
-/*    }*/
+    // find inv
+    retval = Gaussian_Elimination_Aux(maux->m_full,maux->r,maux->c);
+    if (retval < 0)
+    {
+	err_log_num("Gaussian elimination failed, matrix is singular",retval);
+	goto cleanup;
+    }
 
-/*    // prepare return datax*/
-/*    Get_Submatrix(x->m_full, x->r, x->c,*/
-/*		  maux->m_full, maux->c,*/
-/*		  0, A->c);*/
+    // prepare return datax
+    Get_Submatrix(x->m_full, x->r, x->c,
+		  maux->m_full, maux->c,
+		  0, A->c);
 
-/*    // unequilibrate solution*/
-/*#if USE_EQUILIBRATE*/
-/*    retval = Unequilibrate_Solution(x->m_full, C->m_full, C->r);*/
-/*    if( retval != ERROR_OK)*/
-/*    {*/
-/*	err_log_num("Unequilibrate_Solution() failed!",retval);*/
-/*	goto cleanup;*/
-/*    }*/
-/*    uquad_mat_free(R);*/
-/*    uquad_mat_free(C);*/
-/*    uquad_mat_free(Beq);*/
-/*#endif*/
-/*	*/
-/*    cleanup:*/
-/*    // cleanup*/
-/*    if(local_mem)*/
-/*	// free tmp memory*/
-/*	uquad_mat_free(maux);*/
-/*    */
-/*    return ERROR_OK;*/
-/*}*/
+    // unequilibrate solution
+#if USE_EQUILIBRATE
+    retval = Unequilibrate_Solution(x->m_full, C->m_full, C->r);
+    if( retval != ERROR_OK)
+    {
+	err_log_num("Unequilibrate_Solution() failed!",retval);
+	goto cleanup;
+    }
+    uquad_mat_free(R);
+    uquad_mat_free(C);
+    uquad_mat_free(Beq);
+#endif
+	
+    cleanup:
+    // cleanup
+    if(local_mem)
+	// free tmp memory
+	uquad_mat_free(maux);
+    
+    return ERROR_OK;
+}
 
 /*int uquad_solve_pol2(double *xp, double *xm, double a, double b, double c)*/
 /*{*/
@@ -294,19 +294,19 @@
 /*    return ERROR_OK;*/
 /*}*/
 
-/*int uquad_mat_eye(struct uquad_mat *m)*/
-/*{*/
-/*    if(m == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");*/
-/*    }*/
-/*    if(m->r != m->c)*/
-/*    {*/
-/*	err_check(ERROR_MATH_MAT_DIM,"Identity matrix must be square!");*/
-/*    }*/
-/*    Identity_Matrix(m->m_full,m->r);*/
-/*    return ERROR_OK;*/
-/*}*/
+int uquad_mat_eye(struct uquad_mat *m)
+{
+    if(m == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");
+    }
+    if(m->r != m->c)
+    {
+	err_check(ERROR_MATH_MAT_DIM,"Identity matrix must be square!");
+    }
+    Identity_Matrix(m->m_full,m->r);
+    return ERROR_OK;
+}
 
 int uquad_mat_zeros(struct uquad_mat *m)
 {
@@ -399,58 +399,58 @@ int uquad_mat_copy(struct uquad_mat *dest, struct uquad_mat *src)
 /*    return ERROR_OK;*/
 /*}*/
 
-/*int uquad_mat_inv(struct uquad_mat *Minv, struct uquad_mat *M, struct uquad_mat *Meye, struct uquad_mat *Maux)*/
-/*{*/
-/*    int retval;*/
-/*    uquad_bool_t local_Meye = false, local_Maux = false;*/
-/*    if(M == NULL || Minv == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");*/
-/*    }*/
+int uquad_mat_inv(struct uquad_mat *Minv, struct uquad_mat *M, struct uquad_mat *Meye, struct uquad_mat *Maux)
+{
+    int retval;
+    uquad_bool_t local_Meye = false, local_Maux = false;
+    if(M == NULL || Minv == NULL)
+    {
+	err_check(ERROR_NULL_POINTER,"NULL pointer is invalid arg.");
+    }
 
-/*    if(M->r != M->c)*/
-/*    {*/
-/*	err_check(ERROR_MATH_MAT_DIM,"Cannot invert non-square matrix!");*/
-/*    }*/
+    if(M->r != M->c)
+    {
+	err_check(ERROR_MATH_MAT_DIM,"Cannot invert non-square matrix!");
+    }
 
-/*    if(Meye == NULL)*/
-/*    {*/
-/*	Meye = uquad_mat_alloc(M->r,M->c);*/
-/*	if(Meye == NULL)*/
-/*	{*/
-/*	    retval = ERROR_MALLOC;*/
-/*	    cleanup_log_if(retval,"Could not allocate aux mem for inv.");*/
-/*	}*/
-/*	local_Meye = true;*/
-/*    }*/
-/*    retval = uquad_mat_eye(Meye);*/
-/*    cleanup_if(retval);*/
+    if(Meye == NULL)
+    {
+	Meye = uquad_mat_alloc(M->r,M->c);
+	if(Meye == NULL)
+	{
+	    retval = ERROR_MALLOC;
+	    cleanup_log_if(retval,"Could not allocate aux mem for inv.");
+	}
+	local_Meye = true;
+    }
+    retval = uquad_mat_eye(Meye);
+    cleanup_if(retval);
 
 
-/*    if(Maux == NULL)*/
-/*    {*/
-/*	Maux = uquad_mat_alloc(M->r,(M->c)<<1);*/
-/*	if(Maux == NULL)*/
-/*	{*/
-/*	    retval = ERROR_MALLOC;*/
-/*	    cleanup_log_if(retval,"Could not allocate aux mem for inv.");*/
-/*	}*/
-/*	local_Maux = true;*/
-/*    }*/
+    if(Maux == NULL)
+    {
+	Maux = uquad_mat_alloc(M->r,(M->c)<<1);
+	if(Maux == NULL)
+	{
+	    retval = ERROR_MALLOC;
+	    cleanup_log_if(retval,"Could not allocate aux mem for inv.");
+	}
+	local_Maux = true;
+    }
 
-/*    retval = uquad_solve_lin(M, Meye, Minv, Maux);*/
-/*    cleanup_if(retval);*/
+    retval = uquad_solve_lin(M, Meye, Minv, Maux);
+    cleanup_if(retval);
 
-/*    cleanup:*/
-/*    if(local_Meye)*/
-/*	uquad_mat_free(Meye);*/
-/*    if(local_Maux)*/
-/*	uquad_mat_free(Maux);*/
+    cleanup:
+    if(local_Meye)
+	uquad_mat_free(Meye);
+    if(local_Maux)
+	uquad_mat_free(Maux);
 
-/*    return retval;*/
-/*}*/
+    return retval;
+}
 
-/*int struct uquad_matranspose(struct uquad_mat *Mt, struct uquad_mat *M)*/
+/*int struct uquad_matranspose(uquad_mat_t *Mt, uquad_mat_t *M)*/
 /*{*/
 /*    if(Mt == NULL || M == NULL)*/
 /*    {*/
@@ -478,34 +478,34 @@ int uquad_mat_copy(struct uquad_mat *dest, struct uquad_mat *src)
 /*    return ERROR_OK;*/
 /*}*/
 
-/*int uquad_mat_dot_product(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B)*/
-/*{*/
-/*    int i;*/
-/*    if(C == NULL)*/
-/*    {*/
-/*	err_check(ERROR_NULL_POINTER, "Cannot load, must allocate memory previously.");*/
-/*    }*/
-/*    if(A == NULL && B == NULL)*/
-/*	for(i = 0; i < C->r*C->c; ++i)*/
-/*	    C->m_full[i] *= C->m_full[i];*/
-/*    else*/
-/*    {*/
-/*	if (A == NULL || B == NULL)*/
-/*	{*/
-/*	    err_check(ERROR_NULL_POINTER, "Cannot load, must allocate memory previously.");*/
-/*	}*/
-/*	if (C->r != A->r ||*/
-/*	    C->c != A->c ||*/
-/*	    C->r != B->r ||*/
-/*	    C->c != B->c)*/
-/*	{*/
-/*	    err_check(ERROR_MATH_MAT_DIM, "Must same size!");*/
-/*	}*/
-/*	for(i = 0; i < C->r*C->c; ++i)*/
-/*	    C->m_full[i] = B->m_full[i] * A->m_full[i];*/
-/*    }*/
-/*    return ERROR_OK;*/
-/*}*/
+int uquad_mat_dot_product(struct uquad_mat *C, struct uquad_mat *A, struct uquad_mat *B)
+{
+    int i;
+    if(C == NULL)
+    {
+	err_check(ERROR_NULL_POINTER, "Cannot load, must allocate memory previously.");
+    }
+    if(A == NULL && B == NULL)
+	for(i = 0; i < C->r*C->c; ++i)
+	    C->m_full[i] *= C->m_full[i];
+    else
+    {
+	if (A == NULL || B == NULL)
+	{
+	    err_check(ERROR_NULL_POINTER, "Cannot load, must allocate memory previously.");
+	}
+	if (C->r != A->r ||
+	    C->c != A->c ||
+	    C->r != B->r ||
+	    C->c != B->c)
+	{
+	    err_check(ERROR_MATH_MAT_DIM, "Must same size!");
+	}
+	for(i = 0; i < C->r*C->c; ++i)
+	    C->m_full[i] = B->m_full[i] * A->m_full[i];
+    }
+    return ERROR_OK;
+}
 
 /*int uquad_mat_exp(struct uquad_mat *expA, struct uquad_mat *A)*/
 /*{*/
@@ -571,24 +571,24 @@ int uquad_mat_copy(struct uquad_mat *dest, struct uquad_mat *src)
 /*    return ERROR_OK;*/
 /*}*/
 
-/*double uquad_mat_norm(struct uquad_mat *A)*/
-/*{*/
-/*    if(A == NULL)*/
-/*    {*/
-/*	err_log("Cannot load, must allocate memory previously.");*/
-/*	return -1.0;*/
-/*    }*/
-/*    int i;*/
-/*    double norm=0;*/
-/*    int len = A->c*A->r;*/
-/*    for (i=0; i<len; i++)*/
-/*    {*/
-/*	norm+=A->m_full[i]*A->m_full[i];*/
-/*    }*/
+double uquad_mat_norm(struct uquad_mat *A)
+{
+    if(A == NULL)
+    {
+	err_log("Cannot load, must allocate memory previously.");
+	return -1.0;
+    }
+    int i;
+    double norm=0;
+    int len = A->c*A->r;
+    for (i=0; i<len; i++)
+    {
+	norm+=A->m_full[i]*A->m_full[i];
+    }
 
-/*    norm=sqrt(norm);*/
-/*    return norm;*/
-/*}*/
+    norm=sqrt(norm);
+    return norm;
+}
 
 /*int uquad_mat_int(struct uquad_mat *B, struct uquad_mat *A, double ti, double tf, double step)*/
 /*{*/

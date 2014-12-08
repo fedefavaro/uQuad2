@@ -86,9 +86,9 @@
 //#include <sys/time.h>
 //#include <sys/select.h>
 //#include <uquad_error_codes.h>
-//#include "uquad_types.h"
+#include "uquad_types.h"
 //#include <uquad_aux_time.h>
-//#include "uquad_aux_math.h"
+#include "uquad_aux_math.h"
 //#include <stdio.h>
 //#include <math.h>
 //#include <stdlib.h>
@@ -174,6 +174,7 @@
 /// If READ_RETRIES > 1, then reading may block.
 #define READ_RETRIES                      1
 
+
 /**
  * Raw data from IMU
  * Frame has 29 bytes, 27 without init/end.
@@ -195,15 +196,15 @@
  * 
  * NOTE: No separation chars.
  */
-//typedef struct imu_frame{
-//    uint16_t T_us;   // Time since previous sample in us
-//    int16_t acc [3]; // ADC counts
-//    int16_t gyro[3]; // ADC counts
-//    int16_t magn[3]; // ADC counts
-//    uint16_t temp;   // Tens of °C
-//    uint32_t pres;   // Pa
+typedef struct imu_frame{
+    uint16_t T_us;   // Time since previous sample in us
+    int16_t acc [3]; // ADC counts
+    int16_t gyro[3]; // ADC counts
+    int16_t magn[3]; // ADC counts
+    uint16_t temp;   // Tens of °C
+    uint32_t pres;   // Pa
 //    struct timeval timestamp;
-//}imu_raw_t;
+}imu_raw_t;
 
 /**
  * Extended raw struct, for calibration accumulation.
@@ -222,18 +223,18 @@
  * imu_data_t: Stores calibrated data. This is the final output of imu_comm,
  * and should be passed on the the control loop.
  */
-//typedef struct imu_data{
-//    double T_us;         // us
-//    uquad_mat_t *acc;    // m/s^2
-//    uquad_mat_t *gyro;   // rad/s
-//    uquad_mat_t *magn;   // rad - Euler angles - {psi/roll,phi/pitch,theta/yaw}
-//    double temp;         // °C
-//    double alt;          // m
-//    uquad_bool_t acc_ok; // acc norm() in range
-//    uquad_bool_t magn_ok;// magn norm() in range
+typedef struct imu_data{
+    double T_us;         // us
+    uquad_mat_t *acc;    // m/s^2
+    uquad_mat_t *gyro;   // rad/s
+    uquad_mat_t *magn;   // rad - Euler angles - {psi/roll,phi/pitch,theta/yaw}
+    double temp;         // °C
+    double alt;          // m
+    uquad_bool_t acc_ok; // acc norm() in range
+    uquad_bool_t magn_ok;// magn norm() in range
 
 //    struct timeval timestamp;
-//}imu_data_t;
+}imu_data_t;
 
 /**
  * Structure to hold raw data, but casted to double. This
@@ -266,61 +267,61 @@
  *     xz  1 -zx;
  *    -xy  yx 1];
  */
-//typedef struct imu_calibration_lin_model{
-//    uquad_mat_t *TK_inv;
-//    uquad_mat_t *b;
-//}imu_calib_lin_t;
+typedef struct imu_calibration_lin_model{
+    uquad_mat_t *TK_inv;
+    uquad_mat_t *b;
+}imu_calib_lin_t;
 
 /**
  * Stores calibration parameteres for each of the 3 sensors
  * that use a linear model imu_calib_lin_t(): acc,gyro and  magn
  */
-//typedef struct imu_calibration{
-//    imu_calib_lin_t m_lin[3];      // {acc,gyro,magn}.
-//    uquad_mat_t *acc_t_off;        // acc temp offset {x,y,z}  [m/(s^2°C)]
-//    double acc_to;                 // acc calibration temp
-//    uquad_mat_t *gyro_t_off;       // gyro temp offset {x,y,z} [rad/(s)]
-//    double gyro_to;                // gyro calibration temp
+typedef struct imu_calibration{
+    imu_calib_lin_t m_lin[3];      // {acc,gyro,magn}.
+    uquad_mat_t *acc_t_off;        // acc temp offset {x,y,z}  [m/(s^2°C)]
+    double acc_to;                 // acc calibration temp
+    uquad_mat_t *gyro_t_off;       // gyro temp offset {x,y,z} [rad/(s)]
+    double gyro_to;                // gyro calibration temp
 //    struct timeval timestamp_file; // time at which calib was read.
-//    uquad_bool_t calib_file_ready; // calibration was read from file.
-//    double z0;                     // External information regarding initial altitud [m]
-//    double p_z0;                   // Initial pressure, from z0 and calib            [pa]
+    uquad_bool_t calib_file_ready; // calibration was read from file.
+    double z0;                     // External information regarding initial altitud [m]
+    double p_z0;                   // Initial pressure, from z0 and calib            [pa]
 
-//    imu_raw_t null_est;            // null estimates gathered this run.
-//    imu_data_t null_est_data;      // null estimates, converted
+    imu_raw_t null_est;            // null estimates gathered this run.
+    imu_data_t null_est_data;      // null estimates, converted
 //    struct timeval timestamp_estim;// time at which null estimate finished.
-//    uquad_bool_t calib_estim_ready;// null estimates are ready.
-//    int calibration_counter;       // current number of frames available for calibration.
-//}imu_calib_t;
+    uquad_bool_t calib_estim_ready;// null estimates are ready.
+    int calibration_counter;       // current number of frames available for calibration.
+}imu_calib_t;
 
-//enum imu_status{
-//    IMU_COMM_STATE_RUNNING,
-//    IMU_COMM_STATE_STOPPED,
-//    IMU_COMM_STATE_CALIBRATING,
-//    IMU_COMM_STATE_UNKNOWN};
-//typedef enum imu_status imu_status_t;
+enum imu_status{
+    IMU_COMM_STATE_RUNNING,
+    IMU_COMM_STATE_STOPPED,
+    IMU_COMM_STATE_CALIBRATING,
+    IMU_COMM_STATE_UNKNOWN};
+typedef enum imu_status imu_status_t;
 
-//typedef struct imu{
+typedef struct imu{
 //#if IMU_COMM_FAKE
 //    FILE *device;
 //#else
-//    int device;
+    int device;
 //#endif
-//    imu_status_t status;
-//    /// calibration
-//    imu_calib_t calib;
-//    /// data
-//    imu_raw_t frame_buff[IMU_FRAME_BUFF_SIZE];
-//    int frame_buff_latest; // last sample is here
-//    int frame_buff_next;   // new data will go here
-//    int unread_data;
+    imu_status_t status;
+    /// calibration
+    imu_calib_t calib;
+    /// data
+    imu_raw_t frame_buff[IMU_FRAME_BUFF_SIZE];
+    int frame_buff_latest; // last sample is here
+    int frame_buff_next;   // new data will go here
+    int unread_data;
 
-//    /// filtered data
-//    int frame_count;       // # of frames available for filtering
-//    imu_data_t tmp_filt;   // Aux mem used for filter.
-//    imu_raw_t tmp_raw;     // Aux mem used for filter.
-//    double h[IMU_FILTER_LEN];
-//}imu_t;
+    /// filtered data
+    int frame_count;       // # of frames available for filtering
+    imu_data_t tmp_filt;   // Aux mem used for filter.
+    imu_raw_t tmp_raw;     // Aux mem used for filter.
+    double h[IMU_FILTER_LEN];
+}imu_t;
 
 /**
  *Initialize IMU struct and send default value to IMU, this
@@ -330,7 +331,7 @@
  *
  *@return error code
  */
-//imu_t *imu_comm_init(const char *device);
+imu_t *imu_comm_init(/*const char *device*/);
 
 /**
  * Free any memory allocated for imu (if any), and close any
@@ -341,7 +342,7 @@
  *
  * @return error code.
  */
-//int imu_comm_deinit(imu_t *imu);
+int imu_comm_deinit(imu_t *imu);
 
 //imu_status_t imu_comm_get_status(imu_t *imu);
 
@@ -359,7 +360,7 @@
  *
  * @return error code
  */
-//int imu_data_alloc(imu_data_t *imu_data);
+int imu_data_alloc(imu_data_t *imu_data);
 
 /**
  * Sets all fields to zero.
@@ -519,7 +520,7 @@
  *
  *@return error code
  */
-//int imu_comm_raw2data(imu_t *imu, imu_raw_t *raw, imu_data_t *raw_db, imu_data_t *data);
+int imu_comm_raw2data(imu_t *imu, imu_raw_t *raw, imu_data_t *raw_db, imu_data_t *data);
 
 //int imu_comm_print_data(imu_data_t *data, FILE *stream);
 //int imu_comm_print_raw(imu_raw_t *frame, FILE *stream);
@@ -546,7 +547,7 @@
  *
  * @return answer
  */
-//uquad_bool_t imu_comm_calib_estim(imu_t *imu);
+uquad_bool_t imu_comm_calib_estim(imu_t *imu);
 
 /**
  * Save current calibration to text file.

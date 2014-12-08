@@ -95,6 +95,22 @@ enum UQUAD_ERROR_CODES{
  */
 #define err_log_only(msg)
 
+/**
+ * If @retval is an error, then print @msg to stderr and propagate error.
+ * 
+ */
+#define err_check(retval,msg)
+
+/**
+ * If @retval is an error, then propagate error without printing anything.
+ *
+ */
+#define err_propagate(retval)
+
+#define cleanup_if(retval)
+
+#define err_log_num(msg,num)
+
 #if 0
 /**
  * Print error message to log
@@ -367,16 +383,16 @@ enum UQUAD_ERROR_CODES{
  * Usefull in init routines, allows cleaning up.
  *
  */
-#define cleanup_if(retval)				\
-    if(retval != ERROR_OK)				\
-    {							\
-	//fprintf(stderr,"backtrace:%s:%d\n\r",		\
-	//	__FILE__,__LINE__);			\
-	//if(REROUTE_STDERR && rerouted())		\
-	//    fprintf(stdout,"backtrace:%s:%d\n\r",	\
-	//	    __FILE__,__LINE__);			\
-	goto cleanup;					\
-    }
+//#define cleanup_if(retval)				\
+//    if(retval != ERROR_OK)				\
+//    {							\
+//	fprintf(stderr,"backtrace:%s:%d\n\r",		\
+//		__FILE__,__LINE__);			\
+//	if(REROUTE_STDERR && rerouted())		\
+//	    fprintf(stdout,"backtrace:%s:%d\n\r",	\
+//		    __FILE__,__LINE__);			\
+//	goto cleanup;					\
+//    }
 
 /**
  * If @retval is an error, jump to cleanup.
