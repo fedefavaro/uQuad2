@@ -26,6 +26,7 @@ CMakeFiles
 build
 test_msgq_client
 set_custom_speed
+bus_comm
 
 *bbl
 *blg

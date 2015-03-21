@@ -1,1 +1,0 @@
-/usr/bin/cc  -Wall    CMakeFiles/main.dir/main.c.o  -o main -rdynamic -lm ../kernel_msgq/libuquad_kernel_msgq.a ../common/libuquad_time.a -lm 

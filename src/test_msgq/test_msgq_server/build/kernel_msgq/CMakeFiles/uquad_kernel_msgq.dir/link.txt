@@ -1,2 +1,0 @@
-/usr/bin/ar cr libuquad_kernel_msgq.a  CMakeFiles/uquad_kernel_msgq.dir/uquad_kernel_msgq.c.o
-/usr/bin/ranlib libuquad_kernel_msgq.a

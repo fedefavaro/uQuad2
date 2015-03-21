@@ -1,3 +1,0 @@
-/home/labcontrol2/Escritorio/CC3D_comm/test_msgq/test_msgq_server/build/main/CMakeFiles/main.dir
-/home/labcontrol2/Escritorio/CC3D_comm/test_msgq/test_msgq_server/build/kernel_msgq/CMakeFiles/uquad_kernel_msgq.dir
-/home/labcontrol2/Escritorio/CC3D_comm/test_msgq/test_msgq_server/build/common/CMakeFiles/uquad_time.dir

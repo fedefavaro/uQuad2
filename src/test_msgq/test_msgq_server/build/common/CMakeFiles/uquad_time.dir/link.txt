@@ -1,2 +1,0 @@
-/usr/bin/ar cr libuquad_time.a  CMakeFiles/uquad_time.dir/uquad_aux_time.c.o
-/usr/bin/ranlib libuquad_time.a
