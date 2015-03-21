@@ -1,0 +1,3 @@
+Compilar: make
+Ejecutar: ./sbus_comm &
+Terminar: killall sbus_comm

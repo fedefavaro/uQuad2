@@ -1,0 +1,17 @@
+Implementa la comunicacion entre una arduino Due y una CC3D mediante el protocolo Futaba S.BUS.
+
+
+Foro de arduino donde el pibe presenta lo que hizo:
+	http://forum.arduino.cc/index.php/topic,99708.0.html
+
+Github de la primera implementacion como libreria para arduino:
+	https://github.com/mikeshub/FUTABA_SBUS
+
+Pastebin de la segunda implementacion:
+	http://pastebin.com/LNHFg7Fq
+
+Pagina de los pibes que hicieron la version original (es para otra plataforma, no es para arduino)
+	http://developer.mbed.org/users/Digixx/notebook/futaba-s-bus-controlled-by-mbed/
+
+
+
