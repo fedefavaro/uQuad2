@@ -27,6 +27,7 @@ build
 test_msgq_client
 set_custom_speed
 bus_comm
+t_msgq_client
 
 *bbl
 *blg
