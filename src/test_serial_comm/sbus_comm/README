@@ -1,0 +1,7 @@
+Implementa la comunicacion entre la Beagleboard y una CC3D mediante el protocolo Futaba S.BUS. 
+
+Es necesario invertir la salida de la UART de la Beagle y levantar el voltaje a 5V.
+
+Compilar: make
+Ejecutar: ./sbus_comm &
+Terminar: killall sbus_comm
