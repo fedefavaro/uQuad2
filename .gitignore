@@ -20,7 +20,6 @@ octave-core
 
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 CMakeFiles
 
 build
