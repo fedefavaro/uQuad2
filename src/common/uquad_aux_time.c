@@ -22,7 +22,7 @@
  * @brief lib with aux functions to help timevale handling.
  *
  */
-#include <uquad_aux_time.h>
+#include "uquad_aux_time.h"
 
 int uquad_timeval_substract (struct timeval * result, struct timeval x, struct timeval y){
     /* Perform the carry for the later subtraction by updating y. */

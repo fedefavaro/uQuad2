@@ -30,7 +30,7 @@
 #define UQUAD_KERNEL_MSGQ_H
 
 #include <uquad_error_codes.h>
-#include <uquad_aux_time.h>
+//#include <uquad_aux_time.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>

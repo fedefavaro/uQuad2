@@ -1,6 +1,6 @@
-
 #include <uquad_kernel_msgq.h>
 #include <uquad_error_codes.h>
+#include <futaba_sbus.h>
 #include <signal.h>
 
 /// Communication with motor driver is done via kernel msgs
