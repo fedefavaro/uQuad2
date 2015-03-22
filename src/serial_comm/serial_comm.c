@@ -16,21 +16,21 @@
 #define sleep_ms(ms)    usleep(1000*ms)
 
 /*
- * open_port() - Open serial port 1
+ * open_port(device) - Open serial port on device
  *
  * Returns the file descriptor on success or -1 on error.
  */
-int open_port(void)
+int open_port(char *device)
 {
   int fd; /* File descriptor for the port */
 
-  fd = open("/dev/ttyO1", O_RDWR | O_NOCTTY | O_NDELAY);
+  fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
   if (fd == -1)
   {
    /*
     * Could not open the port.
     */
-    perror("open_port: Unable to open /dev/ttyO1 - ");
+    perror("open_port: Unable to open %s - ", device);
   }
   else
     fcntl(fd, F_SETFL, 0);

@@ -2,6 +2,7 @@
 #include <serial_comm.h>
 #include <custom_baud.h>
 #include <uquad_aux_time.h>
+#include <uquad_error_codes.h>
 
 #include <stdio.h>   /* Standard input/output definitions */
 //#include <string.h>  /* String function definitions */
@@ -9,10 +10,10 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#define ERROR_OK		0
-#define ERROR_FAIL		-1
-#define LOOP_T_US               14000UL
+f#define LOOP_T_US               14000UL
 #define MAX_ERR_CMD             20
+
+#define HOW_TO     "./sbus_daemon <device>"
 
 int main(int argc, char *argv[])
 {  
@@ -21,6 +22,15 @@ int main(int argc, char *argv[])
    int ret = ERROR_OK;
    int do_sleep = 0;
    int err_count = 0;
+   char *device;
+
+   if(argc<2)
+   {
+      err_log(HOW_TO);
+      return -1;
+   }
+   else
+      device = argv[1];
    
    //buffer for sbus message
    uint8_t* sbusData;			
@@ -30,10 +40,10 @@ int main(int argc, char *argv[])
    struct timeval tv_end;
    struct timeval tv_diff;
 
-   fd = open_port();
+   fd = open_port(device);
    if (fd == -1)
    { 
-       return ERROR_FAIL;  
+       return -1;
    }
    configure_port(fd);
    
