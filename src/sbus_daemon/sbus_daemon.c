@@ -12,6 +12,8 @@
 #include <sys/resource.h> // for setpriority()
 #include <signal.h> // for SIGINT, SIGQUIT
 #include <stdlib.h> 
+#include <fcntl.h>
+
 
 // kernel queues
 #include <sys/ipc.h> // for IPC_NOWAIT
@@ -19,17 +21,55 @@
 
 #define CH_COUNT		5
 #define BUFF_SIZE		10
-#define LOOP_T_US               14000UL
+#define LOOP_T_US               50000UL
 #define MAX_ERR_CMD             20
+
 #define PC_TEST			1     //TODO: hacerlo generico
+#define FILE_NAME		"/home/labcontrol2/log_sbus_daemon.txt"
+#define LOGGER_PERM  0666
 
 #define HOW_TO     "./sbus_daemon <device>"
+
+
+int fd = -1;
+
+#if PC_TEST
+int convert_sbus_data(uint8_t* sbusData, char* buf_str)
+{
+   char* buf_ptr = buf_str;
+   int i;
+   int char_count = 0;
+
+   for(i=0;i<SBUS_DATA_LENGTH;i++)
+   {
+      char_count += sprintf(buf_ptr, "%X", sbusData[i]);
+      buf_ptr += char_count;
+   }
+   sprintf(buf_ptr,"\n");
+   
+   return 0; //char_count?
+
+}
+
+int open_log_sbus_data(char* file_name)
+{
+   int log_fd = open(file_name,O_RDWR | O_CREAT /*| O_NONBLOCK*/, LOGGER_PERM);
+   if(log_fd < 0)
+   {
+	err_log_stderr("Failed to open log file!");
+	return -1;
+   }
+
+   return log_fd;
+}
+#endif //PC_TEST
+
 
 void uquad_sig_handler(int signal_num){
     
     err_log_num("[Client] Caught signal: ",signal_num);
     fflush(stderr);
-    //close(fd);
+    close(fd);
 }
 
 /// Intercom via kernel msgq
@@ -44,7 +84,6 @@ static message_buf_t rbuf;
 
 const static key_t key_s = 169; // must match MOT_SERVER_KEY (in mot_control.h)
 const static key_t key_c = 170; // must match MOT_DRIVER_KEY (in mot_control.h)
-
 
 static char ack_counter = 0;
 int uquad_send_ack()
@@ -74,10 +113,7 @@ int uquad_send_ack()
 
 int uquad_read(void)
 {
-    int retval = ERROR_OK;
-    //int i;
-    //uint8_t u8tmp;
-    /// get speed data from kernel msgq
+    // get speed data from kernel msgq
     if ((msqid = msgget(key_s, 0666)) < 0)
 	return ERROR_FAIL;
     
@@ -87,25 +123,14 @@ int uquad_read(void)
     if (msgrcv(msqid, &rbuf, BUFF_SIZE, 1, IPC_NOWAIT) < 0)
 	return ERROR_FAIL;
 
-     //Print the answer. DEBUGG
-/*     if(retval == ERROR_OK)
-    {
-	for(i=5; i < BUFF_SIZE; ++i)
-	{
-	    u8tmp = 0xff & rbuf.mtext[i];
-	    printf("%d", u8tmp);
-	}
-	printf("\n");
-    }*/
-
-    return retval;
+    return ERROR_OK;
 }
 
 
 int main(int argc, char *argv[])
 {  
    int ret = ERROR_OK;
-   int fd;
+   //int fd;
    int err_count = 0;
    char *device;
    int16_t ch_buff_aux[CH_COUNT] = {0,0,0,0,0};  //stores parsed kernel message to update servos
@@ -118,33 +143,34 @@ int main(int argc, char *argv[])
    }
    else
       device = argv[1];
-
-#if !PC_TEST   
+  
    //buffer for sbus message
    uint8_t* sbusData;			
    sbusData = futaba_sbus_ptrsbusData();
-#else
-   char str[128];
-#endif // !PC_TEST
+#if PC_TEST 
+   char str[30];
+#endif //PC_TEST
    
    struct timeval tv_in;
    struct timeval tv_end;
    struct timeval tv_diff;
 
-//#if !PC_TEST 
+#if !PC_TEST 
    fd = open_port(device);
    if (fd == -1)
    { 
        return -1;
    }
    configure_port(fd);
-#if !PC_TEST 
    ret = custom_baud(fd);      
    if (ret < 0)
    {
        fputs("custom_baud() failed!\n", stderr);
        return ret;
    }
+#else
+   fd = open_log_sbus_data(FILE_NAME);
+
 #endif // !PC_TEST
 
    /**
@@ -152,7 +178,6 @@ int main(int argc, char *argv[])
     */
    if(setpriority(PRIO_PROCESS, 0, -18) == -1)   //requires being superuser
    {
-      //err_log("setpriority() failed!");
       err_log_num("setpriority() failed!",errno);
       return -1;
     }
@@ -165,7 +190,7 @@ int main(int argc, char *argv[])
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-   int do_sleep = 0;
+   //int do_sleep = 0;
 
    for(;;)
    {
@@ -176,27 +201,27 @@ int main(int argc, char *argv[])
 	    printf("error count exceded");
             return -1;
 	}
-	if(do_sleep)
+/*	if(do_sleep)
 	{
 	    // avoid saturating i2c driver
 	    //printf("Will sleep to avoid saturating.");
 	    sleep_ms(1);   //?
 	    do_sleep = 0;
-	}
+	}*/
 
-#if !PC_TEST
-        futaba_sbus_servo(1, ch_buff[0]);
+      /*  futaba_sbus_servo(1, ch_buff[0]);
 	futaba_sbus_servo(2, ch_buff[1]);
 	futaba_sbus_servo(3, ch_buff[2]);
 	futaba_sbus_servo(4, ch_buff[3]);
 	futaba_sbus_servo(5, ch_buff[4]);
-
         futaba_sbus_updateServos();
-	ret = write(fd, sbusData, 25);
+*/
+#if !PC_TEST
+        ret = write(fd, sbusData, 25);
         if (ret < 0)
         {
            fputs("write() failed!\n", stderr);
-           do_sleep = 1;
+           //do_sleep = 1;
 	   err_count++;
 	   continue;
 	}
@@ -207,10 +232,17 @@ int main(int argc, char *argv[])
 		err_count--;
 	}
 #else
-        //sprintf(str,"ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
-	sprintf(str,"hola\n");
-        ret = write(fd, str, strlen(str));
+        //convert_sbus_data(sbusData, str);
+        printf("blabla");
+        ret = write(fd, str, 25);
+        if(ret < 0)
+        {
+           err_log_stderr("Failed to write to log file!");
+        }
 
+        //sprintf(str,"ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
+	//sprintf(str,"hola\n");
+        //ret = write(fd, str, strlen(str));
         //printf("ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
 
 #endif // !PC_TEST

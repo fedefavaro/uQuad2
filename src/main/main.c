@@ -4,8 +4,8 @@
 #include <signal.h>
 
 /// Communication with motor driver is done via kernel msgs
-#define MOT_SERVER_KEY 169 // some number
-#define MOT_DRIVER_KEY 170 // some other number
+#define SERVER_KEY 169 // some number
+#define DRIVER_KEY 170 // some other number
 
 #define CH_COUNT		5
 #define BUFF_SIZE		10
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
    sleep_ms(5);     /// esto?
 
    // init kernel messeges queue
-   uquad_kmsgq_t *kmsgq = uquad_kmsgq_init(MOT_SERVER_KEY, MOT_DRIVER_KEY);
+   uquad_kmsgq_t *kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
    if(kmsgq == NULL)
    {
       err_log("Failed to start message queue!");
@@ -61,8 +61,6 @@ int main(int argc, char *argv[])
    ch_buff[3] = 1000;   // throttle
    ch_buff[4] = 1000;   // flight mode?
    
-   //printf("ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]); //dbg
-
    // Catch signals
    signal(SIGINT, uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
@@ -73,7 +71,7 @@ int main(int argc, char *argv[])
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    for(;;)
    {
-      sleep_ms(15);
+      sleep_ms(51);
       retval = uquad_kmsgq_send(kmsgq, buff_out, BUFF_SIZE);
       if(retval != ERROR_OK)
       {
