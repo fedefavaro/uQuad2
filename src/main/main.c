@@ -7,16 +7,17 @@
 #define MOT_SERVER_KEY 169 // some number
 #define MOT_DRIVER_KEY 170 // some other number
 
-#define BUFF_SIZE               4
-#define START_CLIENT 		"./test_msgq_client &"
-#define KILL_CLIENT		"killall test_msgq_client"
+#define DEVICE			/dev/stdout
+#define BUFF_SIZE               5
+#define START_SBUS 		"../sbus_daemon/sbus_daemon DEVICE &"
+#define KILL_SBUS		"killall sbus_daemon"
 
 #define sleep_ms(ms)    	usleep(1000*ms)
 
 void quit()
 {
     int retval;
-    retval = system(KILL_CLIENT);
+    retval = system(KILL_SBUS);
     exit(retval);
 }    
 
@@ -33,14 +34,14 @@ int main(int argc, char *argv[])
    static uint8_t buff_out[BUFF_SIZE];
 
    // start client process
-   retval = system(START_CLIENT);
+   retval = system(START_SBUS);
    if(retval < 0)
    {
       err_log("Failed to run cmd!");
       goto cleanup;
    }
 
-   sleep_ms(500); 
+   sleep_ms(500);     /// esto?
 
    // init kernel messeges queue
    uquad_kmsgq_t *kmsgq = uquad_kmsgq_init(MOT_SERVER_KEY, MOT_DRIVER_KEY);
@@ -50,10 +51,11 @@ int main(int argc, char *argv[])
       goto cleanup;
    }
 
-   buff_out[0] = 'H';
-   buff_out[1] = 'O';
-   buff_out[2] = 'L';
-   buff_out[3] = 'A';
+   buff_out[0] = 'H';	// roll
+   buff_out[1] = 'O';	// pitch
+   buff_out[2] = 'L';	// yaw
+   buff_out[3] = 'A';   // throttle
+   buff_out[3] = '!';   // flight mode?
 
 
    // Catch signals
@@ -78,7 +80,7 @@ int main(int argc, char *argv[])
    cleanup:
    // deinit
    uquad_kmsgq_deinit(kmsgq);
-   retval = system(KILL_CLIENT);
+   retval = system(KILL_SBUS);
 
    return 0;
 

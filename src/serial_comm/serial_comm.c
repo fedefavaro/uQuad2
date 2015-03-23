@@ -1,4 +1,5 @@
 #include "serial_comm.h"
+#include <uquad_error_codes.h>
 
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
@@ -30,7 +31,7 @@ int open_port(char *device)
    /*
     * Could not open the port.
     */
-    perror("open_port: Unable to open %s - ", device);
+    err_log_str("open_port: Unable to open: ", device);
   }
   else
     fcntl(fd, F_SETFL, 0);

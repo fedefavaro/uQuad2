@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <asm/termios.h>
 
-#define BAUDRATE		100000
+#define BAUDRATE		115200//100000
 
 int custom_baud(int fd)
 {
