@@ -7,10 +7,9 @@
 #define MOT_SERVER_KEY 169 // some number
 #define MOT_DRIVER_KEY 170 // some other number
 
-#define DEVICE			/dev/stdout
 #define CH_COUNT		5
 #define BUFF_SIZE		2*CH_COUNT
-#define START_SBUS 		"./sbus_daemon DEVICE &"
+#define START_SBUS 		"./sbus_daemon /dev/stdout &"
 #define KILL_SBUS		"killall sbus_daemon"
 
 #define sleep_ms(ms)    	usleep(1000*ms)
