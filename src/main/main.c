@@ -8,8 +8,9 @@
 #define MOT_DRIVER_KEY 170 // some other number
 
 #define DEVICE			/dev/stdout
-#define BUFF_SIZE               5
-#define START_SBUS 		"../sbus_daemon/sbus_daemon DEVICE &"
+#define CH_COUNT		5
+#define BUFF_SIZE		2*CH_COUNT
+#define START_SBUS 		"./sbus_daemon DEVICE &"
 #define KILL_SBUS		"killall sbus_daemon"
 
 #define sleep_ms(ms)    	usleep(1000*ms)
@@ -31,7 +32,10 @@ void uquad_sig_handler(int signal_num)
 int main(int argc, char *argv[])
 {  
    int retval;
-   static uint8_t buff_out[BUFF_SIZE];
+   static uint8_t *buff_out;
+   static uint16_t ch_buff[CH_COUNT];
+
+   buff_out = (uint8_t *)ch_buff;
 
    // start client process
    retval = system(START_SBUS);
@@ -51,11 +55,11 @@ int main(int argc, char *argv[])
       goto cleanup;
    }
 
-   buff_out[0] = 'H';	// roll
-   buff_out[1] = 'O';	// pitch
-   buff_out[2] = 'L';	// yaw
-   buff_out[3] = 'A';   // throttle
-   buff_out[3] = '!';   // flight mode?
+   ch_buff[0] = 1000;	// roll
+   ch_buff[1] = 1000;	// pitch
+   ch_buff[2] = 1000;	// yaw
+   ch_buff[3] = 1000;   // throttle
+   ch_buff[3] = 1000;   // flight mode?
 
 
    // Catch signals

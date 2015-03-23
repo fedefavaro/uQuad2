@@ -28,7 +28,6 @@ void uquad_sig_handler(int signal_num){
     
     err_log_num("[Client] Caught signal: ",signal_num);
     fflush(stderr);
-    exit(1);
 }
 
 /// Intercom via kernel msgq
