@@ -46,7 +46,7 @@
 #endif
 
 
-#define MSGSZ                    4
+#define MSGSZ                    10
 #define UQUAD_MSGTYPE            1L
 #define UQUAD_KQ_WARN_ACKS       0   // # of errors to allow before logging errors
 #define UQUAD_KQ_MAX_ACKS        100

@@ -18,6 +18,7 @@
 #include <sys/msg.h>
 
 #define CH_COUNT		5
+#define BUFF_SIZE		10
 #define LOOP_T_US               14000UL
 #define MAX_ERR_CMD             20
 #define PC_TEST			1     //TODO: hacerlo generico
@@ -28,12 +29,13 @@ void uquad_sig_handler(int signal_num){
     
     err_log_num("[Client] Caught signal: ",signal_num);
     fflush(stderr);
+    //close(fd);
 }
 
 /// Intercom via kernel msgq
 typedef struct msgbuf {
     long    mtype;
-    uint8_t mtext[2*CH_COUNT];
+    uint8_t mtext[BUFF_SIZE];
 } message_buf_t;
 
 // Global vars
@@ -70,11 +72,11 @@ int uquad_send_ack()
     return ERROR_OK;
 }
 
-int uquad_read(int16_t *buff_tmp_16)
+int uquad_read(void)
 {
     int retval = ERROR_OK;
-    
- 
+    //int i;
+    //uint8_t u8tmp;
     /// get speed data from kernel msgq
     if ((msqid = msgget(key_s, 0666)) < 0)
 	return ERROR_FAIL;
@@ -82,16 +84,19 @@ int uquad_read(int16_t *buff_tmp_16)
     /*
      * Receive an answer of message type 1.
      */
-    if (msgrcv(msqid, &rbuf, 2*CH_COUNT /*2 bytes per channel*/, 1, IPC_NOWAIT) < 0)
+    if (msgrcv(msqid, &rbuf, BUFF_SIZE, 1, IPC_NOWAIT) < 0)
 	return ERROR_FAIL;
 
-    /*
-     * Parse message. 2 bytes per channel.
-     */
-    if(retval == ERROR_OK)
+     //Print the answer. DEBUGG
+/*     if(retval == ERROR_OK)
     {
-        buff_tmp_16 = (int16_t *)rbuf.mtext;
-    }
+	for(i=5; i < BUFF_SIZE; ++i)
+	{
+	    u8tmp = 0xff & rbuf.mtext[i];
+	    printf("%d", u8tmp);
+	}
+	printf("\n");
+    }*/
 
     return retval;
 }
@@ -103,7 +108,9 @@ int main(int argc, char *argv[])
    int fd;
    int err_count = 0;
    char *device;
-   int16_t ch_buff[5] = {0,0,0,0,0};  //stores parsed kernel message to update servos
+   int16_t ch_buff_aux[CH_COUNT] = {0,0,0,0,0};  //stores parsed kernel message to update servos
+   int16_t *ch_buff = ch_buff_aux;
+
    if(argc<2)
    {
       err_log(HOW_TO);
@@ -124,14 +131,14 @@ int main(int argc, char *argv[])
    struct timeval tv_end;
    struct timeval tv_diff;
 
+//#if !PC_TEST 
    fd = open_port(device);
    if (fd == -1)
    { 
        return -1;
    }
    configure_port(fd);
-
-#if !PC_TEST   
+#if !PC_TEST 
    ret = custom_baud(fd);      
    if (ret < 0)
    {
@@ -186,11 +193,6 @@ int main(int argc, char *argv[])
 
         futaba_sbus_updateServos();
 	ret = write(fd, sbusData, 25);
-#else
-        sprintf(str,"ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", \
-		ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
-        ret = write(fd, str, strlen(str));
-#endif // !PC_TEST
         if (ret < 0)
         {
            fputs("write() failed!\n", stderr);
@@ -204,18 +206,29 @@ int main(int argc, char *argv[])
 	    if(err_count > 0)
 		err_count--;
 	}
+#else
+        //sprintf(str,"ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
+	sprintf(str,"hola\n");
+        ret = write(fd, str, strlen(str));
+
+        //printf("ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
+
+#endif // !PC_TEST
 	
-        ret = uquad_read(ch_buff);
+        ret = uquad_read();
         if(ret == ERROR_OK)
 	{
-	    
-	    /// send ack
-	    ret = uquad_send_ack();
-	    if(ret != ERROR_OK)
-	    {
-		err_log("Failed to send ack!");
-            }
-	    // continue
+	  
+     	   // Parse message. 2 bytes per channel.
+    	   ch_buff = (int16_t *)rbuf.mtext;
+            
+	   /// send ack
+	   ret = uquad_send_ack();
+	   if(ret != ERROR_OK)
+	   {
+	      err_log("Failed to send ack!");
+           }
+	   // continue
 	}
 
 	gettimeofday(&tv_end,NULL);
