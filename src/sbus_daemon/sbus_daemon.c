@@ -24,7 +24,7 @@
 #define LOOP_T_US               14000UL
 #define MAX_ERR_CMD             20
 
-#define PC_TEST			1     //TODO: hacerlo generico
+#define PC_TEST			0     //TODO: hacerlo generico
 #define FILE_PATH		"/home/labcontrol2/log_sbus_daemon.txt"
 
 #define HOW_TO    		"./sbus_daemon <device>"
@@ -71,7 +71,6 @@ void uquad_sig_handler(int signal_num){
     }
 #endif
     fflush(stderr);
-    
 }
 
 /// Intercom via kernel msgq
