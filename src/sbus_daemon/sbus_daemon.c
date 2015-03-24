@@ -21,55 +21,57 @@
 
 #define CH_COUNT		5
 #define BUFF_SIZE		10
-#define LOOP_T_US               50000UL
+#define LOOP_T_US               14000UL
 #define MAX_ERR_CMD             20
 
 #define PC_TEST			1     //TODO: hacerlo generico
-#define FILE_NAME		"/home/labcontrol2/log_sbus_daemon.txt"
-#define LOGGER_PERM  0666
+#define FILE_PATH		"/home/labcontrol2/log_sbus_daemon.txt"
 
-#define HOW_TO     "./sbus_daemon <device>"
+#define HOW_TO    		"./sbus_daemon <device>"
 
-
-int fd = -1;
 
 #if PC_TEST
 int convert_sbus_data(uint8_t* sbusData, char* buf_str)
 {
    char* buf_ptr = buf_str;
    int i;
-   int char_count = 0;
-
+   
    for(i=0;i<SBUS_DATA_LENGTH;i++)
    {
-      char_count += sprintf(buf_ptr, "%X", sbusData[i]);
-      buf_ptr += char_count;
+      buf_ptr += sprintf(buf_ptr, "%02X ", sbusData[i]);
    }
    sprintf(buf_ptr,"\n");
    
    return 0; //char_count?
 
 }
-
-int open_log_sbus_data(char* file_name)
-{
-   int log_fd = open(file_name,O_RDWR | O_CREAT /*| O_NONBLOCK*/, LOGGER_PERM);
-   if(log_fd < 0)
-   {
-	err_log_stderr("Failed to open log file!");
-	return -1;
-   }
-
-   return log_fd;
-}
 #endif //PC_TEST
 
+#if !PC_TEST
+int fd;
+#else
+FILE * fp = NULL;
+#endif
 
 void uquad_sig_handler(int signal_num){
     
+    int ret;
     err_log_num("[Client] Caught signal: ",signal_num);
+#if !PC_TEST
+    ret = close(fd);
+    if(ret < 0)
+    {
+	err_log_stderr("Failed to close serial port!");
+    }
+#else
+    ret = fclose(fp);
+    if(ret != 0)
+    {
+	err_log_stderr("Failed to close log file!");
+    }
+#endif
     fflush(stderr);
-    close(fd);
+    
 }
 
 /// Intercom via kernel msgq
@@ -130,7 +132,6 @@ int uquad_read(void)
 int main(int argc, char *argv[])
 {  
    int ret = ERROR_OK;
-   //int fd;
    int err_count = 0;
    char *device;
    int16_t ch_buff_aux[CH_COUNT] = {0,0,0,0,0};  //stores parsed kernel message to update servos
@@ -147,10 +148,10 @@ int main(int argc, char *argv[])
    //buffer for sbus message
    uint8_t* sbusData;			
    sbusData = futaba_sbus_ptrsbusData();
-#if PC_TEST 
-   char str[30];
+#if PC_TEST
+   char str[64];
 #endif //PC_TEST
-   
+
    struct timeval tv_in;
    struct timeval tv_end;
    struct timeval tv_diff;
@@ -169,7 +170,12 @@ int main(int argc, char *argv[])
        return ret;
    }
 #else
-   fd = open_log_sbus_data(FILE_NAME);
+   fp = fopen(FILE_PATH, "w");
+   if(fp == NULL)
+   {
+	err_log_stderr("Failed to open log file!");
+	return -1;
+   }
 
 #endif // !PC_TEST
 
@@ -186,6 +192,9 @@ int main(int argc, char *argv[])
    signal(SIGINT, uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
 
+   int j;
+   for(j=1;j<17;j++)
+     futaba_sbus_servo(j, 0);
 
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
@@ -209,13 +218,13 @@ int main(int argc, char *argv[])
 	    do_sleep = 0;
 	}*/
 
-      /*  futaba_sbus_servo(1, ch_buff[0]);
+        futaba_sbus_servo(1, ch_buff[0]);
 	futaba_sbus_servo(2, ch_buff[1]);
 	futaba_sbus_servo(3, ch_buff[2]);
 	futaba_sbus_servo(4, ch_buff[3]);
-	futaba_sbus_servo(5, ch_buff[4]);
+	futaba_sbus_servo(5, ch_buff[4]); 
         futaba_sbus_updateServos();
-*/
+
 #if !PC_TEST
         ret = write(fd, sbusData, 25);
         if (ret < 0)
@@ -232,18 +241,12 @@ int main(int argc, char *argv[])
 		err_count--;
 	}
 #else
-        //convert_sbus_data(sbusData, str);
-        printf("blabla");
-        ret = write(fd, str, 25);
+        convert_sbus_data(sbusData, str);
+        ret = fprintf(fp, str);
         if(ret < 0)
         {
            err_log_stderr("Failed to write to log file!");
         }
-
-        //sprintf(str,"ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
-	//sprintf(str,"hola\n");
-        //ret = write(fd, str, strlen(str));
-        //printf("ch1: %d ch2: %d ch3: %d ch4: %d ch5: %d\n", ch_buff[0],ch_buff[1],ch_buff[2],ch_buff[3],ch_buff[4]);
 
 #endif // !PC_TEST
 	
