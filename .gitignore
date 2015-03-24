@@ -26,7 +26,8 @@ build
 test_msgq_client
 set_custom_speed
 sbus_comm
-t_msgq_client
+test_msgq_client
+test_leer_gps
 
 *bbl
 *blg
