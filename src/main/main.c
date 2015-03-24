@@ -9,7 +9,7 @@
 
 #define CH_COUNT		5
 #define BUFF_SIZE		10
-#define START_SBUS 		"./sbus_daemon /dev/ttyUSB0 &"
+#define START_SBUS 		"./sbus_daemon /dev/ttyO1 &"
 #define KILL_SBUS		"killall sbus_daemon"
 
 #define sleep_ms(ms)    	usleep(1000*ms)
