@@ -35,11 +35,14 @@ void uquad_sig_handler(int signal_num)
 } 
 
 int main(int argc, char *argv[])
-{ 
+{   
     int ret;
 	ret = gps_open(hostName, hostPort, &my_gps_data);
-    if(ret<0);
-
+    if(ret < 0)
+    {
+    	printf("No se pudo abrir el puerto\n");
+		quit();
+	}
 	(void) gps_stream(&my_gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
 
 
