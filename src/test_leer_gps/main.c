@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <stdint.h>
 
-#define BAUDRATE		115200 //57600
+#define BAUDRATE		9600
 #define DEVICE			"/dev/ttyUSB0"
 #define BUFF_LENGTH		8
 
@@ -137,16 +137,17 @@ int main(int argc, char *argv[])
    for(;;)
    {
       
-      retval = read(gps->fd,buff_gps,BUFF_LENGTH-1);
+      //retval = read(gps->fd,buff_gps,BUFF_LENGTH-1);
+      retval = read(gps->fd,buff_gps,1);
       if(retval < 0)
       {
-         //fputs("Read error: no data!\n", stderr);
+         fputs("Read error: no data!\n", stderr);
       } else {
          buff_gps[BUFF_LENGTH-1] = '\0';
          printf("%s",buff_gps);
       }
    
-      sleep_ms(50);
+      //sleep_ms(50);
       
    }
 
