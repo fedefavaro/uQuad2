@@ -1,5 +1,6 @@
 #include <uquad_kernel_msgq.h>
 #include <uquad_error_codes.h>
+#include <uquad_config.h>
 #include <futaba_sbus.h>
 #include <signal.h>
 
@@ -9,8 +10,14 @@
 
 #define CH_COUNT		5
 #define BUFF_SIZE		10
-#define START_SBUS 		"./sbus_daemon /dev/ttyO1 &"
-#define KILL_SBUS		"killall sbus_daemon"
+
+#if PC_TEST
+#define START_SBUS 		"./sbusd sbusd.log &" //test en un PC linux
+#else
+#define START_SBUS 		"./sbusd /dev/ttyO1 &" //en la beagle
+#endif
+
+#define KILL_SBUS		"killall sbusd"
 
 #define sleep_ms(ms)    	usleep(1000*ms)
 
@@ -30,6 +37,11 @@ void uquad_sig_handler(int signal_num)
 
 int main(int argc, char *argv[])
 {  
+
+#if PC_TEST
+   printf("Starting main in PC test mode\n");
+   printf("For configuration options view src/common/uquad_config.h\n");
+#endif
 
    int retval;
    static uint8_t *buff_out;

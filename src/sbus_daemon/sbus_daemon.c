@@ -3,6 +3,7 @@
 #include <custom_baud.h>
 #include <uquad_aux_time.h>
 #include <uquad_error_codes.h>
+#include <uquad_config.h>
 
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
@@ -24,18 +25,35 @@
 #define LOOP_T_US               14000UL
 #define MAX_ERR_CMD             20
 
-#define PC_TEST			0     //TODO: hacerlo generico
-#define FILE_PATH		"/home/labcontrol2/log_sbus_daemon.txt"
-
 #define HOW_TO    		"./sbus_daemon <device>"
 
 
+
 #if PC_TEST
+struct timeval tv_start; // Guarda el tiempo de comienzo del programa
+
+/* Si se esta realizando la prueba en un PC esta funcion se encarga de 
+ * loggear en un formato legible el string sbus. */
 int convert_sbus_data(uint8_t* sbusData, char* buf_str)
 {
    char* buf_ptr = buf_str;
-   int i;
+   int i,ret;
+   struct timeval tv_ts; //for timestamp
+
+   // Timestamp
+   gettimeofday(&tv_ts,NULL);
+   ret = uquad_timeval_substract(&tv_ts, tv_ts, tv_start);
+   if(ret > 0)
+   {
+      buf_ptr += sprintf(buf_ptr, "%lu:%lu   \t", (unsigned long)tv_ts.tv_sec, (unsigned long)tv_ts.tv_usec);
+   }
+   else
+   {
+      err_log("WARN: Absurd timing!");
+      return -1;
+   }
    
+   // Preparo el mensaje sbus
    for(i=0;i<SBUS_DATA_LENGTH;i++)
    {
       buf_ptr += sprintf(buf_ptr, "%02X ", sbusData[i]);
@@ -47,10 +65,15 @@ int convert_sbus_data(uint8_t* sbusData, char* buf_str)
 }
 #endif //PC_TEST
 
+/* Variable que almacena el file descriptor del puerto serie
+ * usado para enviar el mensaje sbus. */
 #if !PC_TEST
-int fd;
+int fd; 
+
+/* Si se realiza la prueba en un PC el mensaje se escribe 
+ * en un archivo en lugar de ser enviado al puerto serie. */
 #else
-FILE * fp = NULL;
+FILE * fp = NULL; 
 #endif
 
 void uquad_sig_handler(int signal_num){
@@ -143,6 +166,11 @@ int main(int argc, char *argv[])
    }
    else
       device = argv[1];
+
+
+#if SBUS_LOG_TO_FILE
+   printf("Logging to %s\n", device);
+#endif
   
    //buffer for sbus message
    uint8_t* sbusData;			
@@ -154,6 +182,8 @@ int main(int argc, char *argv[])
    struct timeval tv_in;
    struct timeval tv_end;
    struct timeval tv_diff;
+
+   gettimeofday(&tv_start,NULL);
 
 #if !PC_TEST 
    fd = open_port(device);
@@ -169,7 +199,7 @@ int main(int argc, char *argv[])
        return ret;
    }
 #else
-   fp = fopen(FILE_PATH, "w");
+   fp = fopen(device, "w");
    if(fp == NULL)
    {
 	err_log_stderr("Failed to open log file!");
@@ -240,12 +270,19 @@ int main(int argc, char *argv[])
 		err_count--;
 	}
 #else
+	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
         convert_sbus_data(sbusData, str);
-        ret = fprintf(fp, str);
+#if SBUS_LOG_TO_FILE
+	// Escribe en un arhivo
+        ret = fprintf(fp, "%s", str);
         if(ret < 0)
         {
            err_log_stderr("Failed to write to log file!");
         }
+#else
+	// Escribe en stdout
+	printf("%s",str);
+#endif // SBUS_LOG_TO_FILE
 
 #endif // !PC_TEST
 	

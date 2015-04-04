@@ -7,5 +7,5 @@ make
 cd ../..
 echo Done!
 
-cp build/sbus_daemon/sbus_daemon build/main/
+cp build/sbus_daemon/sbusd build/main/
 
