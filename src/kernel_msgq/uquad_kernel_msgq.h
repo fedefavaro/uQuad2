@@ -82,6 +82,10 @@ typedef struct uquad_kmsgq{
 
 uquad_kmsgq_t *uquad_kmsgq_init(int key_s, int key_c);
 
+int uquad_send_ack(void);
+
+int uquad_read(message_buf_t read_msg);
+
 int uquad_kmsgq_send(uquad_kmsgq_t *server, uint8_t *msg, int msg_len);
 
 void uquad_kmsgq_deinit(uquad_kmsgq_t *server);

@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
 #if PC_TEST
    printf("Starting main in PC test mode\n");
-   printf("For configuration options view src/common/uquad_config.h\n");
+   printf("For configuration options view common/uquad_config.h\n");
 #endif
 
    int retval;

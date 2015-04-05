@@ -6,12 +6,21 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-#trap ctrl_c INT
-#function ctrl_c() {
-#    echo "** Trapped CTRL-C"
-#    killall sbusd
-#    exit
-#}
+cd build/main
+make
+cd ../sbus_daemon
+make
+cd ../..
+echo Done!
+
+cp build/sbus_daemon/sbusd build/main/
+
+trap ctrl_c INT
+function ctrl_c() {
+    echo "** Trapped CTRL-C"
+    killall sbusd
+    exit
+}
 
 cd build/main
 ./main
@@ -19,4 +28,4 @@ cd ../..
 
 
 # kill everything. Muaha, ha.
-#ctrl_c
+ctrl_c

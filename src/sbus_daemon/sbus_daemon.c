@@ -4,6 +4,7 @@
 #include <uquad_aux_time.h>
 #include <uquad_error_codes.h>
 #include <uquad_config.h>
+#include <uquad_kernel_msgq.h>
 
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
@@ -21,7 +22,6 @@
 #include <sys/msg.h>
 
 #define CH_COUNT		5
-#define BUFF_SIZE		10
 #define LOOP_T_US               14000UL
 #define MAX_ERR_CMD             20
 
@@ -97,19 +97,19 @@ void uquad_sig_handler(int signal_num){
 }
 
 /// Intercom via kernel msgq
-typedef struct msgbuf {
+/*typedef struct msgbuf {
     long    mtype;
     uint8_t mtext[BUFF_SIZE];
-} message_buf_t;
+} message_buf_t;*/
 
 // Global vars
-static int msqid; // Set by mot_control.h
+//static int msqid; // Set by mot_control.h
 static message_buf_t rbuf;
 
-const static key_t key_s = 169; // must match MOT_SERVER_KEY (in mot_control.h)
-const static key_t key_c = 170; // must match MOT_DRIVER_KEY (in mot_control.h)
+//const static key_t key_s = 169; // must match MOT_SERVER_KEY (in mot_control.h)
+//const static key_t key_c = 170; // must match MOT_DRIVER_KEY (in mot_control.h)
 
-static char ack_counter = 0;
+/*static char ack_counter = 0;
 int uquad_send_ack()
 {
     int msqid;
@@ -133,22 +133,22 @@ int uquad_send_ack()
 	return ERROR_FAIL;
     }
     return ERROR_OK;
-}
+}*/
 
-int uquad_read(void)
+/*int uquad_read(void)
 {
     // get speed data from kernel msgq
     if ((msqid = msgget(key_s, 0666)) < 0)
 	return ERROR_FAIL;
     
-    /*
-     * Receive an answer of message type 1.
-     */
+    
+    //  Receive an answer of message type 1.
+     
     if (msgrcv(msqid, &rbuf, BUFF_SIZE, 1, IPC_NOWAIT) < 0)
 	return ERROR_FAIL;
 
     return ERROR_OK;
-}
+}*/
 
 
 int main(int argc, char *argv[])
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 
 #endif // !PC_TEST
 	
-        ret = uquad_read();
+        ret = uquad_read(rbuf);
         if(ret == ERROR_OK)
 	{
 	  
