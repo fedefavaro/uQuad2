@@ -78,16 +78,13 @@ uquad_kmsgq_t *uquad_kmsgq_init(int key_s, int key_c)
 
 //static int msqid;
 
-const static key_t key_s = 169; // must match MOT_SERVER_KEY (in mot_control.h)
-const static key_t key_c = 170; // must match MOT_DRIVER_KEY (in mot_control.h)
-
 static char ack_counter = 0;
 int uquad_send_ack(void)
 {
     int msqid;
     message_buf_t ack_msg;
     ack_msg.mtype = 1;
-    if ((msqid = msgget(key_c, IPC_CREAT | 0666 )) < 0)
+    if ((msqid = msgget(DRIVER_KEY, IPC_CREAT | 0666 )) < 0)
     {
 	err_log_stderr("msgget()");
 	fflush(stderr);
@@ -107,18 +104,27 @@ int uquad_send_ack(void)
     return ERROR_OK;
 }
 
-int uquad_read(message_buf_t read_msg)
+int uquad_read(message_buf_t *read_msg)
 {
     int msqid;
     // get speed data from kernel msgq
-    if ((msqid = msgget(key_s, 0666)) < 0)
+    if ((msqid = msgget(SERVER_KEY, 0666)) < 0)
 	return ERROR_FAIL;
     
     /*
      * Receive an answer of message type 1.
      */
-    if (msgrcv(msqid, &read_msg, MSGSZ, 1, IPC_NOWAIT) < 0)
+    if (msgrcv(msqid, read_msg, MSGSZ, 1, IPC_NOWAIT) < 0)
 	return ERROR_FAIL;
+
+    /* debug - print */
+/*    int i;
+    uint16_t *u16tmp = (uint16_t*)read_msg.mtext;
+    for(i=0; i < 5; ++i)
+	{
+	    printf("%d ",u16tmp[i]);
+    }
+    printf("\n"); */
 
     return ERROR_OK;
 }

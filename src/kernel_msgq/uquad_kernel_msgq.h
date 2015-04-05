@@ -45,6 +45,9 @@
 #define LOG_KQ_S_ACK  0
 #endif
 
+/// Communication with motor driver is done via kernel msgs
+#define SERVER_KEY 169 // some number
+#define DRIVER_KEY 170 // some other number
 
 #define MSGSZ                    10
 #define UQUAD_MSGTYPE            1L
@@ -84,7 +87,7 @@ uquad_kmsgq_t *uquad_kmsgq_init(int key_s, int key_c);
 
 int uquad_send_ack(void);
 
-int uquad_read(message_buf_t read_msg);
+int uquad_read(message_buf_t *read_msg);
 
 int uquad_kmsgq_send(uquad_kmsgq_t *server, uint8_t *msg, int msg_len);
 

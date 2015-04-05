@@ -4,10 +4,6 @@
 #include <futaba_sbus.h>
 #include <signal.h>
 
-/// Communication with motor driver is done via kernel msgs
-#define SERVER_KEY 169 // some number
-#define DRIVER_KEY 170 // some other number
-
 #define CH_COUNT		5
 #define BUFF_SIZE		10
 
@@ -68,10 +64,10 @@ int main(int argc, char *argv[])
    }
 
    ch_buff[0] = 1000;	// roll
-   ch_buff[1] = 1000;	// pitch
-   ch_buff[2] = 1000;	// yaw
-   ch_buff[3] = 1000;   // throttle
-   ch_buff[4] = 1000;   // flight mode?
+   ch_buff[1] = 1100;	// pitch
+   ch_buff[2] = 1200;	// yaw
+   ch_buff[3] = 1300;   // throttle
+   ch_buff[4] = 1400;   // flight mode?
    
    // Catch signals
    signal(SIGINT, uquad_sig_handler);
@@ -84,7 +80,7 @@ int main(int argc, char *argv[])
    for(;;)
    {
       sleep_ms(15);
-      retval = uquad_kmsgq_send(kmsgq, buff_out, BUFF_SIZE);
+      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
       {
          err_log("Failed to send message!");

@@ -3,5 +3,5 @@
 
 
 #if PC_TEST
-#define SBUS_LOG_TO_FILE	1 //if set, sbus daemon will log to a file instead of writing to stdout
+#define SBUS_LOG_TO_FILE	0 //if set, sbus daemon will log to a file instead of writing to stdout
 #endif
