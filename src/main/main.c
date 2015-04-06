@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
    ch_buff[4] = 1500;   // flight mode?
    
    // Catch signals
-   //signal(SIGINT, uquad_sig_handler);
-   //signal(SIGQUIT, uquad_sig_handler);
+	signal(SIGINT, uquad_sig_handler);
+	signal(SIGQUIT, uquad_sig_handler);
 	signal(SIGCHLD, uquad_sbusd_term_handler);
 
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --

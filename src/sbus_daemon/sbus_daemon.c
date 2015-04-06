@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
        		if(ret == ERROR_OK)
 			{
 				msg_received = true;
-				if(err_count > 0)
+				if(rcv_err_count > 0)
 					rcv_err_count--;
 				// Parse message. 2 bytes per channel.
     			ch_buff = (int16_t *)rbuf.mtext;
