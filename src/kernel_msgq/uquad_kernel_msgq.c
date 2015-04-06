@@ -115,16 +115,7 @@ int uquad_read(message_buf_t *read_msg)
      * Receive an answer of message type 1.
      */
     if (msgrcv(msqid, read_msg, MSGSZ, 1, IPC_NOWAIT) < 0)
-	return ERROR_FAIL;
-
-    /* debug - print */
-/*    int i;
-    uint16_t *u16tmp = (uint16_t*)read_msg.mtext;
-    for(i=0; i < 5; ++i)
-	{
-	    printf("%d ",u16tmp[i]);
-    }
-    printf("\n"); */
+	    return ERROR_FAIL;
 
     return ERROR_OK;
 }

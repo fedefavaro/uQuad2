@@ -15,6 +15,7 @@
 #include <signal.h> // for SIGINT, SIGQUIT
 #include <stdlib.h> 
 #include <fcntl.h>
+#include <sys/prctl.h>
 
 // kernel queues
 #include <sys/ipc.h> // for IPC_NOWAIT
@@ -76,10 +77,9 @@ int fd;
 FILE * fp = NULL; 
 #endif
 
-void uquad_sig_handler(int signal_num){
-    
+void quit()
+{
     int ret;
-    err_log_num("[Client] Caught signal: ",signal_num);
 #if !PC_TEST
     ret = close(fd);
     if(ret < 0)
@@ -94,18 +94,29 @@ void uquad_sig_handler(int signal_num){
     }
 #endif
     fflush(stderr);
+    exit(1);
+}
+
+void uquad_sig_handler(int signal_num){
+    
+    err_log_num("[Client] Caught signal: ",signal_num);
+    quit();
 }
 
 
 int main(int argc, char *argv[])
 {  
-int i;
+
 	int ret = ERROR_OK;
 	int err_count = 0;
+	int rcv_err_count = 0;
+	int loop_count = 0;
 	bool msg_received = false;
 	char *device;
 	int16_t *ch_buff; //stores parsed kernel message to update servos
-	if(argc<2)
+	
+    // check input arguments
+    if(argc<2)
 	{
 		err_log(HOW_TO);
 		return -1;
@@ -140,7 +151,7 @@ int i;
    ret = custom_baud(fd);      
    if (ret < 0)
    {
-       fputs("custom_baud() failed!\n", stderr);
+       err_log_stderr("custom_baud() failed!");
        return ret;
    }
 #else
@@ -163,42 +174,32 @@ int i;
     }
 
    // Catch signals
+	prctl(PR_SET_PDEATHSIG, SIGHUP);
+	signal(SIGHUP, uquad_sig_handler);
    signal(SIGINT, uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
 
    int j;
    for(j=1;j<17;j++)
      futaba_sbus_servo(j, 0);
+   futaba_sbus_updateServos();
 
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-   //int do_sleep = 0;
-
+   
 	for(;;)
-	   {
+	{
 		gettimeofday(&tv_in,NULL);
 	
-	        if(err_count > MAX_ERR_SBUSD)
+	    if((err_count > MAX_ERR_SBUSD) || (rcv_err_count > MAX_ERR_SBUSD))
 		{
-		    printf("error count exceded");
-	            return -1;
+		    err_log("error count exceded");
+	        quit();
 		}
-/*	if(do_sleep)
-	{
-	    // avoid saturating i2c driver
-	    //printf("Will sleep to avoid saturating.");
-	    sleep_ms(1);   //?
-	    do_sleep = 0;
-	}*/
+
 		if(msg_received)
 		{
-    
-/*    for(i=0; i < 5; ++i)
-	{
-	    printf("%d ",ch_buff[i]);
-    }
-    printf("\n");*/
         	futaba_sbus_servo(1, ch_buff[0]);
 			futaba_sbus_servo(2, ch_buff[1]);
 			futaba_sbus_servo(3, ch_buff[2]);
@@ -213,9 +214,7 @@ int i;
         if (ret < 0)
         {
            fputs("write() failed!\n", stderr);
-           //do_sleep = 1;
-		   err_count++;
-		   continue;
+           err_count++;
 		}
 		else
 		{
@@ -231,50 +230,55 @@ int i;
 	    ret = fprintf(fp, "%s", str);
 	    if(ret < 0)
 	    {
-	        err_log_stderr("Failed to write to log file!");
+	        err_log("Failed to write to log file!");
 	        err_count++;
-	        continue;
 	    }
 #else
 		/* Escribe en stdout */
 		printf("%s",str);
-        /// This loop was fine
-		if(err_count > 0)
-		    err_count--;
 #endif // SBUS_LOG_TO_FILE
-
+		/// This loop was fine
+		if(err_count > 0)
+		   err_count--;
 #endif // !PC_TEST
-	
-    	ret = uquad_read(&rbuf);
-    	if(ret == ERROR_OK)
+		
+        loop_count++;
+
+		// si pasaron mas de ~100ms es hora de leer el mensaje
+		if (loop_count > 6) //14ms * 6 = 98ms
 		{
-			msg_received = true;
-		   // Parse message. 2 bytes per channel.
-    	   ch_buff = (int16_t *)rbuf.mtext;
-		   /// send ack
-		   ret = uquad_send_ack();
-		   if(ret != ERROR_OK)
-		   {
-		      err_log("Failed to send ack!");
-    	   }
-		   // continue
+    		ret = uquad_read(&rbuf);
+       		if(ret == ERROR_OK)
+			{
+				msg_received = true;
+				if(err_count > 0)
+					rcv_err_count--;
+				// Parse message. 2 bytes per channel.
+    			ch_buff = (int16_t *)rbuf.mtext;
+				/// send ack
+				ret = uquad_send_ack();
+				if(ret != ERROR_OK)
+				{
+					err_log("Failed to send ack!");
+    			}
+			}
+			else
+			{
+				err_log("Failed to read msg!");
+				msg_received = false;
+				rcv_err_count++;
+			}
+			loop_count = 0;
 		}
-		else
-		{
-			err_log("Failed to read msg!");
-			msg_received = false;
-		}
+
 
 		gettimeofday(&tv_end,NULL);
-
 		ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
 		/// Check if we have to wait a while
 		if(ret > 0)
 		{
 		    if(tv_diff.tv_usec < LOOP_T_US)
-		    {
-			usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
-		    }
+		    	usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
 
 		}
 		else
@@ -282,6 +286,7 @@ int i;
             err_log("WARN: Absurd timing!");
 	    	err_count++;
 		}
+        
 	} //for(;;)  
 
    return 0; //never reaches here

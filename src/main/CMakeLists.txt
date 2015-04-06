@@ -1,4 +1,4 @@
-set(main_bin main)
+set(main_bin path_follower)
 add_executable (${main_bin} main)
 
 # Set required libraries
