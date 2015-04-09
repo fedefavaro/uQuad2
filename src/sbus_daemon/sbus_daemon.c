@@ -139,7 +139,9 @@ int main(int argc, char *argv[])
    struct timeval tv_end;
    struct timeval tv_diff;
 
+#if PC_TEST
    gettimeofday(&tv_start,NULL);
+#endif //PC_TEST
 
 #if !PC_TEST 
    fd = open_port(device);
