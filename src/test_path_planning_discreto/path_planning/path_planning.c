@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include <math.h>
-#include "path_planning.h"
 #include <stdlib.h>
+#include <math.h>
 #include <complex.h>
+#include "path_planning.h"
 
 double conversion_grados2rad(double grados)
 {
@@ -20,31 +20,6 @@ double mod2pi(double angulo)
     return retval;
 }
 
-//void way_points_input(way_point_t *p_inicial, way_point_t *p_final)
-//{
-//    printf("Ingreso de datos: way points\n");
-//    printf("----------------------------\n");
-//    printf("\nWay point inicial:\nx\t=\t");
-//    scanf("%lf", &p_inicial->x);
-//    printf("y\t=\t");
-//    scanf("%lf", &p_inicial->y);
-//    printf("z\t=\t");
-//    scanf("%lf", &p_inicial->z);
-//    printf("angulo\t=\t");
-//    scanf("%lf", &p_inicial->angulo);
-//
-//    printf("\nWay point final:\nx\t=\t");
-//    scanf("%lf", &p_final->x);
-//    printf("y\t=\t");
-//    scanf("%lf", &p_final->y);
-//    printf("z\t=\t");
-//    scanf("%lf", &p_final->z);
-//    printf("angulo\t=\t");
-//    scanf("%lf", &p_final->angulo);
-//
-//    return;
-//}
-
 void way_points_input(way_point_t *wp)
 {
     printf("\nWay point:\nx\t=\t");
@@ -60,8 +35,6 @@ void way_points_input(way_point_t *wp)
 
     return;
 }
-
-
 
 void conversion_eje_coordenadas(way_point_t *p_inicial_src, way_point_t *p_final_src, way_point_t *p_inicial_dest, way_point_t *p_final_dest)
 {
@@ -79,8 +52,6 @@ void conversion_eje_coordenadas(way_point_t *p_inicial_src, way_point_t *p_final
 
     return;
 }
-
-
 
 cuadrantes_t determinacion_cuadrantes(way_point_t *p_inicial, way_point_t *p_final)
 {
@@ -132,8 +103,6 @@ cuadrantes_t determinacion_cuadrantes(way_point_t *p_inicial, way_point_t *p_fin
 
     return cuad;
 }
-
-
 
 /** LSL */
 double t_lsl(double a, double b, double d)
@@ -223,13 +192,10 @@ double fun_f(double i, double j, double k)
 {
     return i - j - (2*(k - pii));
 }
-
 double fun_g(double i)
 {
     return i- pii;
 }
-
-
 
 void eleccion_curva_dubins(cuadrantes_t cuad, way_point_t *p_inicial, way_point_t *p_final, tipo_trayectoria_t *path_type)
 {
@@ -427,74 +393,6 @@ void find_path(tipo_trayectoria_t tipo, way_point_t *p_inicial, way_point_t *p_f
     return;
 }
 
-
-
-int log_resultado_trayectoria(Lista_path *lista)
-{
-    Elemento_path *elemento = lista->inicio;
-
-    // Creo archivo log file
-    FILE *file_log;
-    file_log = fopen("path_log.txt", "w");
-    if (file_log == NULL)
-    {
-        return -1;
-    }
-
-    fprintf(file_log, "%i \n\n", lista->tamano);
-
-    fprintf(file_log, "%i \n", elemento->dato->tipo);
-    fprintf(file_log, "%lf \n", elemento->dato->xi);
-    fprintf(file_log, "%lf \n", elemento->dato->yi);
-    fprintf(file_log, "%lf \n", elemento->dato->zi);
-    fprintf(file_log, "%lf \n", elemento->dato->anguloi);
-    fprintf(file_log, "%lf \n", elemento->dato->xf);
-    fprintf(file_log, "%lf \n", elemento->dato->yf);
-    fprintf(file_log, "%lf \n", elemento->dato->zf);
-    fprintf(file_log, "%lf \n", elemento->dato->angulof);
-    fprintf(file_log, "%lf \n", elemento->dato->xci);
-    fprintf(file_log, "%lf \n", elemento->dato->yci);
-    fprintf(file_log, "%lf \n", elemento->dato->xcf);
-    fprintf(file_log, "%lf \n", elemento->dato->ycf);
-    fprintf(file_log, "%lf \n", elemento->dato->Ci);
-    fprintf(file_log, "%lf \n", elemento->dato->S);
-    fprintf(file_log, "%lf \n", elemento->dato->Cf);
-    fprintf(file_log, "%i \n\n", RADIO);
-
-     // Guardo resultados en log file
-     while (elemento->siguiente != NULL) {
-
-        elemento = elemento->siguiente;
-
-        fprintf(file_log, "%i \n", elemento->dato->tipo);
-        fprintf(file_log, "%lf \n", elemento->dato->xi);
-        fprintf(file_log, "%lf \n", elemento->dato->yi);
-        fprintf(file_log, "%lf \n", elemento->dato->zi);
-        fprintf(file_log, "%lf \n", elemento->dato->anguloi);
-        fprintf(file_log, "%lf \n", elemento->dato->xf);
-        fprintf(file_log, "%lf \n", elemento->dato->yf);
-        fprintf(file_log, "%lf \n", elemento->dato->zf);
-        fprintf(file_log, "%lf \n", elemento->dato->angulof);
-        fprintf(file_log, "%lf \n", elemento->dato->xci);
-        fprintf(file_log, "%lf \n", elemento->dato->yci);
-        fprintf(file_log, "%lf \n", elemento->dato->xcf);
-        fprintf(file_log, "%lf \n", elemento->dato->ycf);
-        fprintf(file_log, "%lf \n", elemento->dato->Ci);
-        fprintf(file_log, "%lf \n", elemento->dato->S);
-        fprintf(file_log, "%lf \n", elemento->dato->Cf);
-        fprintf(file_log, "%i \n\n", RADIO);
-
-    }
-
-    // Cierro archivo de log file
-    fclose(file_log);
-
-    return 0;
-}
-
-
-
-
 /* discretiza la trayectoria */
 int path_discreto(trayectoria_t trayectoria, Lista_wp *lista)
 {
@@ -512,25 +410,17 @@ int path_discreto(trayectoria_t trayectoria, Lista_wp *lista)
     if ((trayectoria.tipo == LSL) || (trayectoria.tipo == LSR) || (trayectoria.tipo == LRL)) {
         ang_aux = ang_inicial;
         for (i=0; i<cabs(mod2pi(trayectoria.Ci)/delta_ang); i++) {
-            aux.x = trayectoria.xci + RADIO*cos(ang_aux + delta_ang);
-            aux.y = trayectoria.yci + RADIO*sin(ang_aux + delta_ang);
+            aux.x = trayectoria.xci + RADIO*cos(ang_inicial + i*delta_ang);
+            aux.y = trayectoria.yci + RADIO*sin(ang_inicial + i*delta_ang);
             InsercionEnLista_wp(lista, aux);
-            ang_aux = ang_aux + delta_ang;
         }
-        aux.x = trayectoria.xci + RADIO*cos(ang_inicial + cabs(mod2pi(trayectoria.Ci)));
-        aux.y = trayectoria.yci + RADIO*sin(ang_inicial + cabs(mod2pi(trayectoria.Ci)));
-        InsercionEnLista_wp(lista, aux);
     } else { // si primera cfa es en sentido horario...
         ang_aux = ang_inicial;
         for (i=0; i<cabs(mod2pi(trayectoria.Ci)/delta_ang); i++) {
-            aux.x = trayectoria.xci + RADIO*cos(ang_aux - delta_ang);
-            aux.y = trayectoria.yci + RADIO*sin(ang_aux - delta_ang);
+            aux.x = trayectoria.xci + RADIO*cos(ang_inicial - i*delta_ang);
+            aux.y = trayectoria.yci + RADIO*sin(ang_inicial - i*delta_ang);
             InsercionEnLista_wp(lista, aux);
-            ang_aux -= delta_ang;
         }
-        aux.x = trayectoria.xci + RADIO*cos(ang_inicial - cabs(mod2pi(trayectoria.Ci)));
-        aux.y = trayectoria.yci + RADIO*sin(ang_inicial - cabs(mod2pi(trayectoria.Ci)));
-        InsercionEnLista_wp(lista, aux);
     }
 
     /* RECTA */
@@ -550,11 +440,11 @@ int path_discreto(trayectoria_t trayectoria, Lista_wp *lista)
         y_2 = trayectoria.ycf + RADIO*sin(mod2pi(ang_final + cabs(mod2pi(trayectoria.Cf))));
     }
     double delta_x, delta_y;
-    if (x_2-x_1==0)
+    if (cabs(x_2-x_1)<0.0001)
         delta_x = 0;
     else
         delta_x = (DISTANCIA_WP/(x_2-x_1))*cos(atan2((y_2-y_1),(x_2-x_1)));
-    if (y_2-y_1==0)
+    if (cabs(y_2-y_1)<0.0001)
         delta_y = 0;
     else
         delta_y = (DISTANCIA_WP/(y_2-y_1))*sin(atan2((y_2-y_1),(x_2-x_1)));
@@ -569,31 +459,21 @@ int path_discreto(trayectoria_t trayectoria, Lista_wp *lista)
     if ((trayectoria.tipo == LSL) || (trayectoria.tipo == RSL) || (trayectoria.tipo == LRL)) {
         ang_aux = mod2pi(ang_final - cabs(mod2pi(trayectoria.Cf)));
         for (i=0; i<cabs(mod2pi(trayectoria.Cf)/delta_ang); i++) {
-            aux.x = trayectoria.xcf + RADIO*cos(ang_aux + delta_ang);
-            aux.y = trayectoria.ycf + RADIO*sin(ang_aux + delta_ang);
+            aux.x = trayectoria.xcf + RADIO*cos(ang_aux + i*delta_ang);
+            aux.y = trayectoria.ycf + RADIO*sin(ang_aux + i*delta_ang);
             InsercionEnLista_wp(lista, aux);
-            ang_aux += delta_ang;
         }
-        aux.x = trayectoria.xf;
-        aux.y = trayectoria.yf;
-        InsercionEnLista_wp(lista, aux);
     } else { // si ultima cfa es en sentido horario...
         ang_aux = mod2pi(ang_final + cabs(mod2pi(trayectoria.Cf)));
         for (i=0; i<cabs(mod2pi(trayectoria.Cf)/delta_ang); i++) {
-            aux.x = trayectoria.xcf + RADIO*cos(ang_aux - delta_ang);
-            aux.y = trayectoria.ycf + RADIO*sin(ang_aux - delta_ang);
+            aux.x = trayectoria.xcf + RADIO*cos(ang_aux - i*delta_ang);
+            aux.y = trayectoria.ycf + RADIO*sin(ang_aux - i*delta_ang);
             InsercionEnLista_wp(lista, aux);
-            ang_aux -= delta_ang;
         }
-        aux.x = trayectoria.xf;
-        aux.y = trayectoria.yf;
-        InsercionEnLista_wp(lista, aux);
     }
 
     return 0;
 }
-
-
 
 int log_trayectoria_discreta(Lista_wp *lista)
 {
@@ -623,6 +503,54 @@ int log_trayectoria_discreta(Lista_wp *lista)
     return 0;
 }
 
+int path_planning(Lista_wp *wp)
+{
+    // Creo lista de way points para salida (trayectoria discreta)
+    Lista_wp *output_wp = (Lista_wp *)malloc(sizeof(struct ListaIdentificar_wp));
+    inicializacion_wp(output_wp);
+
+    // Iteracion para hallar trayectoria por cada par de way points
+    Elemento_wp *aux = wp->inicio;
+    way_point_t *p_inicial = aux->dato;
+    way_point_t *p_final = aux->siguiente->dato;
+    int i;
+    for (i=0; i < wp->tamano - 1; i++)
+    {
+        // Guardo espacio para el par de way point a unir con una trayectoria
+        way_point_t *p_inicial_conv = (way_point_t *)malloc(sizeof(struct way_point));
+        way_point_t *p_final_conv = (way_point_t *)malloc(sizeof(struct way_point));
+
+        // Convierto sistema de coordenadas
+        conversion_eje_coordenadas(p_inicial, p_final, p_inicial_conv, p_final_conv);
+
+        // Determino en que cuadrantes se encuentran los angulos de partida y llegada
+        cuadrantes_t cuad = determinacion_cuadrantes(p_inicial_conv, p_final_conv);
+
+        // Defino el tipo de trayectoria
+        tipo_trayectoria_t *path_type = (tipo_trayectoria_t *)malloc(sizeof(enum tipo_trayectoria));
+        eleccion_curva_dubins(cuad, p_inicial_conv, p_final_conv, path_type);
+
+        // Hallo la trayectoria
+        trayectoria_t *path = (trayectoria_t *)malloc(sizeof(struct trayectoria));
+        find_path(*path_type, p_inicial, p_final, p_inicial_conv, p_final_conv, path);
+
+        // Discretizo la trayectoria generada
+        path_discreto(*path, output_wp);
+
+        // Me muevo al proximo way point para el proximo ciclo del loop
+        if (i < wp->tamano - 2)
+        {
+            aux = aux->siguiente;
+            p_inicial = aux->dato;
+            p_final = aux->siguiente->dato;
+        }
+    }
+
+    log_trayectoria_discreta(output_wp);
+
+    return 0;
+}
+
 
 
 /** --------------------- */
@@ -637,7 +565,7 @@ void inicializacion_wp(Lista_wp *lista)
     lista->tamano = 0;
 }
 
-/*Insercion en una lista */
+/*Inserción en una lista */
 int InsercionEnLista_wp(Lista_wp *lista, way_point_t dato)
 {
     Elemento_wp *nuevo_elemento;
@@ -672,83 +600,6 @@ void visualizacion_wp(Lista_wp *lista)
         printf("\n y = %lf",actual->dato->y);
         printf("\n z = %lf",actual->dato->z);
         printf("\n angulo = %lf\n",actual->dato->angulo);
-        actual = actual->siguiente;
-    }
-
-    return;
-}
-
-
-
-/** ----------------------- */
-/** LISTA PARA TRAYECTORIAS */
-/** ----------------------- */
-
-/*Inicializar una lista*/
-void inicializacion_path(Lista_path *lista)
-{
-    lista->inicio = NULL;
-    lista->fin= NULL;
-    lista->tamano = 0;
-}
-
-/*Insercion en una lista */
-int InsercionEnLista_path(Lista_path *lista, trayectoria_t dato)
-{
-    Elemento_path *nuevo_elemento;
-    if((nuevo_elemento = (Elemento_path *)malloc(sizeof(Elemento_path)))==NULL)
-        return -1;
-    if((nuevo_elemento->dato = (trayectoria_t *)malloc(sizeof(struct trayectoria)))==NULL)
-        return -1;
-
-    nuevo_elemento->dato->xi = dato.xi;
-    nuevo_elemento->dato->yi = dato.yi;
-    nuevo_elemento->dato->zi = dato.zi;
-    nuevo_elemento->dato->anguloi = dato.anguloi;
-    nuevo_elemento->dato->xf = dato.xf;
-    nuevo_elemento->dato->yf = dato.yf;
-    nuevo_elemento->dato->zf = dato.zf;
-    nuevo_elemento->dato->angulof = dato.angulof;
-    nuevo_elemento->dato->xci = dato.xci;
-    nuevo_elemento->dato->yci = dato.yci;
-    nuevo_elemento->dato->xcf = dato.xcf;
-    nuevo_elemento->dato->ycf = dato.ycf;
-    nuevo_elemento->dato->Ci = dato.Ci;
-    nuevo_elemento->dato->Cf = dato.Cf;
-    nuevo_elemento->dato->S = dato.S;
-    nuevo_elemento->dato->tipo = dato.tipo;
-    nuevo_elemento->siguiente = NULL;
-
-    if (lista->tamano == 0)
-        lista->inicio = nuevo_elemento;
-    else
-        lista->fin->siguiente = nuevo_elemento;
-    lista->fin = nuevo_elemento;
-    lista->tamano++;
-
-    return 0;
-}
-
-/*visualizar lista entera*/
-void visualizacion_path(Lista_path *lista)
-{
-    Elemento_path *actual;
-    actual = lista->inicio;
-    while(actual != NULL) {
-        printf("\n x = %lf",actual->dato->xi);
-        printf("\n y = %lf",actual->dato->yi);
-        printf("\n z = %lf",actual->dato->zi);
-        printf("\n x = %lf",actual->dato->xf);
-        printf("\n y = %lf",actual->dato->yf);
-        printf("\n z = %lf",actual->dato->zf);
-        printf("\n x = %lf",actual->dato->xci);
-        printf("\n y = %lf",actual->dato->yci);
-        printf("\n x = %lf",actual->dato->xcf);
-        printf("\n y = %lf",actual->dato->ycf);
-        printf("\n x = %lf",actual->dato->Ci);
-        printf("\n y = %lf",actual->dato->Cf);
-        printf("\n x = %lf",actual->dato->S);
-        printf("\n y = %d",actual->dato->tipo);
         actual = actual->siguiente;
     }
 

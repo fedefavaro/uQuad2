@@ -76,25 +76,6 @@ typedef struct ListaIdentificar_wp{
 } Lista_wp;
 
 
-/** ----------------------- */
-/** LISTA PARA TRAYECTORIAS */
-/** ----------------------- */
-
-typedef struct ElementoLista_path{
-    trayectoria_t *dato;
-    struct ElementoLista_path *siguiente;
-} Elemento_path;
-
-typedef struct ListaIdentificar_path{
-    Elemento_path *inicio;
-    Elemento_path *fin;
-    int tamano;
-} Lista_path;
-
-
-
-
-
 
 /**
  * Convierte un valor de angulo en grados
@@ -204,15 +185,13 @@ void find_path(tipo_trayectoria_t tipo, way_point_t *p_inicial, way_point_t *p_f
 
 /**
  */
-int log_resultado_trayectoria(Lista_path *lista);
-
-/**
- */
 int path_discreto(trayectoria_t trayectoria, Lista_wp *lista);
 
 /**
  */
 int log_trayectoria_discreta(Lista_wp *lista);
+
+int path_planning(Lista_wp *wp);
 
 /** --------------------- */
 /** LISTA PARA WAY POINTS */
@@ -226,20 +205,5 @@ int InsercionEnLista_wp(Lista_wp *lista, way_point_t dato);
 
 /*visualizar lista entera*/
 void visualizacion_wp(Lista_wp *lista);
-
-
-
-/** ----------------------- */
-/** LISTA PARA TRAYECTORIAS */
-/** ----------------------- */
-
-/*Inicializar una lista*/
-void inicializacion_path(Lista_path *lista);
-
-/*Inserción en una lista */
-int InsercionEnLista_path(Lista_path *lista, trayectoria_t dato);
-
-/*visualizar lista entera*/
-void visualizacion_path(Lista_path *lista);
 
 #endif
