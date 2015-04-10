@@ -15,12 +15,12 @@ echo Done!
 
 cp build/sbus_daemon/sbusd build/main/
 
-trap ctrl_c INT
-function ctrl_c() {
-    echo "** Trapped CTRL-C"
-    killall sbusd
-    exit
-}
+#trap ctrl_c INT
+#function ctrl_c() {
+#    echo "** Trapped CTRL-C"
+#    killall sbusd
+#    exit
+#}
 
 cd build/main
 ./path_follower
@@ -28,4 +28,4 @@ cd ../..
 
 
 # kill everything
-ctrl_c
+#ctrl_c
