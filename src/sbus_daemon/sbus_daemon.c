@@ -59,8 +59,7 @@ int convert_sbus_data(uint8_t* sbusData, char* buf_str)
    {
       buf_ptr += sprintf(buf_ptr, "%02X ", sbusData[i]);
    }
-   sprintf(buf_ptr,"\n");
-   
+  
    return 0; //char_count?
 
 }
