@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    for(;;)
    {
-      sleep_ms(105);
+      sleep_ms(100);
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
       {

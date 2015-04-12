@@ -59,7 +59,8 @@ int convert_sbus_data(uint8_t* sbusData, char* buf_str)
    {
       buf_ptr += sprintf(buf_ptr, "%02X ", sbusData[i]);
    }
-  
+   sprintf(buf_ptr,"\n");
+   
    return 0; //char_count?
 
 }
@@ -189,26 +190,26 @@ int main(int argc, char *argv[])
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    
-	for(;;)
-	{
-		gettimeofday(&tv_in,NULL);
-	
-	    if((err_count > MAX_ERR_SBUSD) || (rcv_err_count > MAX_ERR_SBUSD))
-		{
-		    err_log("error count exceded");
-	        quit();
-		}
+   for(;;)
+   {
+      gettimeofday(&tv_in,NULL);
 
-		if(msg_received)
-		{
-        	futaba_sbus_servo(1, ch_buff[0]);
-			futaba_sbus_servo(2, ch_buff[1]);
-			futaba_sbus_servo(3, ch_buff[2]);
-			futaba_sbus_servo(4, ch_buff[3]);
-			futaba_sbus_servo(5, ch_buff[4]); 
-        	futaba_sbus_updateServos();
-			msg_received = false;
-		}
+      if((err_count > MAX_ERR_SBUSD) || (rcv_err_count > MAX_ERR_SBUSD))
+      {
+         err_log("error count exceded");
+         quit();
+      }
+
+      if(msg_received)
+      {
+         futaba_sbus_servo(1, ch_buff[0]);
+         futaba_sbus_servo(2, ch_buff[1]);
+         futaba_sbus_servo(3, ch_buff[2]);
+         futaba_sbus_servo(4, ch_buff[3]);
+         futaba_sbus_servo(5, ch_buff[4]); 
+         futaba_sbus_updateServos();
+         msg_received = false;
+      }
 
 #if !PC_TEST
         ret = write(fd, sbusData, 25);
@@ -216,81 +217,81 @@ int main(int argc, char *argv[])
         {
            fputs("write() failed!\n", stderr);
            err_count++;
-		}
-		else
-		{
-		    /// This loop was fine
-		    if(err_count > 0)
-			err_count--;
-		}
+	}
+	else
+	{
+	    /// This loop was fine
+	    if(err_count > 0)
+		err_count--;
+	}
 #else
-		// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
-	    convert_sbus_data(sbusData, str);
+	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
+	convert_sbus_data(sbusData, str);
 #if SBUS_LOG_TO_FILE
-		/* Escribe en un arhivo */
-	    ret = fprintf(fp, "%s", str);
-	    if(ret < 0)
-	    {
-	        err_log("Failed to write to log file!");
-	        err_count++;
-	    }
+	/* Escribe en un arhivo */
+	ret = fprintf(fp, "%s", str);
+	if(ret < 0)
+	{
+	    err_log("Failed to write to log file!");
+	    err_count++;
+	}
 #else
-		/* Escribe en stdout */
-		printf("%s",str);
+	/* Escribe en stdout */
+	printf("%s",str);
 #endif // SBUS_LOG_TO_FILE
-		/// This loop was fine
-		if(err_count > 0)
-		   err_count--;
+	/// This loop was fine
+	if(err_count > 0)
+	   err_count--;
 #endif // !PC_TEST
 		
-        loop_count++;
+      loop_count++;
 
-		// si pasaron mas de ~100ms es hora de leer el mensaje
-		if (loop_count > 6) //14ms * 6 = 98ms
-		{
-    		ret = uquad_read(&rbuf);
-       		if(ret == ERROR_OK)
-			{
-				msg_received = true;
-				if(rcv_err_count > 0)
-					rcv_err_count--;
-				// Parse message. 2 bytes per channel.
-    			ch_buff = (int16_t *)rbuf.mtext;
-				/// send ack
-				ret = uquad_send_ack();
-				if(ret != ERROR_OK)
-				{
-					err_log("Failed to send ack!");
-    			}
-			}
-			else
-			{
-				err_log("Failed to read msg!");
-				msg_received = false;
-				rcv_err_count++;
-			}
-			loop_count = 0;
-		}
+      // si pasaron mas de ~100ms es hora de leer el mensaje
+      if (loop_count > 6) //14ms * 6 = 98ms
+      {
+         ret = uquad_read(&rbuf);
+         if(ret == ERROR_OK)
+         {
+               msg_received = true;
+               if(rcv_err_count > 0)
+                   rcv_err_count--;
+               // Parse message. 2 bytes per channel.
+               ch_buff = (int16_t *)rbuf.mtext;
+               /// send ack
+               ret = uquad_send_ack();
+               if(ret != ERROR_OK)
+               {
+                     err_log("Failed to send ack!");
+               }
+         }
+         else
+         {
+               err_log("Failed to read msg!");
+               msg_received = false;
+               rcv_err_count++;
+         }
+      
+         loop_count = 0;
+      }
 
 
-		gettimeofday(&tv_end,NULL);
-		ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-		/// Check if we have to wait a while
-		if(ret > 0)
-		{
-		    if(tv_diff.tv_usec < LOOP_T_US)
-		    	usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
-
-		}
-		else
-		{
-            err_log("WARN: Absurd timing!");
-	    	err_count++;
-		}
+      gettimeofday(&tv_end,NULL);
+      ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+      /// Check if we have to wait a while
+      if(ret > 0)
+      {
+      if(tv_diff.tv_usec < LOOP_T_US)
+      usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
+      }
+      else
+      {
+         err_log("WARN: Absurd timing!");
+         err_count++;
+      }
         
-	} //for(;;)  
+   } //for(;;)  
 
-   return 0; //never reaches here
+   return 0; //never gets here
 
 }
 
