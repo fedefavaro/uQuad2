@@ -7,7 +7,7 @@
 #include <uquad_kernel_msgq.h>
 
 #include <stdio.h>   /* Standard input/output definitions */
-#include <string.h>  /* String function definitions */
+//#include <string.h>  /* String function definitions */
 #include <errno.h>   /* Error number definitions */
 #include <unistd.h>
 #include <stdint.h>
@@ -28,43 +28,7 @@
 #define HOW_TO    		"./sbus_daemon <device>"
 
 // Global vars
-static message_buf_t rbuf; //Stores kernel message
-
-#if PC_TEST
-struct timeval tv_start; // Guarda el tiempo de comienzo del programa
-
-/* Si se esta realizando la prueba en un PC esta funcion se encarga de 
- * loggear en un formato legible el string sbus. */
-int convert_sbus_data(uint8_t* sbusData, char* buf_str)
-{
-   char* buf_ptr = buf_str;
-   int i,ret;
-   struct timeval tv_ts; //for timestamp
-
-   // Timestamp
-   gettimeofday(&tv_ts,NULL);
-   ret = uquad_timeval_substract(&tv_ts, tv_ts, tv_start);
-   if(ret > 0)
-   {
-      buf_ptr += sprintf(buf_ptr, "%lu:%lu   \t", (unsigned long)tv_ts.tv_sec, (unsigned long)tv_ts.tv_usec);
-   }
-   else
-   {
-      err_log("WARN: Absurd timing!");
-      return -1;
-   }
-   
-   // Preparo el mensaje sbus
-   for(i=0;i<SBUS_DATA_LENGTH;i++)
-   {
-      buf_ptr += sprintf(buf_ptr, "%02X ", sbusData[i]);
-   }
-   sprintf(buf_ptr,"\n");
-   
-   return 0; //char_count?
-
-}
-#endif //PC_TEST
+static message_buf_t rbuf; //Buffer para almacenar mensajes de kernel
 
 /* Variable que almacena el file descriptor del puerto serie
  * usado para enviar el mensaje sbus. */
@@ -106,30 +70,29 @@ void uquad_sig_handler(int signal_num){
 
 int main(int argc, char *argv[])
 {  
-
-	int ret = ERROR_OK;
-	int err_count = 0;
-	int rcv_err_count = 0;
-	int loop_count = 0;
-	bool msg_received = false;
-	char *device;
-	int16_t *ch_buff; //stores parsed kernel message to update servos
+   int ret = ERROR_OK;
+   int err_count = 0;
+   int rcv_err_count = 0;
+   int loop_count = 0;
+   bool msg_received = false;
+   char *device;
+   /* Para parsear el los mensajes se recorre el arreglo con un puntero
+    *  a enteros de dos bytes.
+    */
+   int16_t *ch_buff;
 	
-    // check input arguments
-    if(argc<2)
-	{
-		err_log(HOW_TO);
-		return -1;
-	}
-	else
-	device = argv[1];
+   // check input arguments
+   if(argc<2)
+   {
+      err_log(HOW_TO);
+      return -1;
+   }
+   else
+      device = argv[1];
 
 #if SBUS_LOG_TO_FILE
    printf("Logging to %s\n", device);
 #endif
-  
-   //buffer for sbus message
-   uint8_t* sbusData = futaba_sbus_ptrsbusData();			
 
 #if PC_TEST
    char str[128];
@@ -138,10 +101,7 @@ int main(int argc, char *argv[])
    struct timeval tv_in;
    struct timeval tv_end;
    struct timeval tv_diff;
-
-#if PC_TEST
-   gettimeofday(&tv_start,NULL);
-#endif //PC_TEST
+  // struct timeval tv_last; //dbg
 
 #if !PC_TEST 
    fd = open_port(device);
@@ -176,15 +136,16 @@ int main(int argc, char *argv[])
     }
 
    // Catch signals
-	prctl(PR_SET_PDEATHSIG, SIGHUP);
-	signal(SIGHUP, uquad_sig_handler);
+   prctl(PR_SET_PDEATHSIG, SIGHUP);
+   signal(SIGHUP, uquad_sig_handler);
    signal(SIGINT, uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
 
-   int j;
-   for(j=1;j<17;j++)
-     futaba_sbus_servo(j, 0);
-   futaba_sbus_updateServos();
+   // init
+   futaba_sbus_begin();
+
+   // Lleva a cero todos los canales
+   futaba_sbus_resetServos();
 
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
@@ -212,21 +173,20 @@ int main(int argc, char *argv[])
       }
 
 #if !PC_TEST
-        ret = write(fd, sbusData, 25);
+        ret = write_sbus_data(fd);
         if (ret < 0)
         {
-           fputs("write() failed!\n", stderr);
            err_count++;
 	}
 	else
 	{
-	    /// This loop was fine
-	    if(err_count > 0)
-		err_count--;
+	   /// This loop was fine
+	   if(err_count > 0)
+	      err_count--;
 	}
 #else
 	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
-	convert_sbus_data(sbusData, str);
+	convert_sbus_data(str);
 #if SBUS_LOG_TO_FILE
 	/* Escribe en un arhivo */
 	ret = fprintf(fp, "%s", str);
@@ -244,11 +204,13 @@ int main(int argc, char *argv[])
 	   err_count--;
 #endif // !PC_TEST
 		
-      loop_count++;
-
       // si pasaron mas de ~100ms es hora de leer el mensaje
       if (loop_count > 6) //14ms * 6 = 98ms
-      {
+      {  
+
+         /*gettimeofday(&tv_end,NULL);//dbg
+         ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);//dbg
+         printf("loop grande: %lu\n",(unsigned long)tv_diff.tv_usec);//dbg*/
          ret = uquad_read(&rbuf);
          if(ret == ERROR_OK)
          {
@@ -272,6 +234,7 @@ int main(int argc, char *argv[])
          }
       
          loop_count = 0;
+         //gettimeofday(&tv_last,NULL); //dbg
       }
 
 
@@ -280,8 +243,8 @@ int main(int argc, char *argv[])
       /// Check if we have to wait a while
       if(ret > 0)
       {
-      if(tv_diff.tv_usec < LOOP_T_US)
-      usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
+         if(tv_diff.tv_usec < LOOP_T_US)
+            usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
       }
       else
       {
@@ -289,6 +252,8 @@ int main(int argc, char *argv[])
          err_count++;
       }
         
+      loop_count++;
+
    } //for(;;)  
 
    return 0; //never gets here

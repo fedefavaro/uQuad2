@@ -108,14 +108,16 @@ int uquad_read(message_buf_t *read_msg)
 {
     int msqid;
     // get speed data from kernel msgq
-    if ((msqid = msgget(SERVER_KEY, 0666)) < 0)
-	return ERROR_FAIL;
+    if ((msqid = msgget(SERVER_KEY, 0666)) < 0) {
+	//err_log("msgget!");
+	return ERROR_FAIL; }
     
     /*
      * Receive an answer of message type 1.
      */
-    if (msgrcv(msqid, read_msg, MSGSZ, 1, IPC_NOWAIT) < 0)
-	    return ERROR_FAIL;
+    if (msgrcv(msqid, read_msg, MSGSZ, 1, IPC_NOWAIT) < 0) {
+	//err_log("msgrcv!");
+        return ERROR_FAIL; }
 
     return ERROR_OK;
 }

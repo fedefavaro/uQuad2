@@ -1,8 +1,11 @@
 #ifndef FUTABA_SBUS_h
 #define FUTABA_SBUS_h
 
+#include <uquad_config.h>
+
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define SBUS_SIGNAL_OK          0x00
 #define SBUS_SIGNAL_LOST        0x01
@@ -27,7 +30,15 @@ void futaba_sbus_updateServos(void);
 
 uint8_t * futaba_sbus_ptrsbusData(void);
 
-static volatile int rx_timeout;
-static volatile int tx_timeout;
+int futaba_sbus_resetServos(void);
+
+#if PC_TEST
+int convert_sbus_data(char* buf_str);
+#else
+int write_sbus_data(int fd);
+#endif //PC_TEST
 
 #endif
+
+
+
