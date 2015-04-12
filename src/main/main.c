@@ -42,9 +42,9 @@ void uquad_sbusd_term_handler(int signal_num)
     p = waitpid(-1, &status, WNOHANG);
     if(p == sbusd_chld)
     {
-		err_log_num("WARN: sbusd died! sig num:", signal_num);
-		//quit();
-		exit(1); //TODO reemplazar por quit
+       err_log_num("WARN: sbusd died! sig num:", signal_num);
+       //quit();
+       exit(1); //TODO reemplazar por quit
     }
 }
 
@@ -74,8 +74,8 @@ int main(int argc, char *argv[])
       goto cleanup;
    }
    
-	// The parent process continues here...
-	sbusd_chld = chld_pid;
+   // The parent process continues here...
+   sbusd_chld = chld_pid;
 
 #if PC_TEST
    printf("Starting main in PC test mode\n");
@@ -104,9 +104,9 @@ int main(int argc, char *argv[])
    ch_buff[4] = 1500;   // flight mode?
    
    // Catch signals
-	signal(SIGINT, uquad_sig_handler);
-	signal(SIGQUIT, uquad_sig_handler);
-	signal(SIGCHLD, uquad_sbusd_term_handler);
+   signal(SIGINT, uquad_sig_handler);
+   signal(SIGQUIT, uquad_sig_handler);
+   signal(SIGCHLD, uquad_sbusd_term_handler);
 
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop

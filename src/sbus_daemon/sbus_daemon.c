@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
    uint8_t* sbusData = futaba_sbus_ptrsbusData();			
 
 #if PC_TEST
-   char str[64];
+   char str[128];
 #endif //PC_TEST
 
    struct timeval tv_in;
