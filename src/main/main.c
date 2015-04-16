@@ -165,20 +165,24 @@ int main(int argc, char *argv[])
       {
 	 log_n_jump(ERROR_READ, end_stdin,"No user input detected!");
       }
-      else if(tmp_buff[0] == 'a') //ch0 up
+      else switch(tmp_buff[0])
       {
-         if(ch_buff[0]<=1990)
-            ch_buff[0] = ch_buff[0]+10;
-      }
-      else if(tmp_buff[0] == 'd') //ch0 down
-      {
-         if(ch_buff[0]>=1010)
-            ch_buff[0] = ch_buff[0]-10;
-      }
-      else if(tmp_buff[0] == 'r') //ch0 reset
-      {
+      case 's':
          ch_buff[0] = 1500;
-      }
+         break;
+      case '1':
+         ch_buff[0] = 1550;
+         break;
+      case '2':
+         ch_buff[0] = 1600;
+         break;
+      case '3':
+         ch_buff[0] = 1650;
+         break;
+      default:
+         err_log("Velocidad invalida. Ingrese 1,2,3,s para 10%,20%,30%,0%");
+         break;
+      } //switch(tmp_buff[0])
 
       end_stdin: //vengo aca si algo sale mal con leer stdin
      

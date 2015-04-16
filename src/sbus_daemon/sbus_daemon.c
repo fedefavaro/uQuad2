@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
          }
          else
          {
-               err_log("Failed to read msg!");
+               //err_log("Failed to read msg!");
                msg_received = false;
                rcv_err_count++;
          }
