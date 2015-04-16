@@ -21,7 +21,7 @@
 #endif
 
 #define KILL_SBUS		"killall sbusd"
-#define MAIN_LOOP_T_US               99000UL
+#define MAIN_LOOP_T_US               110000UL
 
 
 //Global vars
