@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
          case 's':
             ch_buff[0] = 1500;
             break;
-         case '1':
+         case 'F':
             ch_buff[0] = 0;
             ch_buff[1] = 0;
             break;
