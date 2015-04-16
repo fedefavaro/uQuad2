@@ -130,12 +130,14 @@ int main(int argc, char *argv[])
       goto cleanup;
    }
 
-   ch_buff[0] = 1500;	// roll
-   ch_buff[1] = 1500;	// pitch
-   ch_buff[2] = 1500;	// yaw
-   ch_buff[3] = 1500;   // throttle
-   ch_buff[4] = 1500;   // flight mode?
+   ch_buff[0] = 1000;	// roll
+   ch_buff[1] = 1000;	// pitch
+   //ch_buff[2] = 1500;	// yaw
+   //ch_buff[3] = 1500;   // throttle
+   //ch_buff[4] = 1500;   // flight mode?
    
+   printf("Para calibrar use presione m,M para 1000(min),2000(max)\n");
+ 
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -178,6 +180,12 @@ int main(int argc, char *argv[])
          break;
       case '3':
          ch_buff[0] = 1650;
+         break;
+      case 'm':
+         ch_buff[0] = 1000;
+         break;
+      case 'M':
+         ch_buff[0] = 2000;
          break;
       default:
          err_log("Velocidad invalida. Ingrese 1,2,3,s para 10%,20%,30%,0%");
