@@ -1,0 +1,16 @@
+Para correr el programa ejecutar cca.m. La función carrotChase.m debe encontrarse accesible por el programa principal (cca.m).
+
+Parámetros editables:
+
+	En cca.m
+	- k: 		constante del controlador.
+	- W_act:	waypoint inicial.
+	- W_sig:	waypoint siguiente.
+	- p = [px py]	posición inicial del UAV.
+	- psi		orientación (yaw) inicial.
+	- v 		velocidad del UAV (se mantiene constante).
+	- t		intervalo de tiempo que transcurre entre 
+			una aplicación del algoritmo y la siguiente.
+
+	En carrotChase.m
+	- delta:	parámetro del algoritmo.
