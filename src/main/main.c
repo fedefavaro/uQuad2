@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
    //ch_buff[4] = 1500;   // flight mode?
    
    printf("Para calibrar presione m (min) y M (max) para 1000 y 2000\n");
-   printf("Pitch es el canal 0. Roll es el 1. El Roll queda fijo en 1500 (0)\n");
+   printf("Pitch es el canal 1. Roll es el 2. El Roll queda fijo en 1500 (0)\n");
  
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
@@ -201,6 +201,10 @@ int main(int argc, char *argv[])
             ch_buff[0] = 1500;
             break;
          case '1':
+            ch_buff[0] = 0;
+            ch_buff[1] = 0;
+            break;
+         case '1':
             ch_buff[0] = 1550;
             break;
          case '2':
@@ -210,7 +214,7 @@ int main(int argc, char *argv[])
             ch_buff[0] = 1650;
             break;
          default:
-            err_log("Velocidad invalida. Ingrese 1,2,3,s para 10%,20%,30%,0%");
+            err_log("Velocidad invalida. Ingrese 1,2,3,s,F para 10%,20%,30%,0%,terminar");
             break;
          } //switch(tmp_buff[0])
       }
