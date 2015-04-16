@@ -165,9 +165,9 @@ int main(int argc, char *argv[])
       {
          futaba_sbus_servo(1, ch_buff[0]);
          futaba_sbus_servo(2, ch_buff[1]);
-         futaba_sbus_servo(3, ch_buff[2]);
-         futaba_sbus_servo(4, ch_buff[3]);
-         futaba_sbus_servo(5, ch_buff[4]); 
+         //futaba_sbus_servo(3, ch_buff[2]);
+         //futaba_sbus_servo(4, ch_buff[3]);
+         //futaba_sbus_servo(5, ch_buff[4]); 
          futaba_sbus_updateServos();
          msg_received = false;
       }

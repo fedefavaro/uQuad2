@@ -27,6 +27,7 @@
 //Global vars
 pid_t sbusd_chld = -1;
 static io_t *io            = NULL;
+typedef enum {CALIB=0,START} state_t;
 
 void quit()
 {
@@ -69,7 +70,9 @@ int main(int argc, char *argv[])
    struct timeval tv_in;
    struct timeval tv_end;
    struct timeval tv_diff;
-   
+
+   state_t state = CALIB;
+
    uquad_bool_t read_ok       = false;
 
    // Catch signals
@@ -130,13 +133,14 @@ int main(int argc, char *argv[])
       goto cleanup;
    }
 
-   ch_buff[0] = 1000;	// roll
-   ch_buff[1] = 1000;	// pitch
+   ch_buff[0] = 0;	// roll
+   ch_buff[1] = 0;	// pitch
    //ch_buff[2] = 1500;	// yaw
    //ch_buff[3] = 1500;   // throttle
    //ch_buff[4] = 1500;   // flight mode?
    
-   printf("Para calibrar use presione m,M para 1000(min),2000(max)\n");
+   printf("Para calibrar presione m (min) y M (max) para 1000 y 2000\n");
+   printf("Pitch es el canal 0. Roll es el 1. El Roll queda fijo en 1500 (0)\n");
  
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
@@ -167,30 +171,49 @@ int main(int argc, char *argv[])
       {
 	 log_n_jump(ERROR_READ, end_stdin,"No user input detected!");
       }
-      else switch(tmp_buff[0])
+      else if(state == CALIB)
       {
-      case 's':
-         ch_buff[0] = 1500;
-         break;
-      case '1':
-         ch_buff[0] = 1550;
-         break;
-      case '2':
-         ch_buff[0] = 1600;
-         break;
-      case '3':
-         ch_buff[0] = 1650;
-         break;
-      case 'm':
-         ch_buff[0] = 1000;
-         break;
-      case 'M':
-         ch_buff[0] = 2000;
-         break;
-      default:
-         err_log("Velocidad invalida. Ingrese 1,2,3,s para 10%,20%,30%,0%");
-         break;
-      } //switch(tmp_buff[0])
+         switch(tmp_buff[0])
+         {
+         case 'm':
+            ch_buff[0] = 1000;
+            ch_buff[1] = 1000;
+            break;
+         case 'M':
+            ch_buff[0] = 2000;
+            ch_buff[1] = 2000;
+            break;
+         case 'S':
+            ch_buff[0] = 1500;
+            ch_buff[1] = 1500;
+            state = START;
+            break;
+         default:
+            err_log("Velocidad invalida. Ingrese m,M,S para 1000,2000,1500+comenzar");
+            break;
+         } //switch(tmp_buff[0])
+      } else if(state == START)
+      {
+
+         switch(tmp_buff[0])
+         {
+         case 's':
+            ch_buff[0] = 1500;
+            break;
+         case '1':
+            ch_buff[0] = 1550;
+            break;
+         case '2':
+            ch_buff[0] = 1600;
+            break;
+         case '3':
+            ch_buff[0] = 1650;
+            break;
+         default:
+            err_log("Velocidad invalida. Ingrese 1,2,3,s para 10%,20%,30%,0%");
+            break;
+         } //switch(tmp_buff[0])
+      }
 
       end_stdin: //vengo aca si algo sale mal con leer stdin
      
