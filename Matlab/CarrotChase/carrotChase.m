@@ -3,7 +3,7 @@ function [ psi_d ] = carrotChase(p, W_act, W_sig)
 %   Detailed explanation goes here
 
 % delta
-delta = 10;
+delta = 5;
 
 % Paso 2
 Ru = norm( W_act - p);
@@ -23,5 +23,5 @@ s = [(R + delta)*cos(theta) + W_act(1) (R+delta)*sin(theta) + W_act(2)];
 psi_d = atan2(s(2) - p(2), s(1) - p(1));
 %psi_d_grados = psi_d*180/pi
 
-end
+end %function
 
