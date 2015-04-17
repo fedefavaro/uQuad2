@@ -3,7 +3,7 @@ function [ psi_d ] = carrotChase(p, W_act, W_sig)
 %   Detailed explanation goes here
 
 % delta
-delta = 5;
+delta = 15;
 
 % Paso 2
 Ru = norm( W_act - p);
