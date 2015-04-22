@@ -33,6 +33,7 @@
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
+#include <gps_comm.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
