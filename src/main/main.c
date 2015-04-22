@@ -60,6 +60,7 @@ uquad_kmsgq_t *kmsgq 	= NULL;
 void quit()
 {
    int retval;
+
    /// IO manager
    retval = io_deinit(io);
    if(retval != ERROR_OK)
@@ -69,8 +70,16 @@ void quit()
    /// Kernel Messeges Queue
    uquad_kmsgq_deinit(kmsgq);
    
+   /// GPS
+   retval = deinit_gps();
+   if(retval != ERROR_OK)
+   {
+      err_log("Could not close gps correctly!");
+   }
+   
    /// Demonio S-BUS 
    retval = system(KILL_SBUS);
+   //if (retval ... TODO
    
    exit(1);
 }    
@@ -140,12 +149,13 @@ int main(int argc, char *argv[])
 
    /// GPS
 //--------------------------------------------------------------------------
-
-
-
-
-
+   retval = init_gps();
+   if(retval < 0)
+   {
+      quit_log_if(ERROR_FAIL,"Failed to init gps!");
+   }
 //--------------------------------------------------------------------------
+
 #if PC_TEST
    printf("Starting main in PC test mode\n");
    printf("For configuration options view common/uquad_config.h\n");
@@ -174,9 +184,19 @@ int main(int argc, char *argv[])
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
       {
-         fputs("Failed to send message!\n",stderr);
-         goto cleanup;
+         quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
+
+   /// if GPS
+//--------------------------------------------------------------------------
+   retval = get_gps_data();
+   //if (ret ... TODO
+
+
+
+//--------------------------------------------------------------------------
+
+
 
 //--------------------------------------------------------------------------
       /// -- -- -- -- -- -- -- --
@@ -190,7 +210,7 @@ int main(int argc, char *argv[])
  	// goto end_stdin;
       if(read_ok)
       {
-         retval = fread(tmp_buff,sizeof(unsigned char),2,stdin);
+         retval = fread(tmp_buff,sizeof(unsigned char),1,stdin); //TODO corregir que queda algo por leer en el buffer?
          if(retval <= 0)
          {
 	    //log_n_jump(ERROR_READ, end_stdin,"No user input detected!");
@@ -235,13 +255,8 @@ int main(int argc, char *argv[])
       printf("duracion loop main: %lu\n",(unsigned long)tv_diff.tv_usec);
 #endif
 
-   }
+   } // for(;;)
 
-   cleanup:
-   // deinit
-   uquad_kmsgq_deinit(kmsgq);
-   retval = system(KILL_SBUS);
-
-   return 0;
+   return 0; //never reaches here
 
 }

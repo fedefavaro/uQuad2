@@ -10,6 +10,8 @@ include_directories(gps)
 
 # Add libm, for pow()
 link_libraries(m)
+# Agregar libgps, para comunicacion con gpsd
+link_libraries(gps)
 
 # Add warning to compile flags:
 set(${PROJECT_NAME}_C_FLAGS "-Wall" CACHE STRING
