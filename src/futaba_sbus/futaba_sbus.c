@@ -162,6 +162,53 @@ int write_sbus_data(int fd)
 }
 #endif //PC_TEST
 
+/*
+ * Devuelve (al main) el pid del child process o un numero negativo en caso de error.
+ * Si el child process falla al ejecutar el demonio, termina su ejecucion.
+ */
+int futaba_sbus_start_daemon(void)
+{
+   //Forks main program and starts client
+   int child_pid = fork();  
+
+   //-- -- -- El child ejecuta el siguiente codigo -- -- --
+   if (child_pid == 0)
+   {
+      int retval;
+      //starts sbus daemon
+      retval = execl("./sbusd", "sbusd", START_SBUS_ARG, (char *) 0);
+      //only get here if execl failed 
+      if(retval < 0)
+      {
+         err_log_stderr("Failed to run sbusd (execl)!");
+         return -1;
+      }
+   }
+
+   //-- -- -- El parent (main) ejecuta el siguiente codigo -- -- --
+   return child_pid;
+}
+//-------------------------------------------------------------------------//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

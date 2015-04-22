@@ -38,13 +38,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define DEBUG             1
-
-#if DEBUG
-#define LOG_KQ_S_DATA 0
-#define LOG_KQ_S_ACK  0
-#endif
-
 /// Communication with motor driver is done via kernel msgs
 #define SERVER_KEY 169 // some number
 #define DRIVER_KEY 170 // some other number
@@ -75,12 +68,6 @@ typedef struct uquad_kmsgq{
     int acks_pend;   // pending acks
     int acks_failed; // Count of acks errors (too many/not enough)
     unsigned long tx_counter;
-#if LOG_KQ_S_DATA
-    FILE *s_log_data;   // server log
-#endif
-#if LOG_KQ_S_ACK
-    FILE *s_log_ack;   // server log
-#endif
 }uquad_kmsgq_t;
 
 uquad_kmsgq_t *uquad_kmsgq_init(int key_s, int key_c);

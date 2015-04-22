@@ -7,7 +7,6 @@
 #include <uquad_kernel_msgq.h>
 
 #include <stdio.h>   /* Standard input/output definitions */
-//#include <string.h>  /* String function definitions */
 #include <errno.h>   /* Error number definitions */
 #include <unistd.h>
 #include <stdint.h>
@@ -101,7 +100,9 @@ int main(int argc, char *argv[])
    struct timeval tv_in;
    struct timeval tv_end;
    struct timeval tv_diff;
-  // struct timeval tv_last; //dbg
+#if DEBUG_TIMING_SBUSD
+   struct timeval tv_last;
+#endif //#if DEBUG_TIMING_SBUSD
 
 #if !PC_TEST 
    fd = open_port(device);
@@ -208,9 +209,13 @@ int main(int argc, char *argv[])
       if (loop_count > 6) //14ms * 6 = 98ms
       {  
 
-         /*gettimeofday(&tv_end,NULL);//dbg
-         ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);//dbg
-         printf("loop grande: %lu\n",(unsigned long)tv_diff.tv_usec);//dbg*/
+#if DEBUG_TIMING_SBUSD
+         gettimeofday(&tv_end,NULL);
+         ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);
+         printf("duracion loop sbusd (98ms): %lu\n",(unsigned long)tv_diff.tv_usec);
+         tv_last = tv_end;
+#endif //DEBUG_TIMING_SBUSD
+
          ret = uquad_read(&rbuf);
          if(ret == ERROR_OK)
          {
@@ -228,19 +233,20 @@ int main(int argc, char *argv[])
          }
          else
          {
-               //err_log("Failed to read msg!");
+#if DEBUG
+               // este error va a estar siempre porque el main y el sbusd no estan perfectamente sincronizados, pero no hay que darle importancia a menos que aparezca muy seguido
+               err_log("Failed to read msg!"); 
+#endif //DEBUG
                msg_received = false;
                rcv_err_count++;
          }
       
          loop_count = 0;
-         //gettimeofday(&tv_last,NULL); //dbg
       }
 
-
+      /// Control de tiempo del loop corto (14ms)
       gettimeofday(&tv_end,NULL);
       ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      /// Check if we have to wait a while
       if(ret > 0)
       {
          if(tv_diff.tv_usec < LOOP_T_US)
@@ -254,6 +260,12 @@ int main(int argc, char *argv[])
         
       loop_count++;
 
+#if DEBUG_TIMING_SBUSD
+      gettimeofday(&tv_end,NULL);
+      ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+      printf("duracion loop sbusd (14ms): %lu\n",(unsigned long)tv_diff.tv_usec);
+#endif
+      
    } //for(;;)  
 
    return 0; //never gets here

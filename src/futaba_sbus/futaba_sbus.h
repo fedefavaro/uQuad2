@@ -2,7 +2,6 @@
 #define FUTABA_SBUS_h
 
 #include <uquad_config.h>
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -11,6 +10,12 @@
 #define SBUS_SIGNAL_LOST        0x01
 #define SBUS_SIGNAL_FAILSAFE    0x03
 #define SBUS_DATA_LENGTH    	25
+
+#if PC_TEST
+#define START_SBUS_ARG 		"sbusd.log" //test en un PC linux
+#else
+#define START_SBUS_ARG		"/dev/ttyO1" //en la beagle
+#endif
 
 int futaba_sbus_begin(void);
     
@@ -37,6 +42,8 @@ int convert_sbus_data(char* buf_str);
 #else
 int write_sbus_data(int fd);
 #endif //PC_TEST
+
+int futaba_sbus_start_daemon(void);
 
 #endif
 
