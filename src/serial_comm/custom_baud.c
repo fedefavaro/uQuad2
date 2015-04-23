@@ -1,5 +1,5 @@
 #include "custom_baud.h"
-
+#include <uquad_config.h>
 /*
 * Allows to set arbitrary speed for the serial device on Linux.
 * stty allows to set only predefined values: 9600, 19200, 38400, 57600, 115200, 230400, 460800.
@@ -21,12 +21,14 @@ int custom_baud(int fd)
   tio.c_ispeed = BAUDRATE;
   tio.c_ospeed = BAUDRATE;
   int r = ioctl(fd, TCSETS2, &tio);
- 
+
+#if DEBUG
   if (r == 0)
-     printf("Changed successfully.\n");
+     printf("Baudrate seteado a 100000.\n");
   else 
      perror("ioctl");
-   
+#endif
+
   return 0;
 
 }
