@@ -166,8 +166,8 @@ int main(int argc, char *argv[])
    buff_out = (uint8_t *)ch_buff;
 
    /// Valores iniciales de los canales de sbus
-   ch_buff[0] = 0;      // roll
-   ch_buff[1] = 0;      // pitch
+   ch_buff[0] = 1500;      // roll
+   ch_buff[1] = 1500;      // pitch
    //ch_buff[2] = 1500; // yaw
    //ch_buff[3] = 1500; // throttle
    //ch_buff[4] = 1500; // flight mode?
