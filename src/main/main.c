@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 
       /// if GPS
 //--------------------------------------------------------------------------
-      retval = get_gps_data();
+      //retval = get_gps_data();
       //if (ret ... TODO
 
 

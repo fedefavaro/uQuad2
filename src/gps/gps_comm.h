@@ -4,6 +4,7 @@
 #include <uquad_error_codes.h>
 #include <uquad_config.h>
 
+#include <stdlib.h>
 #include <gps.h>
 #include <errno.h>
 
