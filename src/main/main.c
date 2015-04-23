@@ -33,7 +33,7 @@
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
-//#include <gps_comm.h>
+#include <gps_comm.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -71,11 +71,11 @@ void quit()
    uquad_kmsgq_deinit(kmsgq);
    
    /// GPS
-   //retval = deinit_gps();
-   //if(retval != ERROR_OK)
-   //{
-   //   err_log("Could not close gps correctly!");
-   //}
+   retval = deinit_gps();
+   if(retval != ERROR_OK)
+   {
+      err_log("Could not close gps correctly!");
+   }
    
    /// Demonio S-BUS 
    retval = system(KILL_SBUS);
@@ -123,16 +123,6 @@ int main(int argc, char *argv[])
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
-   /// GPS
-//--------------------------------------------------------------------------
-   //retval = init_gps();
-   //if(retval < 0)
-   //{
-   //   quit_log_if(ERROR_FAIL,"Failed to init gps!");
-   //}
-   //sleep_ms(500);
-//--------------------------------------------------------------------------
-
    /// Demonio S-BUS 
    child_pid = futaba_sbus_start_daemon();
    if(child_pid == -1)
@@ -140,6 +130,17 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to start child process!");
       exit(1);
    }
+    
+   /// GPS
+//--------------------------------------------------------------------------
+   retval = init_gps();
+   if(retval < 0)
+   {
+      quit_log_if(ERROR_FAIL,"Failed to init gps!");
+   }
+//--------------------------------------------------------------------------
+
+   //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
 
    /// IO manager
@@ -184,7 +185,7 @@ int main(int argc, char *argv[])
       
       /// if GPS
 //--------------------------------------------------------------------------
-      //retval = get_gps_data();
+      retval = get_gps_data();
       //if (ret ... TODO
 //--------------------------------------------------------------------------
 
