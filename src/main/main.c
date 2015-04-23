@@ -123,6 +123,15 @@ int main(int argc, char *argv[])
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
+   /// GPS
+//--------------------------------------------------------------------------
+   retval = init_gps();
+   if(retval < 0)
+   {
+      quit_log_if(ERROR_FAIL,"Failed to init gps!");
+   }
+//--------------------------------------------------------------------------
+
    /// Demonio S-BUS 
    child_pid = futaba_sbus_start_daemon();
    if(child_pid == -1)
@@ -146,15 +155,6 @@ int main(int argc, char *argv[])
    {
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");
    }
-
-   /// GPS
-//--------------------------------------------------------------------------
-   retval = init_gps();
-   if(retval < 0)
-   {
-      quit_log_if(ERROR_FAIL,"Failed to init gps!");
-   }
-//--------------------------------------------------------------------------
 
 #if PC_TEST
    printf("Starting main in PC test mode\n");
@@ -187,10 +187,10 @@ int main(int argc, char *argv[])
          quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
 
-   /// if GPS
+      /// if GPS
 //--------------------------------------------------------------------------
-   retval = get_gps_data();
-   //if (ret ... TODO
+      retval = get_gps_data();
+      //if (ret ... TODO
 
 
 
