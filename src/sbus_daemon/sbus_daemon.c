@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 #endif // !PC_TEST
 		
       // si pasaron mas de ~100ms es hora de leer el mensaje
-      if (loop_count > 6) //14ms * 6 = 98ms
+      if (loop_count > 7) //14ms * 6 = 98ms
       {  
 
 #if DEBUG_TIMING_SBUSD
