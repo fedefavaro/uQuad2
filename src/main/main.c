@@ -182,13 +182,6 @@ int main(int argc, char *argv[])
    {
       gettimeofday(&tv_in,NULL);
       
-      // envia mensaje de kernel para ser leidos por el demonio sbus
-      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
-      if(retval != ERROR_OK)
-      {
-         quit_log_if(ERROR_FAIL,"Failed to send message!");
-      }
-
       /// if GPS
 //--------------------------------------------------------------------------
       //retval = get_gps_data();
@@ -237,6 +230,14 @@ int main(int argc, char *argv[])
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
     
+
+      // envia mensaje de kernel para ser leidos por el demonio sbus
+      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+      if(retval != ERROR_OK)
+      {
+         quit_log_if(ERROR_FAIL,"Failed to send message!");
+      }
+
       /// Control de tiempo del loop
       gettimeofday(&tv_end,NULL);
       retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
