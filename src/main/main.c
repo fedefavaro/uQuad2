@@ -130,6 +130,7 @@ int main(int argc, char *argv[])
    {
       quit_log_if(ERROR_FAIL,"Failed to init gps!");
    }
+   sleep_ms(500);
 //--------------------------------------------------------------------------
 
    /// Demonio S-BUS 
