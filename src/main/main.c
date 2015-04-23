@@ -46,7 +46,7 @@
 #define BUFF_SIZE		10
 
 #define KILL_SBUS		"killall sbusd"
-#define MAIN_LOOP_T_US		110000UL
+#define MAIN_LOOP_T_US		115000UL
 
 //Global vars
 pid_t child_pid = -1;
