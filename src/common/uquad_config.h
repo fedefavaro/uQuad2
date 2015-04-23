@@ -10,8 +10,8 @@
 #define DEBUG                   1
 
 #if DEBUG
-   #define DEBUG_TIMING_MAIN	0 //imprime en stdout la duracion del loop
-   #define DEBUG_TIMING_SBUSD	0
+   #define DEBUG_TIMING_MAIN	1 //imprime en stdout la duracion del loop
+   #define DEBUG_TIMING_SBUSD	1
 #endif //DEBUG
 
 

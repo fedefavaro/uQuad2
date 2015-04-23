@@ -17,7 +17,7 @@ struct gps_data_t my_gps_data;
 
 // ran for first time: initialization
 char* hostName = "localhost";
-char* hostPort = "2947";     // default port
+char* hostPort = "1234";     // default port
 
 void quit()
 {
