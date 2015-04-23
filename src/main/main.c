@@ -97,8 +97,8 @@ void uquad_sig_handler(int signal_num)
       if(p == child_pid)
       {
          err_log_num("WARN: sbusd died! sig num:", signal_num);
-         //quit();
-         exit(1); //TODO reemplazar por quit
+         quit();
+         //exit(1); //TODO reemplazar por quit
       } else return;
    }
    // Si se capturo SIGINT o SIGQUIT termino el programa

@@ -1,4 +1,5 @@
 #include <gps_comm.h>
+#include <uquad_config.h>
 
 char* hostName = "localhost";
 char* hostPort = "1234";     // default port
@@ -65,8 +66,10 @@ int get_gps_data(void)
             printf("longitude: %lf\n", my_gps_data.fix.longitude);
             printf("altitude: %lf\n", my_gps_data.fix.altitude);
       }
-   } else err_log("No entro a gps_waiting() ... ???");
-
+   } 
+#if DEBUG
+   else err_log("No entro a gps_waiting() ... ???");
+#endif
    return 0;
 }
 
