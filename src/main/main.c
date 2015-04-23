@@ -46,7 +46,7 @@
 #define BUFF_SIZE		10
 
 #define KILL_SBUS		"killall sbusd"
-#define MAIN_LOOP_T_US		115000UL
+#define MAIN_LOOP_T_US		105000UL
 
 //Global vars
 pid_t child_pid = -1;
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to start child process!");
       exit(1);
    }
-   //sleep_ms(10);   
+   sleep_ms(500);   
 
    /// IO manager
    io = io_init();
@@ -236,6 +236,7 @@ int main(int argc, char *argv[])
       if(retval != ERROR_OK)
       {
          quit_log_if(ERROR_FAIL,"Failed to send message!");
+         //err_log("Failed to send message!");
       }
 
       /// Control de tiempo del loop
