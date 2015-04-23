@@ -140,7 +140,8 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to start child process!");
       exit(1);
    }
-   
+   sleep_ms(10);   
+
    /// IO manager
    io = io_init();
    if(io==NULL)
