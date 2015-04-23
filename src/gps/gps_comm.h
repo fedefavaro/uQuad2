@@ -1,5 +1,5 @@
-#ifndef FUTABA_SBUS_h
-#define FUTABA_SBUS_h
+#ifndef GPS_COMM_h
+#define GPS_COMM_h
 
 #include <uquad_error_codes.h>
 #include <uquad_config.h>
