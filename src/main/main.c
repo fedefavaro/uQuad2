@@ -183,14 +183,6 @@ int main(int argc, char *argv[])
    {
       gettimeofday(&tv_in,NULL);
       
-      /// if GPS
-//--------------------------------------------------------------------------
-      retval = get_gps_data();
-      //if (ret ... TODO
-//--------------------------------------------------------------------------
-
-
-
 //--------------------------------------------------------------------------
       /// -- -- -- -- -- -- -- --
       /// Check stdin
@@ -230,7 +222,14 @@ int main(int argc, char *argv[])
       }
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
-    
+
+      /// if GPS
+      retval = get_gps_data();
+      if (retval < 0 )
+      {
+         err_log("No hay datos de gps");
+         //que hago si no hay datos!?
+      }    
 
       // envia mensaje de kernel para ser leidos por el demonio sbus
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);

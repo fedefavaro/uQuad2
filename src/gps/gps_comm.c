@@ -10,9 +10,10 @@ int init_gps(void)
 {
    int ret;
 
-   //retval = start_gpsd();
-   //sleep(5) //?? o mejor lo hago en start_gpsd() ?
-
+   ret = start_gpsd();
+   if (ret < 0)
+      return -1;
+   
    ret = gps_open(hostName, hostPort, &my_gps_data);
    if(ret < 0)
    {
@@ -30,11 +31,15 @@ int deinit_gps(void)
    int ret = 0;
 
    /* When you are done... */
-   (void) gps_stream(&my_gps_data, WATCH_DISABLE, NULL);
-   (void) gps_close (&my_gps_data);
+   (void)gps_stream(&my_gps_data, WATCH_DISABLE, NULL);
+   (void)gps_close(&my_gps_data);
 
    ret = system(KILL_GPSD);
-   //if (ret ... TODO
+   if (ret < 0)
+   {
+      err_log("Failed to kill gpsd!");
+      return -1;
+   }
 
    return 0;
 }
@@ -42,10 +47,14 @@ int deinit_gps(void)
 
 int start_gpsd(void)
 {
-   //ret = system(START_GPSD);
-   //if (ret ... TODO
+   ret = system(START_GPSD);
+   if (ret < 0)
+   {
+      err_log("Failed to run gpsd!");
+      return -1;
+   }
 
-   //sleep(5); //aca? 
+   sleep(10); //espero que arranque el programa 
 
    return 0;
 }
@@ -59,6 +68,8 @@ int get_gps_data(void)
       {
          //que hago si falla...
          err_log("No se pudo leer datos del gps");
+         return -1;
+
       } else {
          /* Display data from the GPS receiver. */
          //if (gps_data.set & ...

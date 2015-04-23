@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #define	KILL_GPSD		"killall gpsd"
-//#define	START_GPSD		"gpsd -D 9 /dev/tty.." TODO
+#define	START_GPSD		"gpsd /dev/ttyUSB0 -S 1234"
 
 int init_gps(void);
 int deinit_gps(void);
