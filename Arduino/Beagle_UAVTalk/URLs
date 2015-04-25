@@ -1,0 +1,20 @@
+minoposd
+	minOPOSD is an implementation of OpenPilot UAVTalk on MinimOSD 
+	https://code.google.com/p/minoposd/
+
+ 	
+OSD - How to Access Telemetry Data 
+	https://wiki.openpilot.org/display/WIKI/OSD+-+How+to+Access+Telemetry+Data
+
+on screen display (OSD)
+
+-------------------------------------------------------------------------------------
+
+arducam-osd
+	Arduino based Camera Control and OSD for UAVs.
+	https://code.google.com/p/arducam-osd/wiki/arducam_osd?tm=6
+
+ 	
+minimosd-extra
+	adding extra functions to minimosd 
+	https://code.google.com/p/minimosd-extra/
