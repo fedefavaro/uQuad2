@@ -139,6 +139,22 @@ void uavtalk_show_msg(uavtalk_message_t *msg) {
         Serial.print(msg->Crc,HEX); Serial.print("("); Serial.print(crc,HEX); Serial.print(")");
 	Serial.println();
 }
+
+void uav_talk_print_attitude(void)
+{
+ Serial.print("Roll: "); 
+ Serial.print(osd_roll);
+ Serial.print("  Pitch: ");  
+ Serial.print(osd_pitch);
+ Serial.print("  Yaw: ");  
+ Serial.print(osd_yaw); 
+ Serial.println();  
+  
+  
+}
+
+
+
 #endif
 
 
@@ -563,7 +579,8 @@ int uavtalk_read(void) {
 	}
 	
 #ifdef DEBUG
-        uavtalk_show_msg(&msg);
+        //uavtalk_show_msg(&msg);
+        uav_talk_print_attitude();
 #endif
 
 	// check connect timeout
