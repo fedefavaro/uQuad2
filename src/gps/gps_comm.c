@@ -47,7 +47,7 @@ int deinit_gps(void)
 
 int start_gpsd(void)
 {
-   ret = system(START_GPSD);
+   int ret = system(START_GPSD);
    if (ret < 0)
    {
       err_log("Failed to run gpsd!");

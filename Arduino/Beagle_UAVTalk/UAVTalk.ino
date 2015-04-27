@@ -1,12 +1,11 @@
 /**
  ******************************************************************************
  *
- * @file       UAVTalk.ino
- * @author     Joerg-D. Rothfuchs
- * @brief      Implements a subset of the telemetry communication between
- * 	       OpenPilot CC, CC3D, Revolution and Ardupilot Mega MinimOSD
- * 	       with code from OpenPilot and MinimOSD.
- * @see        The GNU Public License (GPL) Version 3
+ * @file       futaba_sbus.c
+ * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
+ * @brief      Implementa la codificacion del mensaje futaba sbus en
+ *             base a la informacion de los diferentes canales.
+ * @see        ??
  *
  *****************************************************************************/
 /*

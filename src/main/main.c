@@ -1,30 +1,26 @@
 /**
- * main: QuadCop autopilot software
- * Copyright (C) 2015 Federico Favaro <ffavaro gmail.com>, Joaquin Berrutti <jberruti gmail.com>, Lucas Falkenstein <lfalkenstein gmail.com>
+ ******************************************************************************
  *
- * This file is part of QuadCop.
+ * @file       main.c
+ * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
+ * @brief      QuadCop autopilot software
+ * @see        src/main/README for information regarding how to run, configure, etc.
  *
- * QuadCop is free software: you can redistribute it and/or modify
+ *****************************************************************************/
+/*
+ * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
- * Foobar is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with QuadCop.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @file   main.c
- * @author Federico Favaro <ffavaro gmail.com>, Joaquin Berrutti <jberruti gmail.com>, Lucas Falkenstein <lfalkenstein gmail.com>
- * @date   Mon May 15 10:24:44 2015
- *
- * @brief  QuadCop autopilot software
- *
- * TODO See src/main/README for information regarding how to run, configure, etc.
- *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
+ * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
 #include <uquad_kernel_msgq.h>
@@ -109,8 +105,11 @@ void uquad_sig_handler(int signal_num)
 int main(int argc, char *argv[])
 {  
    int retval;
-   unsigned char tmp_buff[2] = {0,0}; // Para leer entrada de usuario
+   
+   // Para leer entrada de usuario
+   unsigned char tmp_buff[2] = {0,0}; 
 
+   // Control de tiempos
    struct timeval tv_in, tv_end, tv_diff;
 
    // Catch signals
@@ -118,7 +117,6 @@ int main(int argc, char *argv[])
    signal(SIGQUIT, uquad_sig_handler);
    signal(SIGCHLD, uquad_sig_handler);
 
- 
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
@@ -132,13 +130,11 @@ int main(int argc, char *argv[])
    }
     
    /// GPS
-//--------------------------------------------------------------------------
    retval = init_gps();
    if(retval < 0)
    {
       quit_log_if(ERROR_FAIL,"Failed to init gps!");
    }
-//--------------------------------------------------------------------------
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
@@ -149,7 +145,7 @@ int main(int argc, char *argv[])
    {
       quit_log_if(ERROR_FAIL,"io init failed!");
    }
-   retval = io_add_dev(io,STDIN_FILENO);
+   retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
    quit_log_if(retval, "Failed to add stdin to io list"); 
 
    /// Kernel Messeges Queue
@@ -183,10 +179,10 @@ int main(int argc, char *argv[])
    {
       gettimeofday(&tv_in,NULL);
       
-//--------------------------------------------------------------------------
       /// -- -- -- -- -- -- -- --
       /// Check stdin
       /// -- -- -- -- -- -- -- --
+//--------------------------------------------------------------------------
       retval = io_poll(io);
       quit_log_if(retval,"io_poll() error");
       retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
@@ -236,7 +232,6 @@ int main(int argc, char *argv[])
       if(retval != ERROR_OK)
       {
          quit_log_if(ERROR_FAIL,"Failed to send message!");
-         //err_log("Failed to send message!");
       }
 
       /// Control de tiempo del loop
@@ -245,6 +240,7 @@ int main(int argc, char *argv[])
       if(retval > 0)
       {
          if(tv_diff.tv_usec < MAIN_LOOP_T_US)
+            // Sobro tiempo, voy a dormir
             usleep(MAIN_LOOP_T_US - (unsigned long)tv_diff.tv_usec);
       }
       else

@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
    futaba_sbus_begin();
 
    // Lleva a cero todos los canales
-   futaba_sbus_resetServos();
+   futaba_sbus_reset_msg();
 
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
@@ -164,17 +164,17 @@ int main(int argc, char *argv[])
 
       if(msg_received)
       {
-         futaba_sbus_servo(1, ch_buff[0]);
-         futaba_sbus_servo(2, ch_buff[1]);
-         //futaba_sbus_servo(3, ch_buff[2]);
-         //futaba_sbus_servo(4, ch_buff[3]);
-         //futaba_sbus_servo(5, ch_buff[4]); 
-         futaba_sbus_updateServos();
+         futaba_sbus_set_channel(1, ch_buff[0]);
+         futaba_sbus_set_channel(2, ch_buff[1]);
+         //futaba_sbus_set_channel(3, ch_buff[2]);
+         //futaba_sbus_set_channel(4, ch_buff[3]);
+         //futaba_sbus_set_channel(5, ch_buff[4]); 
+         futaba_sbus_update_msg();
          msg_received = false;
       }
 
 #if !PC_TEST
-        ret = write_sbus_data(fd);
+        ret = futaba_sbus_write_msg(fd);
         if (ret < 0)
         {
            err_count++;

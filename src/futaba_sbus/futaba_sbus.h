@@ -1,3 +1,29 @@
+/**
+ ******************************************************************************
+ *
+ * @file       futaba_sbus.h
+ * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
+ * @brief      Implementa la codificacion del mensaje futaba sbus en
+ *             base a la informacion de los diferentes canales.
+ * @see        ??
+ *
+ *****************************************************************************/
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
+ * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+
 #ifndef FUTABA_SBUS_h
 #define FUTABA_SBUS_h
 
@@ -17,33 +43,60 @@
 #define START_SBUS_ARG		"/dev/ttyO1" //en la beagle
 #endif
 
+/** 
+ * Esto se tiene que ir...no hace nada
+ */
 int futaba_sbus_begin(void);
     
-/** Set servo position, raw data, range 1000..2000?
+/**
+ * Establece la velocidad de un motor.
+ * Luego de modificar la velocidad de un motor se debe llamar
+ * a la funcion futaba_sbus_update_motors() para enviar la
+ * informacion actualizada a los motores.
  *
- * &param raw data 0..2048
+ * @param channel canal correspondiente a uno de los motores
+ * @param speed velocidad a aplicar al motor
  */
-void futaba_sbus_servo(uint8_t ch, int16_t position);
+void futaba_sbus_set_channel(uint8_t channel, int16_t value);
 
-/** Read failsafe condition
- *
- * &param 0=no failsafe 1=lost signal 3=failsafe
+/**
+ * Devuelve la condicion de failsafe
+ * 
+ * @return condicion de failsafe
  */
 uint8_t futaba_sbus_failsafe(void);
 
-void futaba_sbus_updateServos(void);
+/**
+ * Genera el mensaje sbus con la informacion de los canales.
+ *
+ */ 
+void futaba_sbus_update_msg(void);
 
-uint8_t * futaba_sbus_ptrsbusData(void);
+/**
+ * Reinicia (lleva a cero) la informacion del mensaje sbus.
+ *
+ */ 
+void futaba_sbus_reset_msg(void);
 
-int futaba_sbus_resetServos(void);
+/**
+ * Genera el mensaje sbus con la informacion de los canales.
+ *
+ * @param fd file descriptor del puerto serie
+ *
+ * @return codigo de error
+ */ 
+int futaba_sbus_write_msg(int fd);
+
+/**
+ * Inicia el demonio sbus en paralelo al main
+ *
+ * @return pid del child process o codigo de error
+ */ 
+int futaba_sbus_start_daemon(void);
 
 #if PC_TEST
 int convert_sbus_data(char* buf_str);
-#else
-int write_sbus_data(int fd);
 #endif //PC_TEST
-
-int futaba_sbus_start_daemon(void);
 
 #endif
 

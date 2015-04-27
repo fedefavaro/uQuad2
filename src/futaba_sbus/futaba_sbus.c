@@ -1,10 +1,38 @@
+/**
+ ******************************************************************************
+ *
+ * @file       futaba_sbus.c
+ * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
+ * @brief      Implementa la codificacion del mensaje futaba sbus en
+ *             base a la informacion de los diferentes canales.
+ * @see        ??
+ *
+ *****************************************************************************/
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
+ * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+
 #include "futaba_sbus.h"
 #include <uquad_aux_time.h>
 #include <uquad_error_codes.h>
 
 uint8_t sbusData[25] 	= {0x0f,0x01,0x04,0x20,0x00,0xff,0x07,0x40,0x00,0x02,0x10,0x80,0x2c,0x64,0x21,0x0b,0x59,0x08,0x40,0x00,0x02,0x10,0x80,0x00,0x00};
-int16_t servos[18]    	= {1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,0,0};
+int16_t channels[18]   	= {1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,0,0};
 uint8_t failsafe_status = SBUS_SIGNAL_OK;
+
+//Esto se tiene que ir...no hace nada
 static volatile int rx_timeout;
 static volatile int tx_timeout;
 
@@ -12,6 +40,9 @@ static volatile int tx_timeout;
 struct timeval tv_start; // Guarda el tiempo de comienzo del programa
 #endif //PC_TEST
 
+/** 
+ * Esto se tiene que ir...no hace nada
+ */
 int futaba_sbus_begin(void) {
      
    rx_timeout=50;
@@ -21,97 +52,121 @@ int futaba_sbus_begin(void) {
    gettimeofday(&tv_start,NULL);
 #endif //PC_TEST
 
-     return 0;
+   return 0;
 }
  
 
-void futaba_sbus_servo(uint8_t ch, int16_t position) {
-  // Set servo position
-  if ((ch>0) && (ch<=16)) {
-    if (position>2048) {
-      position=2048;
-    }
-    servos[ch-1] = position;
-  }
+void futaba_sbus_set_channel(uint8_t channel, int16_t value)
+{
+   if ((channel>0) && (channel<=16))
+   {
+      if (value > 2048)
+         value = 2048;
+      channels[channel-1] = value;
+   }
 }
 
 
-uint8_t futaba_sbus_failsafe(void) {
+uint8_t futaba_sbus_failsafe(void)
+{
   return failsafe_status;
 }
 
 
-// send data out must be done in main program
-void futaba_sbus_updateServos(void) {
-
-  // Send data to servos
-  uint8_t i;
-
-  for (i=1; i<24; i++)
-    sbusData[i] = 0;
-  
-
-    // reset counters
-  uint8_t ch = 0;
-  uint8_t bit_in_servo = 0;
-  uint8_t byte_in_sbus = 1;
-  uint8_t bit_in_sbus = 0;
-
-  // store servo data
-  for (i=0; i<176; i++) {
-     if (servos[ch] & (1<<bit_in_servo))
-        sbusData[byte_in_sbus] |= (1<<bit_in_sbus);
-     
-     bit_in_sbus++;
-     bit_in_servo++;
-
-     if (bit_in_sbus == 8) {
-        bit_in_sbus =0;
-        byte_in_sbus++;
-     }
-     if (bit_in_servo == 11) {
-        bit_in_servo =0;
-        ch++;
-     }
-  }
-
-    // DigiChannel 1
-    /*if (channels[16] == 1) {
-      sbusData[23] |= (1<<0);
-    }
-    // DigiChannel 2
-    if (channels[17] == 1) {
-      sbusData[23] |= (1<<1);
-    } */
-
-    // Failsafe
-  if (failsafe_status == SBUS_SIGNAL_LOST) {
-     sbusData[23] |= (1<<2);
-  }
-
-  if (failsafe_status == SBUS_SIGNAL_FAILSAFE) {
-     sbusData[23] |= (1<<2);
-     sbusData[23] |= (1<<3);
-  }
-    
-}
-
-// Return a pointer to the sbusData array
-uint8_t * futaba_sbus_ptrsbusData(void) {
-  return sbusData;
-
-}
-
-
-int futaba_sbus_resetServos(void)
+void futaba_sbus_update_msg(void)
 {
-   int j;
-   for(j=1;j<17;j++)
-     futaba_sbus_servo(j, 0);
-   futaba_sbus_updateServos();
+   // reset msg
+   futaba_sbus_reset_msg();
+
+   // reset counters
+   uint8_t ch = 0;
+   uint8_t bit_in_servo = 0;
+   uint8_t byte_in_sbus = 1;
+   uint8_t bit_in_sbus = 0;
+
+   // store servo data
+   int i;
+   for (i=0; i<176; i++)
+   {
+      if (channels[ch] & (1<<bit_in_servo))
+         sbusData[byte_in_sbus] |= (1<<bit_in_sbus);
+     
+      bit_in_sbus++;
+      bit_in_servo++;
+
+      if (bit_in_sbus == 8)
+      {
+         bit_in_sbus =0;
+         byte_in_sbus++;
+      }
+      if (bit_in_servo == 11)
+      {
+         bit_in_servo =0;
+         ch++;
+      }
+   }
+
+   // Failsafe TODO implementar
+   if (failsafe_status == SBUS_SIGNAL_LOST)
+      sbusData[23] |= (1<<2);
+   if (failsafe_status == SBUS_SIGNAL_FAILSAFE)
+   {
+      sbusData[23] |= (1<<2);
+      sbusData[23] |= (1<<3);
+   }
+}
+
+
+void futaba_sbus_reset_msg(void)
+{
+   int i;
+   for (i=1; i<24; i++)
+      sbusData[i] = 0;
+}
+
+
+
+/* Envia el mensaje sbus al puerto serie definido por fd. */
+int futaba_sbus_write_msg(int fd)
+{
+   int ret = write(fd, sbusData, 25);
+   if (ret < 0)
+   {
+      err_log("write() failed!");
+      return -1;
+   }
 
    return 0;
+
 }
+
+/*
+ * Devuelve (al main) el pid del child process o un numero negativo en caso de error.
+ * Si el child process falla al ejecutar el demonio, termina su ejecucion.
+ */
+int futaba_sbus_start_daemon(void)
+{
+   //Forks main program and starts client
+   int child_pid = fork();  
+
+   //-- -- -- El child ejecuta el siguiente codigo -- -- --
+   if (child_pid == 0)
+   {
+      int retval;
+      //starts sbus daemon
+      retval = execl("./sbusd", "sbusd", START_SBUS_ARG, (char *) 0);
+      //only get here if execl failed 
+      if(retval < 0)
+      {
+         err_log_stderr("Failed to run sbusd (execl)!");
+         return -1;
+      }
+   }
+
+   //-- -- -- El parent (main) ejecuta el siguiente codigo -- -- --
+   return child_pid;
+}
+
 
 #if PC_TEST
 /* Si se esta realizando la prueba en un PC, esta funcion se encarga de 
@@ -145,69 +200,7 @@ int convert_sbus_data(char* buf_str)
    return 0; //char_count?
 
 }
-#else
-
-/* Envia el mensaje sbus al puerto serie definido por fd. */
-int write_sbus_data(int fd)
-{
-   int ret = write(fd, sbusData, 25);
-   if (ret < 0)
-   {
-      err_log("write() failed!");
-      return -1;
-   }
-
-   return 0;
-
-}
 #endif //PC_TEST
-
-/*
- * Devuelve (al main) el pid del child process o un numero negativo en caso de error.
- * Si el child process falla al ejecutar el demonio, termina su ejecucion.
- */
-int futaba_sbus_start_daemon(void)
-{
-   //Forks main program and starts client
-   int child_pid = fork();  
-
-   //-- -- -- El child ejecuta el siguiente codigo -- -- --
-   if (child_pid == 0)
-   {
-      int retval;
-      //starts sbus daemon
-      retval = execl("./sbusd", "sbusd", START_SBUS_ARG, (char *) 0);
-      //only get here if execl failed 
-      if(retval < 0)
-      {
-         err_log_stderr("Failed to run sbusd (execl)!");
-         return -1;
-      }
-   }
-
-   //-- -- -- El parent (main) ejecuta el siguiente codigo -- -- --
-   return child_pid;
-}
-//-------------------------------------------------------------------------//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
