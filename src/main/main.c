@@ -44,14 +44,14 @@
 #define MAIN_LOOP_T_US		105000UL
 
 //Global vars
-pid_t child_pid = -1;
+pid_t sbusd_child_pid = -1;
+pid_t gpsd_child_pid = -1;
 
 static io_t *io  	= NULL;
 uquad_bool_t read_ok	= false;
 
 uquad_kmsgq_t *kmsgq 	= NULL;
 
-//TODO QUE HACER CUANDO ALGO FALLA Y NECESITAMOS APAGAR LOS MOTORES!
 /**
  * Interrumpe ejecucion del programa. Dependiendo del valor del parametro
  * que se le pase interrumpe mas o menos cosas.
@@ -59,6 +59,8 @@ uquad_kmsgq_t *kmsgq 	= NULL;
  * Q == 1 : interrupcion por muerte del sbusd, cierra todo menos sbusd
  * Q == 0 : interrupcion estandar, cierra todo
  * Q cualquier otro : igual que Q == 0.
+ *
+ * TODO QUE HACER CUANDO ALGO FALLA Y NECESITAMOS APAGAR LOS MOTORES!
  */
 void quit(int Q)
 {
@@ -109,7 +111,7 @@ void uquad_sig_handler(int signal_num)
       pid_t p;
       int status;
       p = waitpid(-1, &status, WNOHANG);
-      if(p == child_pid)
+      if(p == sbusd_child_pid)
       {
          err_log_num("WARN: sbusd died! sig num:", signal_num);
          quit(1); //exit sin cerrar sbusd
@@ -140,17 +142,17 @@ int main(int argc, char *argv[])
    // -- -- -- -- -- -- -- -- -- 
 
    /// Demonio S-BUS 
-   child_pid = futaba_sbus_start_daemon();
-   if(child_pid == -1)
+   sbusd_child_pid = futaba_sbus_start_daemon();
+   if(sbusd_child_pid == -1)
    {
-      err_log_stderr("Failed to start child process!");
+      err_log_stderr("Failed to start child process (sbusd)!");
       exit(1);
    }
 
 #if !DISABLE_GPS
    /// GPS
-   retval = init_gps();
-   if(retval < 0)
+   gpsd_child_pid = init_gps();
+   if(gpsd_child_pid < 0)
    {
       quit_log_if(ERROR_FAIL,"Failed to init gps!");
    }
@@ -158,6 +160,8 @@ int main(int argc, char *argv[])
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
+
+printf("gpsd child: %d\n", gpsd_child_pid);
 
    /// IO manager
    io = io_init();
@@ -246,7 +250,7 @@ int main(int argc, char *argv[])
       }
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
-
+/*
 #if !DISABLE_GPS
       /// if GPS
       retval = get_gps_data();
@@ -256,7 +260,7 @@ int main(int argc, char *argv[])
          //que hago si no hay datos!?
       }    
 #endif
-
+*/
       // envia mensaje de kernel para ser leidos por el demonio sbus
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)

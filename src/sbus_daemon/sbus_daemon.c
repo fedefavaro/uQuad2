@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
    int rcv_err_count = 0;
    int loop_count = 0;
    bool msg_received = false;
-   uint8_t* device;
+   char* device;
    /* Para parsear el los mensajes se recorre el arreglo con un puntero
     *  a enteros de dos bytes.
     */

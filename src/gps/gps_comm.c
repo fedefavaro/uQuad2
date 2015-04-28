@@ -1,3 +1,28 @@
+/**
+ ******************************************************************************
+ *
+ * @file       gps_comm.c
+ * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
+ * @brief      Implementa la comunicacion con el gps a traves de gpsd.
+ * @see        ??
+ *
+ *****************************************************************************/
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
+ * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+
 #include <gps_comm.h>
 #include <uquad_config.h>
 
@@ -8,21 +33,25 @@ struct gps_data_t my_gps_data;
 
 int init_gps(void)
 {
-   int ret;
+   int ret,child_pid;
 
-   ret = start_gpsd();
-   if (ret < 0)
+   child_pid = start_gpsd();
+   if (child_pid < 0)
       return -1;
    
+   return child_pid; //prueba, borrar
+
    ret = gps_open(hostName, hostPort, &my_gps_data);
    if(ret < 0)
    {
       err_log("No se pudo abrir el puerto");
       return -1;
    }
+   sleep(10); //espero que arranque el programa 
+
    (void) gps_stream(&my_gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
 
-   return 0;
+   return child_pid;
 }
 
 
@@ -47,7 +76,7 @@ int deinit_gps(void)
 
 int start_gpsd(void)
 {
-   int ret = system(START_GPSD);
+/*   int ret = system(START_GPSD);
    if (ret < 0)
    {
       err_log("Failed to run gpsd!");
@@ -57,7 +86,30 @@ int start_gpsd(void)
    sleep(10); //espero que arranque el programa 
 
    return 0;
+*/
+
+   //Forks main program and starts client
+   int child_pid = fork();  
+
+   //-- -- -- El child ejecuta el siguiente codigo -- -- --
+   if (child_pid == 0)
+   {
+      int retval;
+      //starts sbus daemon
+      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, (char*) 0);
+      //only get here if execl failed 
+      if(retval < 0)
+      {
+         err_log_stderr("Failed to run gpsd (execl)!");
+         return -1;
+      }
+   }
+
+   //-- -- -- El parent (main) ejecuta el siguiente codigo -- -- --
+   return child_pid;
+
 }
+
 
 int get_gps_data(void)
 {
@@ -83,10 +135,6 @@ int get_gps_data(void)
 #endif
    return 0;
 }
-
-
-
-
 
 
 
