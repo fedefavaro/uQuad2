@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define CH_COUNT		5
 #define BUFF_SIZE		10
@@ -46,6 +47,9 @@
 //Global vars
 pid_t sbusd_child_pid = -1;
 pid_t gpsd_child_pid = -1;
+
+      sigset_t mask;
+      sigset_t orig_mask;
 
 static io_t *io  	= NULL;
 uquad_bool_t read_ok	= false;
@@ -65,7 +69,7 @@ uquad_kmsgq_t *kmsgq 	= NULL;
 void quit(int Q)
 {
    int retval;
-
+   char str[30];
    switch(Q)
    {
       case 2:
@@ -74,6 +78,8 @@ void quit(int Q)
       case 0:
          /// Demonio S-BUS 
          retval = system(KILL_SBUS);
+         //sprintf(str, "kill -SIGTERM %d", sbusd_child_pid);
+         //retval = system(str);         
          if (retval < 0)
          {
             err_log("Could not terminate sbusd!");
@@ -88,22 +94,32 @@ void quit(int Q)
          /// Kernel Messeges Queue
          uquad_kmsgq_deinit(kmsgq);
 
-#if !DISABLE_GPS
+/*#if !DISABLE_GPS
          /// GPS
          retval = deinit_gps();
          if(retval != ERROR_OK)
          {
             err_log("Could not close gps correctly!");
          }
-#endif //DISABLE_GPS
+#endif //DISABLE_GPS*/
+printf("antes de matar a gpsd\n");
+         retval = system("killall gpsd");
+         //sprintf(str, "kill -SIGTERM %d", &gpsd_child_pid);
+         //retval = system(str);
+         if(retval != ERROR_OK)
+         {
+            err_log("Could not close gps correctly!");
+         }
+printf("despues de matar a gpsd\n");
    } //switch(Q)
    
-   exit(Q);
+   exit(0);
 }    
 
 
 void uquad_sig_handler(int signal_num)
 {
+   printf("uquad_sig_handler\n");
    err_log_num("Caught signal:",signal_num);
    // Si se murio el demonio sbus termino el programa
    if (signal_num == SIGCHLD)
@@ -115,7 +131,18 @@ void uquad_sig_handler(int signal_num)
       {
          err_log_num("WARN: sbusd died! sig num:", signal_num);
          quit(1); //exit sin cerrar sbusd
-      } else return;
+      } else if(p == gpsd_child_pid) {
+         err_log_num("WARN: gpsd died! sig num:", signal_num);
+         quit(0);
+      } else {
+         err_log_num("Return:", signal_num);
+         return;
+      }
+   }
+   
+   // bloqueo SIGCHLD si entre por SIGINT
+   if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
+      perror ("sigprocmask");
    }
    // Si se capturo SIGINT o SIGQUIT termino el programa
    quit(2);
@@ -124,6 +151,10 @@ void uquad_sig_handler(int signal_num)
 
 int main(int argc, char *argv[])
 {  
+   sigemptyset (&mask);
+   sigaddset (&mask, SIGCHLD);
+   //sigaddset (&mask, SIGTERM);
+
    int retval;
    
    // Para leer entrada de usuario
@@ -152,7 +183,7 @@ int main(int argc, char *argv[])
 #if !DISABLE_GPS
    /// GPS
    gpsd_child_pid = init_gps();
-   if(gpsd_child_pid < 0)
+   if(gpsd_child_pid == -1)
    {
       quit_log_if(ERROR_FAIL,"Failed to init gps!");
    }
@@ -162,7 +193,8 @@ int main(int argc, char *argv[])
    sleep_ms(500);   
 
 printf("gpsd child: %d\n", gpsd_child_pid);
-
+printf("sbusd child: %d\n", sbusd_child_pid);
+printf("main pid: %d\n", getpid());
    /// IO manager
    io = io_init();
    if(io==NULL)
