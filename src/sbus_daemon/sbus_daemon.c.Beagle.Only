@@ -31,31 +31,17 @@ static message_buf_t rbuf; //Buffer para almacenar mensajes de kernel
 
 /* Variable que almacena el file descriptor del puerto serie
  * usado para enviar el mensaje sbus. */
-#if !PC_TEST
 int fd; 
-
-/* Si se realiza la prueba en un PC el mensaje se escribe 
- * en un archivo en lugar de ser enviado al puerto serie. */
-#else
-FILE * fp = NULL; 
-#endif
 
 void quit()
 {
     int ret;
-#if !PC_TEST
     ret = close(fd);
     if(ret < 0)
     {
 	err_log_stderr("Failed to close serial port!");
     }
-#else
-    ret = fclose(fp);
-    if(ret != 0)
-    {
-	err_log_stderr("Failed to close log file!");
-    }
-#endif
+
     fflush(stderr);
     exit(1);
 }
@@ -88,42 +74,25 @@ int main(int argc, char *argv[])
    }
    else device = argv[1];
 
-#if SBUS_LOG_TO_FILE
-   printf("Logging to %s\n", device);
-#endif
-
-#if PC_TEST
-   char str[128];
-#endif //PC_TEST
-
    struct timeval tv_in;
    struct timeval tv_end;
    struct timeval tv_diff;
-#if DEBUG_TIMING_SBUSD
-   struct timeval tv_last;
-#endif //#if DEBUG_TIMING_SBUSD
 
-#if !PC_TEST 
+   // Abre puerto serie
    fd = open_port(device);
    if (fd == -1)
    { 
        return -1;
    }
+   // COnfigura puerto serie
    configure_port(fd);
-   ret = custom_baud(fd);      
+   ret = custom_baud(fd); // Baudrate no estandar: 100000     
    if (ret < 0)
    {
        err_log_stderr("custom_baud() failed!");
        return ret;
    }
-#else
-   fp = fopen(device, "w");
-   if(fp == NULL)
-   {
-	err_log_stderr("Failed to open log file!");
-	return -1;
-   }
-#endif // !PC_TEST
+
 
    /**
     * Inherit priority from main.c for correct IPC.
@@ -140,9 +109,8 @@ int main(int argc, char *argv[])
    signal(SIGINT, uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
 
-#if PC_TEST
-   futaba_sbus_begin(); //para tiempo de start
-#endif //PC_TEST
+   // init
+   futaba_sbus_begin();
 
    // Lleva a cero todos los canales y el mensaje sbus
    futaba_sbus_reset_channels();
@@ -168,63 +136,26 @@ int main(int argc, char *argv[])
          futaba_sbus_set_channel(2, ch_buff[1]);
          //futaba_sbus_set_channel(3, ch_buff[2]);
          //futaba_sbus_set_channel(4, ch_buff[3]);
-         //futaba_sbus_set_channel(5, ch_buff[4]);
- //------------------------------------------------------------ 
-         if ( (ch_buff[4] == 50) && 
-            (futaba_sbus_get_failsafe() == SBUS_SIGNAL_OK) )
-            futaba_sbus_set_failsafe(SBUS_SIGNAL_FAILSAFE);
- //------------------------------------------------------------ 
-         if ( (ch_buff[4] == 100) && 
-            (futaba_sbus_get_failsafe() == SBUS_SIGNAL_FAILSAFE) )
-            futaba_sbus_set_failsafe(SBUS_SIGNAL_OK);
- //------------------------------------------------------------  
+         //futaba_sbus_set_channel(5, ch_buff[4]); 
          futaba_sbus_update_msg();
          msg_received = false;
       }
 
-#if !PC_TEST
-        ret = futaba_sbus_write_msg(fd);
-        if (ret < 0)
-        {
-           err_count++;
-	}
-	else
-	{
-	   /// This loop was fine
-	   if(err_count > 0)
-	      err_count--;
-	}
-#else
-	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
-	convert_sbus_data(str);
-#if SBUS_LOG_TO_FILE
-	/* Escribe en un arhivo */
-	ret = fprintf(fp, "%s", str);
-	if(ret < 0)
-	{
-	    err_log("Failed to write to log file!");
-	    err_count++;
-	}
-#else
-	/* Escribe en stdout */
-	printf("%s",str);
-#endif // SBUS_LOG_TO_FILE
-	/// This loop was fine
-	if(err_count > 0)
-	   err_count--;
-#endif // !PC_TEST
+      ret = futaba_sbus_write_msg(fd);
+      if (ret < 0)
+      {
+         err_count++;
+      }
+      else
+      {
+         /// This loop was fine
+         if(err_count > 0)
+	    err_count--;
+      }
 		
       // si pasaron mas de ~100ms es hora de leer el mensaje
       if (loop_count > 6) //14ms * 6 = 98ms
       {  
-
-#if DEBUG_TIMING_SBUSD
-         gettimeofday(&tv_end,NULL);
-         ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);
-         printf("duracion loop sbusd (98ms): %lu\n",(unsigned long)tv_diff.tv_usec);
-         tv_last = tv_end;
-#endif //DEBUG_TIMING_SBUSD
-
          ret = uquad_read(&rbuf);
          if(ret == ERROR_OK)
          {
@@ -243,7 +174,9 @@ int main(int argc, char *argv[])
          else
          {
 #if DEBUG
-               // este error va a estar siempre porque el main y el sbusd no estan perfectamente sincronizados, pero no hay que darle importancia a menos que aparezca muy seguido
+               /* este error va a estar siempre porque el main y el sbusd
+                * no estan perfectamente sincronizados, pero no hay que 
+                * darle importancia a menos que aparezca muy seguido */
                err_log("Failed to read msg!"); 
 #endif //DEBUG
                msg_received = false;
@@ -269,12 +202,6 @@ int main(int argc, char *argv[])
         
       loop_count++;
 
-#if DEBUG_TIMING_SBUSD
-      gettimeofday(&tv_end,NULL);
-      ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      printf("duracion loop sbusd (14ms): %lu\n",(unsigned long)tv_diff.tv_usec);
-#endif
-      
    } //for(;;)  
 
    return 0; //never gets here

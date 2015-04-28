@@ -390,7 +390,7 @@ enum UQUAD_ERROR_CODES{
  * Usefull in test programs, allows cleaning up.
  * 
  */
-#define quit_if(retval) if(retval!=ERROR_OK)quit()
+#define quit_if(retval) if(retval!=ERROR_OK)quit(0)
 
 /**
  * If @retval is an error, jump to cleanup.
@@ -441,7 +441,7 @@ enum UQUAD_ERROR_CODES{
     if(retval!=ERROR_OK)			\
     {						\
 	err_log(msg);				\
-	quit();					\
+	quit(0);				\
     }
 
 /**

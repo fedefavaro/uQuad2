@@ -46,8 +46,10 @@
 /** 
  * Esto se tiene que ir...no hace nada
  */
+#if PC_TEST
 int futaba_sbus_begin(void);
-    
+#endif //PC_TEST
+
 /**
  * Establece la velocidad de un motor.
  * Luego de modificar la velocidad de un motor se debe llamar
@@ -59,12 +61,30 @@ int futaba_sbus_begin(void);
  */
 void futaba_sbus_set_channel(uint8_t channel, int16_t value);
 
+
+/**
+ * Reinicia (lleva a cero) la informacion de todos los canales.
+ *
+ */ 
+void futaba_sbus_reset_channels(void);
+
+
 /**
  * Devuelve la condicion de failsafe
  * 
  * @return condicion de failsafe
  */
-uint8_t futaba_sbus_failsafe(void);
+uint8_t futaba_sbus_get_failsafe(void);
+
+
+/**
+ * Establece el estado de failsafe. 
+ * TODO PROBAR, puede servir para parar los motores
+ * 
+ * @param fs Estado de failsafe a imponer
+ */
+void futaba_sbus_set_failsafe(uint8_t fs);
+
 
 /**
  * Genera el mensaje sbus con la informacion de los canales.

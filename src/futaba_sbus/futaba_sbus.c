@@ -32,28 +32,19 @@ uint8_t sbusData[25] 	= {0x0f,0x01,0x04,0x20,0x00,0xff,0x07,0x40,0x00,0x02,0x10,
 int16_t channels[18]   	= {1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,0,0};
 uint8_t failsafe_status = SBUS_SIGNAL_OK;
 
-//Esto se tiene que ir...no hace nada
-static volatile int rx_timeout;
-static volatile int tx_timeout;
-
-#if PC_TEST
-struct timeval tv_start; // Guarda el tiempo de comienzo del programa
-#endif //PC_TEST
 
 /** 
  * Esto se tiene que ir...no hace nada
  */
-int futaba_sbus_begin(void) {
-     
-   rx_timeout=50;
-   rx_timeout=60;
- 
 #if PC_TEST
+struct timeval tv_start; // Guarda el tiempo de comienzo del programa
+int futaba_sbus_begin(void) {
+
    gettimeofday(&tv_start,NULL);
-#endif //PC_TEST
 
    return 0;
 }
+#endif //PC_TEST
  
 
 void futaba_sbus_set_channel(uint8_t channel, int16_t value)
@@ -67,24 +58,37 @@ void futaba_sbus_set_channel(uint8_t channel, int16_t value)
 }
 
 
-uint8_t futaba_sbus_failsafe(void)
+void futaba_sbus_reset_channels()
+{
+   int i;
+   for (i=0; i<16; i++)
+      channels[i] = 0;
+}
+
+
+uint8_t futaba_sbus_get_failsafe(void)
 {
   return failsafe_status;
 }
 
 
+void futaba_sbus_set_failsafe(uint8_t fs)
+{
+   failsafe_status = fs;
+}
+
+
 void futaba_sbus_update_msg(void)
 {
-   // reset msg
+   // Limpia mensaje anterior
    futaba_sbus_reset_msg();
 
-   // reset counters
    uint8_t ch = 0;
    uint8_t bit_in_servo = 0;
    uint8_t byte_in_sbus = 1;
    uint8_t bit_in_sbus = 0;
 
-   // store servo data
+   // Convierte info de canales en mensaje sbus
    int i;
    for (i=0; i<176; i++)
    {
@@ -106,7 +110,7 @@ void futaba_sbus_update_msg(void)
       }
    }
 
-   // Failsafe TODO implementar
+   // Failsafe TODO probar
    if (failsafe_status == SBUS_SIGNAL_LOST)
       sbusData[23] |= (1<<2);
    if (failsafe_status == SBUS_SIGNAL_FAILSAFE)

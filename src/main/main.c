@@ -37,7 +37,6 @@
 #include <unistd.h>
 #include <stdio.h>
 
-
 #define CH_COUNT		5
 #define BUFF_SIZE		10
 
@@ -53,31 +52,51 @@ uquad_bool_t read_ok	= false;
 uquad_kmsgq_t *kmsgq 	= NULL;
 
 //TODO QUE HACER CUANDO ALGO FALLA Y NECESITAMOS APAGAR LOS MOTORES!
-void quit()
+/**
+ * Interrumpe ejecucion del programa. Dependiendo del valor del parametro
+ * que se le pase interrumpe mas o menos cosas.
+ * Q == 2 : interrupcion manual (ctrl-c), cierra todo y avisa que fue manual
+ * Q == 1 : interrupcion por muerte del sbusd, cierra todo menos sbusd
+ * Q == 0 : interrupcion estandar, cierra todo
+ * Q cualquier otro : igual que Q == 0.
+ */
+void quit(int Q)
 {
    int retval;
 
-   /// IO manager
-   retval = io_deinit(io);
-   if(retval != ERROR_OK)
+   switch(Q)
    {
-      err_log("Could not close IO correctly!");
-   }
-   /// Kernel Messeges Queue
-   uquad_kmsgq_deinit(kmsgq);
+      case 2:
+         err_log("interrumpido manualmente (ctrl-c)");
+      default:
+      case 0:
+         /// Demonio S-BUS 
+         retval = system(KILL_SBUS);
+         if (retval < 0)
+         {
+            err_log("Could not terminate sbusd!");
+         }
+      case 1:
+         /// IO manager
+         retval = io_deinit(io);
+         if(retval != ERROR_OK)
+         {
+            err_log("Could not close IO correctly!");
+         }
+         /// Kernel Messeges Queue
+         uquad_kmsgq_deinit(kmsgq);
+
+#if !DISABLE_GPS
+         /// GPS
+         retval = deinit_gps();
+         if(retval != ERROR_OK)
+         {
+            err_log("Could not close gps correctly!");
+         }
+#endif //DISABLE_GPS
+   } //switch(Q)
    
-   /// GPS
-   retval = deinit_gps();
-   if(retval != ERROR_OK)
-   {
-      err_log("Could not close gps correctly!");
-   }
-   
-   /// Demonio S-BUS 
-   retval = system(KILL_SBUS);
-   //if (retval ... TODO
-   
-   exit(1);
+   exit(Q);
 }    
 
 
@@ -93,12 +112,11 @@ void uquad_sig_handler(int signal_num)
       if(p == child_pid)
       {
          err_log_num("WARN: sbusd died! sig num:", signal_num);
-         quit();
-         //exit(1); //TODO reemplazar por quit
+         quit(1); //exit sin cerrar sbusd
       } else return;
    }
    // Si se capturo SIGINT o SIGQUIT termino el programa
-   quit();
+   quit(2);
 }
 
 
@@ -128,13 +146,15 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to start child process!");
       exit(1);
    }
-    
+
+#if !DISABLE_GPS
    /// GPS
    retval = init_gps();
    if(retval < 0)
    {
       quit_log_if(ERROR_FAIL,"Failed to init gps!");
    }
+#endif
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
@@ -211,6 +231,14 @@ int main(int argc, char *argv[])
          case '3':
             ch_buff[0] = 1650;
             break;
+         case 'F':
+            err_log("Failsafe set");
+            ch_buff[4] = 50;
+            break;
+         case 'f':
+            err_log("Failsafe clear");
+            ch_buff[4] = 100;
+            break;
          default:
             err_log("Velocidad invalida. Ingrese 0,1,2,3 para 0%,10%,20%,30%");
             break;
@@ -219,6 +247,7 @@ int main(int argc, char *argv[])
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
 
+#if !DISABLE_GPS
       /// if GPS
       retval = get_gps_data();
       if (retval < 0 )
@@ -226,6 +255,7 @@ int main(int argc, char *argv[])
          err_log("No hay datos de gps");
          //que hago si no hay datos!?
       }    
+#endif
 
       // envia mensaje de kernel para ser leidos por el demonio sbus
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
