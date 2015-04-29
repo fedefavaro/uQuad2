@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
-   signal(SIGCHLD, uquad_sig_handler);
+//   signal(SIGCHLD, uquad_sig_handler);
 
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
    if(sbusd_child_pid == -1)
    {
       err_log_stderr("Failed to start child process (sbusd)!");
-      exit(1);
+      quit(1);
    }
 
    /// Kernel Messeges Queue                                                
