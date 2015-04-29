@@ -38,13 +38,15 @@ int init_gps(void)
    if (child_pid < 0)
       return -1;
    
+   sleep(100);
+
    ret = gps_open(hostName, hostPort, &my_gps_data);
    if(ret < 0)
    {
       err_log("No se pudo abrir el puerto");
       return -1;
    }
-   sleep(100); //espero que arranque el programa 
+   //sleep(100); //espero que arranque el programa 
 
    (void) gps_stream(&my_gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
 
