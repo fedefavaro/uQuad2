@@ -102,14 +102,6 @@ void quit(int Q)
          }
 #endif //DISABLE_GPS
 
-         retval = system("killall gpsd");
-         //sprintf(str, "kill -SIGTERM %d", &gpsd_child_pid);
-         //retval = system(str);
-         if(retval != ERROR_OK)
-         {
-            err_log("Could not close gps correctly!");
-         }
-
    } //switch(Q)
    
    exit(0);

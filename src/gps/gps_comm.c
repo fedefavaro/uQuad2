@@ -34,7 +34,6 @@ struct gps_data_t my_gps_data;
 int init_gps(void)
 {
    int ret,child_pid;
-
    child_pid = start_gpsd();
    if (child_pid < 0)
       return -1;
@@ -73,18 +72,6 @@ int deinit_gps(void)
 
 int start_gpsd(void)
 {
-/*   int ret = system(START_GPSD);
-   if (ret < 0)
-   {
-      err_log("Failed to run gpsd!");
-      return -1;
-   }
-
-   sleep(10); //espero que arranque el programa 
-
-   return 0;
-*/
-
    //Forks main program and starts client
    int child_pid = fork();  
 
@@ -110,7 +97,6 @@ int start_gpsd(void)
 
 int get_gps_data(void)
 {
-
    printf("entre 0\n");
    /* Put this in a loop with a call to a high resolution sleep () in it. */
    if (gps_waiting(&my_gps_data, 500)) {
