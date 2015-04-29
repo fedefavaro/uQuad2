@@ -48,8 +48,8 @@
 pid_t sbusd_child_pid = -1;
 pid_t gpsd_child_pid = -1;
 
-      sigset_t mask;
-      sigset_t orig_mask;
+sigset_t mask;
+sigset_t orig_mask;
 
 static io_t *io  	= NULL;
 uquad_bool_t read_ok	= false;
@@ -69,7 +69,6 @@ uquad_kmsgq_t *kmsgq 	= NULL;
 void quit(int Q)
 {
    int retval;
-   char str[30];
    switch(Q)
    {
       case 2:
@@ -189,6 +188,8 @@ int main(int argc, char *argv[])
    }
 #endif
 
+printf("llego acaa 1\n");
+
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
 
@@ -279,6 +280,7 @@ int main(int argc, char *argv[])
       }
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
+/*
 #if !DISABLE_GPS
       /// if GPS
       retval = get_gps_data();
@@ -288,6 +290,7 @@ int main(int argc, char *argv[])
          //que hago si no hay datos!?
       }    
 #endif
+*/
       // envia mensaje de kernel para ser leidos por el demonio sbus
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
