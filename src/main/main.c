@@ -94,15 +94,15 @@ void quit(int Q)
          /// Kernel Messeges Queue
          uquad_kmsgq_deinit(kmsgq);
 
-/*#if !DISABLE_GPS
+#if !DISABLE_GPS
          /// GPS
          retval = deinit_gps();
          if(retval != ERROR_OK)
          {
             err_log("Could not close gps correctly!");
          }
-#endif //DISABLE_GPS*/
-printf("antes de matar a gpsd\n");
+#endif //DISABLE_GPS
+
          retval = system("killall gpsd");
          //sprintf(str, "kill -SIGTERM %d", &gpsd_child_pid);
          //retval = system(str);
@@ -110,7 +110,7 @@ printf("antes de matar a gpsd\n");
          {
             err_log("Could not close gps correctly!");
          }
-printf("despues de matar a gpsd\n");
+
    } //switch(Q)
    
    exit(0);
@@ -119,7 +119,7 @@ printf("despues de matar a gpsd\n");
 
 void uquad_sig_handler(int signal_num)
 {
-   printf("uquad_sig_handler\n");
+
    err_log_num("Caught signal:",signal_num);
    // Si se murio el demonio sbus termino el programa
    if (signal_num == SIGCHLD)
@@ -192,9 +192,6 @@ int main(int argc, char *argv[])
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
 
-printf("gpsd child: %d\n", gpsd_child_pid);
-printf("sbusd child: %d\n", sbusd_child_pid);
-printf("main pid: %d\n", getpid());
    /// IO manager
    io = io_init();
    if(io==NULL)

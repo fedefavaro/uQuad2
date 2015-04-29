@@ -58,13 +58,11 @@ int init_gps(void)
 int deinit_gps(void)
 {
    int ret = 0;
-printf("aca llego 1\n");
    /* When you are done... */
    (void)gps_stream(&my_gps_data, WATCH_DISABLE, NULL);
    (void)gps_close(&my_gps_data);
-printf("aca llego 2\n");
+
    ret = system(KILL_GPSD);
-printf("aca llego 3\n");
    if (ret < 0)
    {
       err_log("Failed to kill gpsd!");
@@ -97,7 +95,7 @@ int start_gpsd(void)
    {
       int retval;
       //starts sbus daemon
-      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N",/* "-D9",*/ (char*) 0);
+      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N", "-D9", (char*) 0);
       //only get here if execl failed 
       if(retval < 0)
       {
