@@ -178,7 +178,6 @@ int main(int argc, char *argv[])
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");             
    }
 
-printf("antes de init gps\n");
 #if !DISABLE_GPS
    /// GPS
    gpsd_child_pid = init_gps();
@@ -187,7 +186,6 @@ printf("antes de init gps\n");
       quit_log_if(ERROR_FAIL,"Failed to init gps!");
    }
 #endif
-printf("despues de init gps\n");
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
@@ -205,7 +203,9 @@ printf("despues de init gps\n");
    printf("Starting main in PC test mode\n");
    printf("For configuration options view common/uquad_config.h\n");
 #endif
-
+#if DISABLE_GPS
+   printf("WARNING: GPS disabled!\n");
+#endif
    static uint8_t *buff_out;            // buffer para enviar mensajes de kernel
    static uint16_t ch_buff[CH_COUNT];   // arreglo para almacenar el valor de los canales a enviar
    buff_out = (uint8_t *)ch_buff;
@@ -217,10 +217,6 @@ printf("despues de init gps\n");
    //ch_buff[3] = 1500; // throttle
    //ch_buff[4] = 1500; // flight mode?
 
-
-printf(" \n--------------------------\n"); 
-printf(" Antes de entrar al loop\n"); 
-printf(" \n--------------------------\n");    
 
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -276,7 +272,6 @@ printf(" \n--------------------------\n");
       }
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
-printf("antes de entrar a get_gps\n");
 #if !DISABLE_GPS
       /// if GPS
       retval = get_gps_data();

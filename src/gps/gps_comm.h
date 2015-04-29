@@ -50,4 +50,8 @@ int deinit_gps(void);
 int start_gpsd(void);
 int get_gps_data(void);
 
+int gps_connect(const char *device, int baud);
+int gps_disconnect(int fd);
+int gps_send_command(int fd, const char *command);
+
 #endif
