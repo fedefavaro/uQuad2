@@ -279,7 +279,6 @@ int main(int argc, char *argv[])
       }
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
-/*
 #if !DISABLE_GPS
       /// if GPS
       retval = get_gps_data();
@@ -289,7 +288,6 @@ int main(int argc, char *argv[])
          //que hago si no hay datos!?
       }    
 #endif
-*/
       // envia mensaje de kernel para ser leidos por el demonio sbus
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)

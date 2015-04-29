@@ -35,11 +35,7 @@
 
 #define	KILL_GPSD		"killall gpsd"
 //#define	START_GPSD		"gpsd /dev/ttyUSB0 -S 1234"
-#if PC_TEST
-	#define	START_GPSD_PATH		"/usr/sbin/gpsd"
-#else
-	#error	definir path de gpsd en beagle
-#endif //PC_TEST
+#define	START_GPSD_PATH		"/usr/sbin/gpsd"
 
 #define	START_GPSD_DEV		"/dev/ttyUSB0"
 #define	START_GPSD_PORT		"1234"
