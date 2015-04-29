@@ -39,15 +39,13 @@ int init_gps(void)
    if (child_pid < 0)
       return -1;
    
-   return child_pid; //prueba, borrar
-
    ret = gps_open(hostName, hostPort, &my_gps_data);
    if(ret < 0)
    {
       err_log("No se pudo abrir el puerto");
       return -1;
    }
-   sleep(10); //espero que arranque el programa 
+   sleep(100); //espero que arranque el programa 
 
    (void) gps_stream(&my_gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
 
@@ -95,7 +93,7 @@ int start_gpsd(void)
    {
       int retval;
       //starts sbus daemon
-      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N", "-D9", (char*) 0);
+      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N","-D9", (char*) 0);
       //only get here if execl failed 
       if(retval < 0)
       {
@@ -112,11 +110,14 @@ int start_gpsd(void)
 
 int get_gps_data(void)
 {
+
+   printf("entre 0\n");
    /* Put this in a loop with a call to a high resolution sleep () in it. */
    if (gps_waiting(&my_gps_data, 500)) {
       errno = 0;
       if (gps_read(&my_gps_data) == -1)
       {
+         printf("entre 2\n");
          //que hago si falla...
          err_log("No se pudo leer datos del gps");
          return -1;
