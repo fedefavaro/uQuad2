@@ -127,7 +127,7 @@ void uquad_sig_handler(int signal_num)
          quit(0);
       } else {
          err_log_num("Return:", signal_num);
-         return;
+         quit(0);
       }
    }
    
@@ -163,6 +163,15 @@ int main(int argc, char *argv[])
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
+#if !DISABLE_GPS
+   /// GPS
+   gpsd_child_pid = init_gps();
+   if(gpsd_child_pid == -1)
+   {
+      quit_log_if(ERROR_FAIL,"Failed to init gps!");
+   }
+#endif
+
    /// Demonio S-BUS 
    sbusd_child_pid = futaba_sbus_start_daemon();
    if(sbusd_child_pid == -1)
@@ -177,15 +186,6 @@ int main(int argc, char *argv[])
    {                                                                        
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");             
    }
-
-#if !DISABLE_GPS
-   /// GPS
-   gpsd_child_pid = init_gps();
-   if(gpsd_child_pid == -1)
-   {
-      quit_log_if(ERROR_FAIL,"Failed to init gps!");
-   }
-#endif
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
