@@ -22,7 +22,7 @@
 
 #define CH_COUNT		5
 #define LOOP_T_US               14000UL
-#define MAX_ERR_SBUSD           20
+#define MAX_ERR_SBUSD           2000
 
 #define HOW_TO    		"./sbus_daemon <device>"
 

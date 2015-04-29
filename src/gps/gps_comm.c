@@ -25,6 +25,7 @@
 
 #include <gps_comm.h>
 #include <uquad_config.h>
+#include <uquad_aux_time.h>
 
 char* hostName = "localhost";
 char* hostPort = "1234";     // default port
@@ -38,7 +39,7 @@ int init_gps(void)
    if (child_pid < 0)
       return -1;
    
-   sleep(100);
+   sleep_ms(100);
 
    ret = gps_open(hostName, hostPort, &my_gps_data);
    if(ret < 0)
@@ -82,7 +83,10 @@ int start_gpsd(void)
    {
       int retval;
       //starts sbus daemon
-      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N","-D9", (char*) 0);
+      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N",
+//en debug level me tira mucha cosa
+//                     "-D9",
+                     (char*) 0);
       //only get here if execl failed 
       if(retval < 0)
       {

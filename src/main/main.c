@@ -171,6 +171,14 @@ int main(int argc, char *argv[])
       exit(1);
    }
 
+   /// Kernel Messeges Queue                                                
+   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);                        
+   if(kmsgq == NULL)                                                        
+   {                                                                        
+      quit_log_if(ERROR_FAIL,"Failed to start message queue!");             
+   }
+
+printf("antes de init gps\n");
 #if !DISABLE_GPS
    /// GPS
    gpsd_child_pid = init_gps();
@@ -179,6 +187,7 @@ int main(int argc, char *argv[])
       quit_log_if(ERROR_FAIL,"Failed to init gps!");
    }
 #endif
+printf("despues de init gps\n");
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
@@ -191,13 +200,6 @@ int main(int argc, char *argv[])
    }
    retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
    quit_log_if(retval, "Failed to add stdin to io list"); 
-
-   /// Kernel Messeges Queue
-   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
-   if(kmsgq == NULL)
-   {
-      quit_log_if(ERROR_FAIL,"Failed to start message queue!");
-   }
 
 #if PC_TEST
    printf("Starting main in PC test mode\n");
@@ -214,8 +216,12 @@ int main(int argc, char *argv[])
    //ch_buff[2] = 1500; // yaw
    //ch_buff[3] = 1500; // throttle
    //ch_buff[4] = 1500; // flight mode?
-   
-    
+
+
+printf(" \n--------------------------\n"); 
+printf(" Antes de entrar al loop\n"); 
+printf(" \n--------------------------\n");    
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
@@ -270,6 +276,7 @@ int main(int argc, char *argv[])
       }
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
+printf("antes de entrar a get_gps\n");
 #if !DISABLE_GPS
       /// if GPS
       retval = get_gps_data();
