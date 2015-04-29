@@ -75,9 +75,10 @@ int init_gps(void)
    sleep_ms(10);//espero que arranque el programa
 
    ret = gps_open(hostName, hostPort, &my_gps_data);
+   errno = 0;
    if(ret < 0)
    {
-      err_log("No se pudo abrir el puerto");
+      err_log_num("gps_open fallo con error: ",errno);
       return -1;
    }
   
