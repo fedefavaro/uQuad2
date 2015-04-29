@@ -45,25 +45,27 @@ int init_gps(void)
    int fd_gps;
 
    // Etapa de preconfiguracion
-   fd_gps = gps_connect(DEVICE, 9600);
-   if (fd_gps < 0)
-      return -1;
-   ret = gps_send_command(fd_gps, GPS_BAUD_57600);
-   if (ret < 0)
-      return -1;
-   sleep_ms(5); //para que termine de escribir en la uart
-   ret = gps_disconnect(fd_gps);
-   if (ret < 0)
-      return -1;
-   fd_gps = gps_connect(DEVICE, 57600);
-   
-   ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);
-   if (ret < 0)
-      return -1;
-   sleep_ms(5); //para que termine de escribir en la uart
-   gps_disconnect(fd_gps);
-   if (fd_gps < 0)
-      return -1;
+   fd_gps = gps_connect(DEVICE, 9600);                                                  
+   if (fd_gps < 0)                                     
+      return -1;                                       
+   ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
+   if (ret < 0)                                        
+      return -1;                                       
+   sleep_ms(15); //para que termine de escribir en la uart
+   ret = gps_disconnect(fd_gps);                         
+   if (ret < 0)                                          
+      return -1;                                         
+   fd_gps = gps_connect(DEVICE, 57600);                  
+   if (fd_gps < 0)                                       
+      return -1;                                         
+   ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);      
+   if (ret < 0)                                          
+      return -1;                                         
+   sleep_ms(15); //para que termine de escribir en la uart
+   ret = gps_disconnect(fd_gps);                         
+   if (ret < 0)                                          
+      return -1;                                         
+   sleep_ms(5);
 
    int child_pid;
    child_pid = start_gpsd();
