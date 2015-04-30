@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
-//   signal(SIGCHLD, uquad_sig_handler);
+   signal(SIGCHLD, uquad_sig_handler);
 
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
