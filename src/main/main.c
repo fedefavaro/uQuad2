@@ -45,8 +45,8 @@
 #define MAIN_LOOP_T_US		105000UL
 
 //Global vars
-pid_t sbusd_child_pid = -1;
-pid_t gpsd_child_pid = -1;
+pid_t sbusd_child_pid = 0;
+pid_t gpsd_child_pid = 0;
 
 sigset_t mask;
 sigset_t orig_mask;
@@ -127,7 +127,8 @@ void uquad_sig_handler(int signal_num)
          quit(0);
       } else {
          err_log_num("Return:", signal_num);
-         quit(0);
+         //quit(0);
+         return;
       }
    }
    
@@ -157,35 +158,51 @@ int main(int argc, char *argv[])
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
-   signal(SIGCHLD, uquad_sig_handler);
+//   signal(SIGCHLD, uquad_sig_handler);
 
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
+
+///GPS config
+printf("antes de preconfig\n");
+retval = preconfigure_gps();
+if(retval < 0)                                                 
+{                                                                        
+   err_log_stderr("Failed to preconfigure gps!");                                
+   quit(0);                                                              
+} 
+printf("despues de preconfig\n"); 
+
+sleep_ms(2000);  
+
+//quit(0);
+signal(SIGCHLD, uquad_sig_handler);
 
 #if !DISABLE_GPS
    /// GPS
    gpsd_child_pid = init_gps();
    if(gpsd_child_pid == -1)
    {
-      quit_log_if(ERROR_FAIL,"Failed to init gps!");
+      err_log_stderr("Failed to init gps!");
+      quit(0);
    }
 #endif
 
-   /// Demonio S-BUS 
-   sbusd_child_pid = futaba_sbus_start_daemon();
-   if(sbusd_child_pid == -1)
-   {
-      err_log_stderr("Failed to start child process (sbusd)!");
-      quit(1);
-   }
-
-   /// Kernel Messeges Queue                                                
-   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);                        
-   if(kmsgq == NULL)                                                        
+   /// Demonio S-BUS                                                        
+   sbusd_child_pid = futaba_sbus_start_daemon();                            
+   if(sbusd_child_pid == -1)                                                
    {                                                                        
-      quit_log_if(ERROR_FAIL,"Failed to start message queue!");             
-   }
+      err_log_stderr("Failed to start child process (sbusd)!");             
+      quit(1);                                                              
+   }  
+
+   /// Kernel Messeges Queue                                                                          
+   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);                                                  
+   if(kmsgq == NULL)                                                                                  
+   {                                                                                                  
+      quit_log_if(ERROR_FAIL,"Failed to start message queue!");                                       
+   }    
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   

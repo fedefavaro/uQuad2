@@ -40,6 +40,7 @@
 #define	START_GPSD_DEV		"/dev/ttyUSB0"
 #define	START_GPSD_PORT		"1234"
 
+int preconfigure_gps(void);
 int init_gps(void);
 int deinit_gps(void);
 /**
