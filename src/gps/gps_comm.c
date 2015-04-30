@@ -42,7 +42,7 @@ struct gps_data_t my_gps_data;
 int init_gps(void)
 {
    int ret;
-   int fd_gps;
+/*   int fd_gps;
 
    // Etapa de preconfiguracion
    fd_gps = gps_connect(DEVICE, 9600);                                                  
@@ -69,7 +69,7 @@ int init_gps(void)
       return -1;                                         
    
    sleep_ms(5);
-
+*/
    int child_pid;
    child_pid = start_gpsd();
    if (child_pid < 0)
@@ -179,7 +179,7 @@ int gps_connect(const char *device, int baud)
         return -1;
     }
     
-    retval = sprintf(str,"stty -F %s %d -echo raw", device, baud);
+    retval = sprintf(str,"stty -F %s raw -echo -echoe -echok %d", device, baud);
     if(retval < 0)
     {
 	fputs("sprintf()\n", stderr);

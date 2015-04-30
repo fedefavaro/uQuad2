@@ -58,7 +58,7 @@ int connect_gps(gps_t *gps, const char *device, int baud)
         return -1;
     }
     
-    retval = sprintf(str,"stty -F %s %d -echo raw", device, baud);
+    retval = sprintf(str,"stty -F %s raw -echo -echoe -echok %d", device, baud);
     if(retval < 0)
     {
 	fputs("sprintf()\n", stderr);
@@ -158,16 +158,16 @@ int main(int argc, char *argv[])
    sleep_ms(5);
    retval = send_command_gps(gps, GPS_BAUD_57600);
    sleep_ms(5); 
-   //retval = send_command_gps(gps, GPS_BAUD_57600);
-   //sleep_ms(5);
+   retval = send_command_gps(gps, GPS_BAUD_57600);
+   sleep_ms(5);
 
    disconnect_gps(gps->fd);
    connect_gps(gps, DEVICE, BAUDRATE_57600);
    sleep_ms(5); 
    retval = send_command_gps(gps, GPS_UPDATE_10HZ);
    sleep_ms(5);
-   //retval = send_command_gps(gps, GPS_UPDATE_10HZ);
-   //sleep_ms(5);
+   retval = send_command_gps(gps, GPS_UPDATE_10HZ);
+   sleep_ms(5);
 
    uint8_t buff_gps[BUFF_LENGTH];
    uint8_t inByte=0;
