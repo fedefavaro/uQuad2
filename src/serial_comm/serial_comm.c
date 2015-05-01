@@ -53,13 +53,11 @@ int open_port(char *device)
   fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
   if (fd == -1)
   {
-   /*
-    * Could not open the port.
-    */
+    //Could not open the port.
     err_log_str("open_port: Unable to open: ", device);
   }
   else
-    fcntl(fd, F_SETFL, 0);
+    //fcntl(fd, F_SETFL, 0);
 
   return fd;
 }
@@ -86,6 +84,37 @@ int configure_port(int fd)
   // set the new options for the port...
   tcsetattr(fd, TCSANOW, &options);
 
+  return 0;
+
+}
+
+int configure_port_gps(int fd, int baudrate)
+{
+  struct termios options;
+  
+  // get the current options for the port...
+  if((rc = tcgetattr(fd, &options)) < 0){
+     err_log_stderr("Error al obtener atributos: "); //logea strerror(errno)
+     return -1;
+  }
+
+  //set options
+  cfsetispeed(&options, baudrate); 			// set the in baud rate...
+  cfsetospeed(&options, baudrate);			// set the out baud rate...
+  options.c_cflag |= (CLOCAL | CREAD);			// enable the receiver and set local mode...
+  options.c_cflag &= ~PARENB;				// No parity bit...
+  options.c_cflag &= ~CSTOPB;				// 1 stop bits...
+  options.c_cflag &= ~CSIZE;				// mask the character size bits...
+  options.c_cflag |= CS8;    				// select 8 data bits...
+  options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); 	// choosing raw input...
+  options.c_iflag &= ~(IXON | IXOFF | IXANY); 		// disable software flow control...
+  
+  // set the new options for the port...
+  if((rc = tcsetattr(fd, TCSANOW, &options)) < 0){
+     err_log_stderr("Error al aplicar nuevos atributos: "); //logea strerror(errno)
+     return -1;
+  }
+  
   return 0;
 
 }
