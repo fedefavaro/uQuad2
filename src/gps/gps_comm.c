@@ -22,33 +22,91 @@
  * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <gps_comm.h>
+#include "gps_comm.h"
 #include <uquad_config.h>
+#include <uquad_aux_time.h>
+
+//defines para etapa de preconfig
+#define DEVICE			"/dev/ttyUSB0"
+#define GPS_UPDATE_10HZ 	"$PMTK220,100*2F\r\n"
+#define GPS_BAUD_57600 		"$PMTK251,57600*2C\r\n"
 
 char* hostName = "localhost";
 char* hostPort = "1234";     // default port
 
 struct gps_data_t my_gps_data;
 
-int init_gps(void)
+int preconfigure_gps(void)
 {
-   int ret,child_pid;
+   int ret;
+   int fd_gps;
 
+printf("entro preconfigure\n");
+
+   // Etapa de preconfiguracion
+   fd_gps = gps_connect(DEVICE, 9600);                                                  
+   if (fd_gps < 0) {
+      err_log("gps_connect(DEVICE, 9600) failed");                                     
+      return -1;
+   }                                       
+   sleep_ms(5);
+   //ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
+   ret = system("echo -e '$PMTK251,57600*2C\r' > /dev/ttyUSB0");
+   if (ret < 0) {                                                                    
+      err_log("gps_send_command(fd_gps, GPS_BAUD_57600) failed");                                      
+      return -1;                                       
+   }                                       
+   sleep_ms(5); //para que termine de escribir en la uart
+
+   ret = gps_disconnect(fd_gps);                         
+   if (ret < 0) {                                                                    
+      err_log("gps_disconnect(fd_gps) failed");                                      
+      return -1;                                       
+   }                                         
+   fd_gps = gps_connect(DEVICE, 57600);                  
+   if (fd_gps < 0) {                                                                    
+      err_log("gps_connect(DEVICE, 57600) failed");                                      
+      return -1;                                       
+   }                                      
+   sleep_ms(5);
+   //ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);      
+   ret = system("echo -e '$PMTK220,100*2F\r' > /dev/ttyUSB0");
+   if (ret < 0) {                                                                    
+      err_log("gps_send_command(fd_gps, GPS_UPDATE_10HZ) failed");                                      
+      return -1;                                       
+   }                                         
+   sleep_ms(5); //para que termine de escribir en la uart
+   ret = gps_disconnect(fd_gps);                         
+   if (ret < 0) {                                                                    
+      err_log("gps_disconnect(fd_gps) failed");                                      
+      return -1;                                       
+   }                                         
+
+   sleep_ms(5);
+
+   return 0;
+}
+
+int init_gps(void)                                                                      
+{                                                                                       
+   int ret;
+   int child_pid;
    child_pid = start_gpsd();
    if (child_pid < 0)
       return -1;
    
-   return child_pid; //prueba, borrar
-
    ret = gps_open(hostName, hostPort, &my_gps_data);
+   errno = 0;
    if(ret < 0)
    {
-      err_log("No se pudo abrir el puerto");
+      err_log_num("gps_open fallo con error: ",errno);
       return -1;
    }
-   sleep(10); //espero que arranque el programa 
-
+  
    (void) gps_stream(&my_gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
 
    return child_pid;
@@ -58,13 +116,11 @@ int init_gps(void)
 int deinit_gps(void)
 {
    int ret = 0;
-printf("aca llego 1\n");
    /* When you are done... */
    (void)gps_stream(&my_gps_data, WATCH_DISABLE, NULL);
    (void)gps_close(&my_gps_data);
-printf("aca llego 2\n");
+
    ret = system(KILL_GPSD);
-printf("aca llego 3\n");
    if (ret < 0)
    {
       err_log("Failed to kill gpsd!");
@@ -77,18 +133,6 @@ printf("aca llego 3\n");
 
 int start_gpsd(void)
 {
-/*   int ret = system(START_GPSD);
-   if (ret < 0)
-   {
-      err_log("Failed to run gpsd!");
-      return -1;
-   }
-
-   sleep(10); //espero que arranque el programa 
-
-   return 0;
-*/
-
    //Forks main program and starts client
    int child_pid = fork();  
 
@@ -97,7 +141,8 @@ int start_gpsd(void)
    {
       int retval;
       //starts sbus daemon
-      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N",/* "-D9",*/ (char*) 0);
+      retval = execl(START_GPSD_PATH, "gpsd",START_GPSD_DEV,"-S",START_GPSD_PORT, "-N", (char*)0);
+
       //only get here if execl failed 
       if(retval < 0)
       {
@@ -107,6 +152,8 @@ int start_gpsd(void)
    }
 
    //-- -- -- El parent (main) ejecuta el siguiente codigo -- -- --
+   
+   sleep_ms(100);
    return child_pid;
 
 }
@@ -115,7 +162,7 @@ int start_gpsd(void)
 int get_gps_data(void)
 {
    /* Put this in a loop with a call to a high resolution sleep () in it. */
-   if (gps_waiting(&my_gps_data, 500)) {
+   if (gps_waiting(&my_gps_data, 1000)) {
       errno = 0;
       if (gps_read(&my_gps_data) == -1)
       {
@@ -134,6 +181,87 @@ int get_gps_data(void)
 #if DEBUG
    else err_log("No entro a gps_waiting() ... ???");
 #endif
+   return 0;
+}
+
+/**
+ * Funciones para pre configurar el gps (baudrate y tasa de envio de datos)
+ */
+
+int gps_connect(const char *device, int baud)
+{
+    char str[128];
+    int retval;
+    int fd=0;
+
+printf("entro connect\n");
+
+    fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    if(fd < 0)
+    {
+	fputs("open()\n", stderr);
+        return -1;
+    }
+
+    retval = sprintf(str,"stty -F %s raw -echo -echoe -echok %d", device, baud);
+    if(retval < 0)
+    {
+	fputs("sprintf()\n", stderr);
+        return -1;
+    }
+
+    retval = system(str);
+    if(retval != 0)
+    {
+	fputs("system()\n", stderr);
+        return -1;
+    }
+
+    err_log("GPS conectado");
+    
+    return fd;
+
+}
+
+
+int gps_disconnect(int fd)
+{
+    int retval = 0;
+
+    if(fd > 0)
+    {
+	retval = close(fd);
+        if(retval < 0) {
+           fputs("Failed to close device!", stderr);
+           return -1;
+        }
+    } else {
+        fputs("fd < 0", stderr);
+        return -1;
+    }
+ 
+    printf("GPS desconectado\n");
+    return retval;
+}
+
+int gps_send_command(int fd, const char *command)
+{
+   int retval;
+   int length = 0;
+   length = strlen(command);
+   
+   if(length < 0)
+   {
+		fputs("strlen()\n", stderr);
+		return -1;
+   }
+   retval = write(fd, command, length);
+   if(retval < 0)
+   {
+      fputs("Write error: no data!\n", stderr);
+      return -1;
+   }
+
    return 0;
 }
 

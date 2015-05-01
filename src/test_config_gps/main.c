@@ -16,6 +16,7 @@
 #define GPS_UPDATE_10HZ 	"$PMTK220,100*2F\r\n"
 #define GPS_BAUD_57600 		"$PMTK251,57600*2C\r\n"
 
+
 #define sleep_ms(ms)    	usleep(1000*ms)
 
 
@@ -57,7 +58,7 @@ int connect_gps(gps_t *gps, const char *device, int baud)
         return -1;
     }
     
-    retval = sprintf(str,"stty -F %s %d -echo raw", device, baud);
+    retval = sprintf(str,"stty -F %s raw -echo -echoe -echok %d", device, baud);
     if(retval < 0)
     {
 	fputs("sprintf()\n", stderr);
@@ -154,14 +155,19 @@ int main(int argc, char *argv[])
    int retval;
    gps = init_gps(DEVICE,BAUDRATE_9600);
    
+   sleep_ms(5);
    retval = send_command_gps(gps, GPS_BAUD_57600);
-
-   sleep_ms(5); //para que termine de escribir en la uart
+   sleep_ms(5); 
+   retval = send_command_gps(gps, GPS_BAUD_57600);
+   sleep_ms(5);
 
    disconnect_gps(gps->fd);
    connect_gps(gps, DEVICE, BAUDRATE_57600);
-   
+   sleep_ms(5); 
    retval = send_command_gps(gps, GPS_UPDATE_10HZ);
+   sleep_ms(5);
+   retval = send_command_gps(gps, GPS_UPDATE_10HZ);
+   sleep_ms(5);
 
    uint8_t buff_gps[BUFF_LENGTH];
    uint8_t inByte=0;

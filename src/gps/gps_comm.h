@@ -35,15 +35,12 @@
 
 #define	KILL_GPSD		"killall gpsd"
 //#define	START_GPSD		"gpsd /dev/ttyUSB0 -S 1234"
-#if PC_TEST
-	#define	START_GPSD_PATH		"/usr/sbin/gpsd"
-#else
-	#error	definir path de gpsd en beagle
-#endif //PC_TEST
+#define	START_GPSD_PATH		"/usr/sbin/gpsd"
 
 #define	START_GPSD_DEV		"/dev/ttyUSB0"
 #define	START_GPSD_PORT		"1234"
 
+int preconfigure_gps(void);
 int init_gps(void);
 int deinit_gps(void);
 /**
@@ -53,5 +50,9 @@ int deinit_gps(void);
  */ 
 int start_gpsd(void);
 int get_gps_data(void);
+
+int gps_connect(const char *device, int baud);
+int gps_disconnect(int fd);
+int gps_send_command(int fd, const char *command);
 
 #endif

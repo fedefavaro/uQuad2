@@ -45,11 +45,11 @@
 #define MAIN_LOOP_T_US		105000UL
 
 //Global vars
-pid_t sbusd_child_pid = -1;
-pid_t gpsd_child_pid = -1;
+pid_t sbusd_child_pid = 0;
+pid_t gpsd_child_pid = 0;
 
-      sigset_t mask;
-      sigset_t orig_mask;
+sigset_t mask;
+sigset_t orig_mask;
 
 static io_t *io  	= NULL;
 uquad_bool_t read_ok	= false;
@@ -69,7 +69,6 @@ uquad_kmsgq_t *kmsgq 	= NULL;
 void quit(int Q)
 {
    int retval;
-   char str[30];
    switch(Q)
    {
       case 2:
@@ -94,23 +93,15 @@ void quit(int Q)
          /// Kernel Messeges Queue
          uquad_kmsgq_deinit(kmsgq);
 
-/*#if !DISABLE_GPS
+#if !DISABLE_GPS
          /// GPS
          retval = deinit_gps();
          if(retval != ERROR_OK)
          {
             err_log("Could not close gps correctly!");
          }
-#endif //DISABLE_GPS*/
-printf("antes de matar a gpsd\n");
-         retval = system("killall gpsd");
-         //sprintf(str, "kill -SIGTERM %d", &gpsd_child_pid);
-         //retval = system(str);
-         if(retval != ERROR_OK)
-         {
-            err_log("Could not close gps correctly!");
-         }
-printf("despues de matar a gpsd\n");
+#endif //DISABLE_GPS
+
    } //switch(Q)
    
    exit(0);
@@ -119,7 +110,7 @@ printf("despues de matar a gpsd\n");
 
 void uquad_sig_handler(int signal_num)
 {
-   printf("uquad_sig_handler\n");
+
    err_log_num("Caught signal:",signal_num);
    // Si se murio el demonio sbus termino el programa
    if (signal_num == SIGCHLD)
@@ -136,6 +127,7 @@ void uquad_sig_handler(int signal_num)
          quit(0);
       } else {
          err_log_num("Return:", signal_num);
+         //quit(0);
          return;
       }
    }
@@ -166,35 +158,55 @@ int main(int argc, char *argv[])
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
-   signal(SIGCHLD, uquad_sig_handler);
+//   signal(SIGCHLD, uquad_sig_handler);
 
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
-   /// Demonio S-BUS 
-   sbusd_child_pid = futaba_sbus_start_daemon();
-   if(sbusd_child_pid == -1)
-   {
-      err_log_stderr("Failed to start child process (sbusd)!");
-      exit(1);
-   }
+///GPS config
+printf("antes de preconfig\n");
+retval = preconfigure_gps();
+if(retval < 0)                                                 
+{                                                                        
+   err_log_stderr("Failed to preconfigure gps!");                                
+   quit(0);                                                              
+} 
+printf("despues de preconfig\n"); 
+
+sleep_ms(2000);  
+
+//quit(0);
+signal(SIGCHLD, uquad_sig_handler);
 
 #if !DISABLE_GPS
    /// GPS
    gpsd_child_pid = init_gps();
    if(gpsd_child_pid == -1)
    {
-      quit_log_if(ERROR_FAIL,"Failed to init gps!");
+      err_log_stderr("Failed to init gps!");
+      quit(0);
    }
 #endif
+
+   /// Demonio S-BUS                                                        
+   sbusd_child_pid = futaba_sbus_start_daemon();                            
+   if(sbusd_child_pid == -1)                                                
+   {                                                                        
+      err_log_stderr("Failed to start child process (sbusd)!");             
+      quit(1);                                                              
+   }  
+
+   /// Kernel Messeges Queue                                                                          
+   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);                                                  
+   if(kmsgq == NULL)                                                                                  
+   {                                                                                                  
+      quit_log_if(ERROR_FAIL,"Failed to start message queue!");                                       
+   }    
 
    //Doy tiempo a que inicien bien los programitas...
    sleep_ms(500);   
 
-printf("gpsd child: %d\n", gpsd_child_pid);
-printf("sbusd child: %d\n", sbusd_child_pid);
-printf("main pid: %d\n", getpid());
    /// IO manager
    io = io_init();
    if(io==NULL)
@@ -204,18 +216,13 @@ printf("main pid: %d\n", getpid());
    retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
    quit_log_if(retval, "Failed to add stdin to io list"); 
 
-   /// Kernel Messeges Queue
-   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
-   if(kmsgq == NULL)
-   {
-      quit_log_if(ERROR_FAIL,"Failed to start message queue!");
-   }
-
 #if PC_TEST
    printf("Starting main in PC test mode\n");
    printf("For configuration options view common/uquad_config.h\n");
 #endif
-
+#if DISABLE_GPS
+   printf("WARNING: GPS disabled!\n");
+#endif
    static uint8_t *buff_out;            // buffer para enviar mensajes de kernel
    static uint16_t ch_buff[CH_COUNT];   // arreglo para almacenar el valor de los canales a enviar
    buff_out = (uint8_t *)ch_buff;
@@ -226,8 +233,8 @@ printf("main pid: %d\n", getpid());
    //ch_buff[2] = 1500; // yaw
    //ch_buff[3] = 1500; // throttle
    //ch_buff[4] = 1500; // flight mode?
-   
-    
+
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
@@ -282,7 +289,6 @@ printf("main pid: %d\n", getpid());
       }
       //end_stdin: //vengo aca si algo sale mal con leer stdin
  //--------------------------------------------------------------------------
-/*
 #if !DISABLE_GPS
       /// if GPS
       retval = get_gps_data();
@@ -292,7 +298,6 @@ printf("main pid: %d\n", getpid());
          //que hago si no hay datos!?
       }    
 #endif
-*/
       // envia mensaje de kernel para ser leidos por el demonio sbus
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
