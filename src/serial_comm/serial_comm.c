@@ -52,11 +52,11 @@ int open_port(char *device)
 
   fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
   if (fd == -1)
-  {
+  //{
     //Could not open the port.
     err_log_str("open_port: Unable to open: ", device);
-  }
-  else
+  //}
+  //else
     //fcntl(fd, F_SETFL, 0);
 
   return fd;

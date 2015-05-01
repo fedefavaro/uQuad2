@@ -27,6 +27,7 @@
 #include <stdlib.h>
 
 #include "gps_comm.h"
+#include <serial_comm.h>
 #include <uquad_config.h>
 #include <uquad_aux_time.h>
 
@@ -35,12 +36,57 @@
 #define GPS_UPDATE_10HZ 	"$PMTK220,100*2F\r\n"
 #define GPS_BAUD_57600 		"$PMTK251,57600*2C\r\n"
 
+#define BAUD_9600		B9600
+#define BAUD_57600		B57600
+
 char* hostName = "localhost";
 char* hostPort = "1234";     // default port
 
 struct gps_data_t my_gps_data;
 
 int preconfigure_gps(void)
+{
+printf("entro preconfigure\n");
+   int ret;
+   int fd_gps;
+
+   //abro puerto serie del gps
+   fd_gps = open_port(DEVICE)
+   if (fd_gps < 0) return -1;
+   fputs("GPS conectado\n",stderr); //dbg
+   
+   //configuro al baudrate inicial: 9600
+   ret = configure_port_gps(fd_gps, BAUD_9600)
+   if (ret < 0) return -1;
+   
+   //cambio baudrate del gps a 57600
+   sleep_ms(5);
+   ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
+   if (ret < 0) return -1;
+   sleep_ms(5);
+
+   //configuro nuevo baudrate: 57600
+   ret = configure_port_gps(fd_gps, BAUD_57600)
+   if (ret < 0) return -1;
+   
+   //cambio frecuencia datos a: 10Hz
+   sleep_ms(5);
+   ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);     
+   if (ret < 0) return -1;
+   sleep_ms(5);
+
+   //cierro puerto serie, a partir de ahora gpsd se encarga de recibir los datos
+   ret = close(fd);
+   if(ret < 0)
+   {
+	err_log_stderr("Failed to close serial port!");
+        return -1;
+   }                                                             
+   fputs("GPS desconectado\n",stderr); //dbg
+
+   return 0;
+}
+/*int preconfigure_gps(void)
 {
    int ret;
    int fd_gps;
@@ -89,9 +135,9 @@ printf("entro preconfigure\n");
    sleep_ms(5);
 
    return 0;
-}
+}*/
 
-int init_gps(void)                                                                      
+int init_gps(void)
 {                                                                                       
    int ret;
    int child_pid;
@@ -217,7 +263,7 @@ printf("entro connect\n");
         return -1;
     }
 
-    err_log("GPS conectado");
+    fputs("GPS conectado\n",stderr);
     
     return fd;
 
@@ -232,15 +278,15 @@ int gps_disconnect(int fd)
     {
 	retval = close(fd);
         if(retval < 0) {
-           fputs("Failed to close device!", stderr);
+           err_log("Failed to close device!");
            return -1;
         }
     } else {
-        fputs("fd < 0", stderr);
+        err_log("no se puede cerrar ya que fd < 0");
         return -1;
     }
  
-    printf("GPS desconectado\n");
+    fputs("GPS desconectado\n",stderr);
     return retval;
 }
 
@@ -252,13 +298,13 @@ int gps_send_command(int fd, const char *command)
    
    if(length < 0)
    {
-		fputs("strlen()\n", stderr);
-		return -1;
+      err_log("Error en strlen()");
+      return -1;
    }
    retval = write(fd, command, length);
-   if(retval < 0)
+   if(retval < length)
    {
-      fputs("Write error: no data!\n", stderr);
+      err_log_num("write fallo con return value: ",retval); //write devuelve cant de bytes escritos
       return -1;
    }
 

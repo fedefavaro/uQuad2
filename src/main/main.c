@@ -65,53 +65,50 @@ uquad_kmsgq_t *kmsgq 	= NULL;
  * Q cualquier otro : igual que Q == 0.
  *
  * TODO QUE HACER CUANDO ALGO FALLA Y NECESITAMOS APAGAR LOS MOTORES!
+ * TODO SI SE CIERRA GPSD TRATAR DE ABRIRLO DENUEVO?
  */
 void quit(int Q)
 {
    int retval;
-   switch(Q)
-   {
-      case 2:
-         err_log("interrumpido manualmente (ctrl-c)");
-      default:
-      case 0:
-         /// Demonio S-BUS 
-         retval = system(KILL_SBUS);
-         //sprintf(str, "kill -SIGTERM %d", sbusd_child_pid);
-         //retval = system(str);         
-         if (retval < 0)
-         {
-            err_log("Could not terminate sbusd!");
-         }
-      case 1:
-         /// IO manager
-         retval = io_deinit(io);
-         if(retval != ERROR_OK)
-         {
-            err_log("Could not close IO correctly!");
-         }
-         /// Kernel Messeges Queue
-         uquad_kmsgq_deinit(kmsgq);
-
-#if !DISABLE_GPS
-         /// GPS
-         retval = deinit_gps();
-         if(retval != ERROR_OK)
-         {
-            err_log("Could not close gps correctly!");
-         }
-#endif //DISABLE_GPS
-
-   } //switch(Q)
    
+   if(Q == 2)
+      err_log("interrumpido manualmente (ctrl-c)");
+   } else
+      err_log("algo salio mal, cerrando...");
+   
+   if(Q != 1) {
+      /// Demonio S-BUS 
+      retval = system(KILL_SBUS);
+      //sprintf(str, "kill -SIGTERM %d", sbusd_child_pid);
+      //retval = system(str);         
+      if (retval < 0)
+         err_log("Could not terminate sbusd!");
+   }
+   
+   /// IO manager
+   retval = io_deinit(io);
+   if(retval != ERROR_OK)
+      err_log("Could not close IO correctly!");
+   /// Kernel Messeges Queue
+   uquad_kmsgq_deinit(kmsgq);
+   
+#if !DISABLE_GPS
+   if(Q != 2) {
+      /// GPS
+      retval = deinit_gps();
+      if(retval != ERROR_OK)
+         err_log("Could not close gps correctly!");
+   }
+#endif //DISABLE_GPS   
+      
    exit(0);
+
 }    
 
 
 void uquad_sig_handler(int signal_num)
 {
 
-   err_log_num("Caught signal:",signal_num);
    // Si se murio el demonio sbus termino el programa
    if (signal_num == SIGCHLD)
    {
@@ -124,9 +121,9 @@ void uquad_sig_handler(int signal_num)
          quit(1); //exit sin cerrar sbusd
       } else if(p == gpsd_child_pid) {
          err_log_num("WARN: gpsd died! sig num:", signal_num);
-         quit(0);
+         quit(0); //exit sin cerrar gpsd
       } else {
-         err_log_num("Return:", signal_num);
+         err_log_num("SIGCHLD desconocido, return:", signal_num);
          //quit(0);
          return;
       }
@@ -136,7 +133,9 @@ void uquad_sig_handler(int signal_num)
    if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
       perror ("sigprocmask");
    }
+
    // Si se capturo SIGINT o SIGQUIT termino el programa
+   err_log_num("Caught signal:",signal_num);
    quit(2);
 }
 
@@ -158,29 +157,25 @@ int main(int argc, char *argv[])
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
-//   signal(SIGCHLD, uquad_sig_handler);
-
+   
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
-///GPS config
-printf("antes de preconfig\n");
-retval = preconfigure_gps();
-if(retval < 0)                                                 
-{                                                                        
-   err_log_stderr("Failed to preconfigure gps!");                                
-   quit(0);                                                              
-} 
-printf("despues de preconfig\n"); 
-
-sleep_ms(2000);  
-
-//quit(0);
-signal(SIGCHLD, uquad_sig_handler);
-
+   ///GPS config
 #if !DISABLE_GPS
-   /// GPS
+printf("antes de preconfig\n");  //dbg
+   retval = preconfigure_gps();
+   if(retval < 0)                                                 
+   {                                                                        
+      err_log("Failed to preconfigure gps!");
+      quit(0);                                                              
+   } 
+printf("despues de preconfig\n"); //dbg
+
+   sleep_ms(1000);  //necesario? TODO verificar
+   
+   /// GPS daemon
    gpsd_child_pid = init_gps();
    if(gpsd_child_pid == -1)
    {
@@ -196,6 +191,9 @@ signal(SIGCHLD, uquad_sig_handler);
       err_log_stderr("Failed to start child process (sbusd)!");             
       quit(1);                                                              
    }  
+
+   // para detectar si mueren gpsd o sbusd
+   signal(SIGCHLD, uquad_sig_handler);
 
    /// Kernel Messeges Queue                                                                          
    kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);                                                  
