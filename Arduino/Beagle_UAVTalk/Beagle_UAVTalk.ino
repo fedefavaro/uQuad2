@@ -67,7 +67,7 @@ void loop() {
         // imprimo lo que leo?
     } else {
         //espero? delay?
-        delay(50);
+        //delay(50);
     }
     
 }
