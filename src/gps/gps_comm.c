@@ -35,7 +35,11 @@
 //defines para etapa de preconfig
 #define DEVICE			"/dev/ttyUSB0"
 #define GPS_UPDATE_10HZ 	"$PMTK220,100*2F\r\n"
-#define GPS_BAUD_57600 		"$PMTK251,57600*2C\r\n"
+#define GPS_BAUD_57600	 	"$PMTK251,57600*2C\r\n"
+
+//#define GPS_UPDATE_10HZ         "$PMTK220,100*2F\n\r"
+//#define GPS_BAUD_57600          "$PMTK251,57600*2C\n\r"
+
 
 //#define BAUD_9600		B9600
 //#define BAUD_57600		B57600
@@ -55,41 +59,39 @@ printf("entro preconfigure\n");
    fd_gps = open_port(DEVICE);
    if (fd_gps < 0) return -1;
    fputs("GPS conectado\n",stderr); //dbg
-   
+   sleep_ms(10);
+
    //configuro al baudrate inicial: 9600
    ret = configure_port_gps(fd_gps, B9600);
    if (ret < 0) return -1;
-
+   sleep_ms(10);      
    
    //cambio baudrate del gps a 57600
-   sleep_ms(5);
    ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
    if (ret < 0) return -1;
-   sleep_ms(5);
+   sleep_ms(50);
 
    //cambio baudrate del gps a 57600                                                    
-   sleep_ms(5);                                                                         
-   ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
-   if (ret < 0) return -1;                             
-   sleep_ms(5); 
+//   ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
+//   if (ret < 0) return -1;                             
+//   sleep_ms(50); 
 
 
    //configuro nuevo baudrate: 57600
    ret = configure_port_gps(fd_gps, B57600);
    if (ret < 0) return -1;
-   
+   sleep_ms(10);
+
    //cambio frecuencia datos a: 10Hz
-   sleep_ms(5);
    ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);     
    if (ret < 0) return -1;
-   sleep_ms(5);
+   sleep_ms(10);
 
    //cambio frecuencia datos a: 10Hz                   
    sleep_ms(5);                                        
    ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);    
    if (ret < 0) return -1;                             
-   sleep_ms(5); 
-
+   sleep_ms(10); 
 
    //cierro puerto serie, a partir de ahora gpsd se encarga de recibir los datos
    ret = close(fd_gps);
@@ -323,7 +325,7 @@ int gps_send_command(int fd, const char *command)
       err_log_num("write fallo con return value: ",retval); //write devuelve cant de bytes escritos
       return -1;
    }
-
+printf("%s",command);
    return 0;
 }
 

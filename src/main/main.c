@@ -175,7 +175,9 @@ printf("antes de preconfig\n");  //dbg
 printf("despues de preconfig\n"); //dbg
 
    sleep_ms(1000);  //necesario? TODO verificar
-   
+  
+//exit(4);
+ 
    /// GPS daemon
    gpsd_child_pid = init_gps();
    if(gpsd_child_pid == -1)
