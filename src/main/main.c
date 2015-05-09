@@ -71,7 +71,7 @@ void quit(int Q)
 {
    int retval;
    
-   if(Q == 2)
+   if(Q == 2) {
       err_log("interrumpido manualmente (ctrl-c)");
    } else
       err_log("algo salio mal, cerrando...");
@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
+   signal(SIGCHLD, uquad_sig_handler);
    
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
@@ -193,7 +194,7 @@ printf("despues de preconfig\n"); //dbg
    }  
 
    // para detectar si mueren gpsd o sbusd
-   signal(SIGCHLD, uquad_sig_handler);
+//   signal(SIGCHLD, uquad_sig_handler);
 
    /// Kernel Messeges Queue                                                                          
    kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);                                                  

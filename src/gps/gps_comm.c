@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <termios.h> //para speed_t (BAUDRATE)
 
 #include "gps_comm.h"
 #include <serial_comm.h>
@@ -36,8 +37,8 @@
 #define GPS_UPDATE_10HZ 	"$PMTK220,100*2F\r\n"
 #define GPS_BAUD_57600 		"$PMTK251,57600*2C\r\n"
 
-#define BAUD_9600		B9600
-#define BAUD_57600		B57600
+//#define BAUD_9600		B9600
+//#define BAUD_57600		B57600
 
 char* hostName = "localhost";
 char* hostPort = "1234";     // default port
@@ -51,13 +52,14 @@ printf("entro preconfigure\n");
    int fd_gps;
 
    //abro puerto serie del gps
-   fd_gps = open_port(DEVICE)
+   fd_gps = open_port(DEVICE);
    if (fd_gps < 0) return -1;
    fputs("GPS conectado\n",stderr); //dbg
    
    //configuro al baudrate inicial: 9600
-   ret = configure_port_gps(fd_gps, BAUD_9600)
+   ret = configure_port_gps(fd_gps, B9600);
    if (ret < 0) return -1;
+
    
    //cambio baudrate del gps a 57600
    sleep_ms(5);
@@ -65,8 +67,15 @@ printf("entro preconfigure\n");
    if (ret < 0) return -1;
    sleep_ms(5);
 
+   //cambio baudrate del gps a 57600                                                    
+   sleep_ms(5);                                                                         
+   ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
+   if (ret < 0) return -1;                             
+   sleep_ms(5); 
+
+
    //configuro nuevo baudrate: 57600
-   ret = configure_port_gps(fd_gps, BAUD_57600)
+   ret = configure_port_gps(fd_gps, B57600);
    if (ret < 0) return -1;
    
    //cambio frecuencia datos a: 10Hz
@@ -75,8 +84,15 @@ printf("entro preconfigure\n");
    if (ret < 0) return -1;
    sleep_ms(5);
 
+   //cambio frecuencia datos a: 10Hz                   
+   sleep_ms(5);                                        
+   ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);    
+   if (ret < 0) return -1;                             
+   sleep_ms(5); 
+
+
    //cierro puerto serie, a partir de ahora gpsd se encarga de recibir los datos
-   ret = close(fd);
+   ret = close(fd_gps);
    if(ret < 0)
    {
 	err_log_stderr("Failed to close serial port!");

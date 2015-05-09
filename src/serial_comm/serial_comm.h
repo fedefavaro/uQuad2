@@ -27,6 +27,8 @@
 #define SERIAL_PORT_h
 
 
+#include <termios.h> 
+
 /**
  * Abre el puerto serie especificado por device.
  *
@@ -41,6 +43,8 @@ int open_port(char *device);
  * @return 
  */
 int configure_port(int fd);
+
+int configure_port_gps(int fd, speed_t baudrate);
 
 #endif
 

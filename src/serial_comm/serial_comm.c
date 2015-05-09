@@ -31,7 +31,7 @@
 #include <unistd.h>  /* UNIX standard function definitions */
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <termios.h> /* POSIX terminal control definitions */
+//#include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -88,10 +88,11 @@ int configure_port(int fd)
 
 }
 
-int configure_port_gps(int fd, int baudrate)
+int configure_port_gps(int fd, speed_t baudrate)
 {
   struct termios options;
-  
+  int rc;
+ 
   // get the current options for the port...
   if((rc = tcgetattr(fd, &options)) < 0){
      err_log_stderr("Error al obtener atributos: "); //logea strerror(errno)
