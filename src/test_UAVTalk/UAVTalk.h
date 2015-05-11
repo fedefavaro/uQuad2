@@ -23,6 +23,8 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ * Modificado por: Federico Favaro, Joaquin Berrutti, Lucas Falkenstein
  */
 
 
@@ -31,10 +33,22 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
-#include "OSD_Config.h"
 
-#define SERIAL_PORT          Serial1
+// Version number, incrementing this will erase/upload factory settings.
+// Only devs should increment this
+#define VER 75
+
+// JRChange: OpenPilot UAVTalk:
+#define PROTOCOL_UAVTALK
+
+// Version
+#define VERSION_RELEASE_15_02_1		// OpenPilot-RELEASE 15.02.1	'Ragin' Cajun' .1
+
+// OpenPilot additional UAVObjIds for unreleased and released versions
+#define VERSION_ADDITIONAL_UAVOBJID
+
 
 #if defined VERSION_RELEASE_12_10_1 || defined VERSION_RELEASE_12_10_2 || defined VERSION_RELEASE_13_06_1 || defined VERSION_RELEASE_13_06_2 || defined VERSION_RELEASE_14_01_1 || defined VERSION_RELEASE_14_06_1 || defined VERSION_RELEASE_14_10_1 || defined VERSION_RELEASE_15_01_1 || defined VERSION_RELEASE_15_02_1
 
@@ -177,11 +191,7 @@
 #define	FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT		10000
 #define	GCSTELEMETRYSTATS_SEND_PERIOD			1000
 
-#if defined VERSION_RELEASE_12_10_1 || defined VERSION_RELEASE_12_10_2 || defined VERSION_RELEASE_13_06_1 || defined VERSION_RELEASE_13_06_2
-#define HEADER_LEN                                      8
-#else
 #define HEADER_LEN                                      10
-#endif
 
 #define	RESPOND_OBJ_LEN					HEADER_LEN
 #define	REQUEST_OBJ_LEN					HEADER_LEN
@@ -228,6 +238,8 @@ typedef struct __uavtalk_message {
 	uint8_t Crc;
 } uavtalk_message_t;
 
+void uav_talk_get_start_time(void);
+bool check_read_locks(int fd);
 
 int uavtalk_read(int fd);
 int uavtalk_state(void);

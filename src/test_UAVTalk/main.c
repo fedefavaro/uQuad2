@@ -34,12 +34,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
-
-// Configurations
-#include "OSD_Config.h"
-#include "OSD_Vars.h"
+#include <sys/time.h>
 
 #include "serial_comm.h"
+#include "uquad_aux_time.h"
 
 // OpenPilot UAVTalk:
 #include "UAVTalk.h"
@@ -76,11 +74,6 @@ int main(int argc, char *argv[])
 
   int retval;
 
-  fd_set rfds;
-  struct timeval tv;
-  tv.tv_sec = 0;
-  tv.tv_usec = 0;
-  
   // Catch signals
   signal(SIGINT,  uquad_sig_handler);
   signal(SIGQUIT, uquad_sig_handler);
@@ -89,13 +82,20 @@ int main(int argc, char *argv[])
   // Inicializacion
   // -- -- -- -- -- -- -- -- -- 
   
+  uav_talk_get_start_time();
+
   /// Puerto Serie Beagle-CC3D
   fd = open_port(DEVICE);
   if (fd < 0) quit();
-  printf("CC3D conectada\n");
+  printf("CC3D conectada. fd: %d\n",fd);
   
-  retval = configure_port(fd, B57600);
+  retval = configure_port(fd, /*B57600*/B115200);
   if (retval < 0) quit();
+
+   bool readOK;
+   //struct timeval tv_diff;
+   //struct timeval tv_x;
+   //struct timeval tv_y;
 
   // -- -- -- -- -- -- -- -- -- 
   // Loop
@@ -103,21 +103,23 @@ int main(int argc, char *argv[])
   for(;;)
   {
      
-     FD_ZERO(&rfds);
-     FD_SET(fd, &rfds);
-     retval = select(fd+1, &rfds, NULL, NULL, &tv);
-     if(retval < 0)
-        printf("select() failed!\n");
      
-     if(FD_ISSET(fd,&rfds))
-     {
+     //gettimeofday(&tv_y,NULL);
+     readOK = check_read_locks(fd);
+     //gettimeofday(&tv_x,NULL);
+     //uquad_timeval_substract(&tv_diff, tv_x, tv_y); //diff = x - y
+     //printf("tiempo: %ld\n",tv_diff.tv_usec);
+
+     if (readOK) {
+		
         if (uavtalk_read(fd)) {
            // imprimo lo que leo?
         } else {
-           //sleep_ms(10);
+           //printf("uavtalk_read(fd) false!\n");
+           //sleep_ms(50);
         }
      }
-  
+    // sleep_ms(50);
   } //fin loop
 
 }
