@@ -48,13 +48,32 @@
 pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
 
+/********** Senhales *********************/
 sigset_t mask;
 sigset_t orig_mask;
-
+/*****************************************/
+/// IO
 static io_t *io  	= NULL;
-uquad_bool_t read_ok	= false;
+uquad_bool_t read_ok	= false; //flag para determinar si se puede leer de un dispositivo
+unsigned char tmp_buff[2] = {0,0};  // Para leer entrada de usuario
 
+/// KMQ
 uquad_kmsgq_t *kmsgq 	= NULL;
+// Valores iniciales de los canales a enviar a sbusd
+//ch_buff[0]  roll
+//ch_buff[1]  pitch
+//ch_buff[2]  yaw
+//ch_buff[3]  throttle
+//ch_buff[4]  flight mode?
+uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1500,1500}; 
+uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
+                                      // El casteo es necesario para enviar los mensajes de kernel (de a 1 byte en lugar de 2)
+
+/// Functions
+//Foward decls
+int wait_loop_T_US(unsigned long time_to_wait_us, struct timeval tv_in);
+void read_from_stdin(void);
+
 
 /**
  * Interrumpe ejecucion del programa. Dependiendo del valor del parametro
@@ -77,7 +96,7 @@ void quit(int Q)
       err_log("algo salio mal, cerrando...");
    
    if(Q != 1) {
-      /// Demonio S-BUS 
+      /// Terminar Demonio S-BUS 
       retval = system(KILL_SBUS);
       //sprintf(str, "kill -SIGTERM %d", sbusd_child_pid);
       //retval = system(str);         
@@ -85,7 +104,7 @@ void quit(int Q)
          err_log("Could not terminate sbusd!");
    }
    
-   /// IO manager
+   /// cerrar IO manager
    retval = io_deinit(io);
    if(retval != ERROR_OK)
       err_log("Could not close IO correctly!");
@@ -94,7 +113,7 @@ void quit(int Q)
    
 #if !DISABLE_GPS
    if(Q != 2) {
-      /// GPS
+      /// cerrar conexiones con GPSD y terminarlo
       retval = deinit_gps();
       if(retval != ERROR_OK)
          err_log("Could not close gps correctly!");
@@ -105,7 +124,7 @@ void quit(int Q)
 
 }    
 
-
+/********** Senhales *********************/
 void uquad_sig_handler(int signal_num)
 {
 
@@ -129,7 +148,7 @@ void uquad_sig_handler(int signal_num)
       }
    }
    
-   // bloqueo SIGCHLD si entre por SIGINT
+   // bloqueo SIGCHLD si entre por SIGINT para no entrar 2 veces
    if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
       perror ("sigprocmask");
    }
@@ -138,32 +157,32 @@ void uquad_sig_handler(int signal_num)
    err_log_num("Caught signal:",signal_num);
    quit(2);
 }
-
+/*****************************************/
 
 int main(int argc, char *argv[])
 {  
+   int retval;
+
+/********** Senhales *********************/
+   //mascaras para bloquear SIGCHLD
    sigemptyset (&mask);
    sigaddset (&mask, SIGCHLD);
    //sigaddset (&mask, SIGTERM);
-
-   int retval;
-   
-   // Para leer entrada de usuario
-   unsigned char tmp_buff[2] = {0,0}; 
-
-   // Control de tiempos
-   struct timeval tv_in, tv_end, tv_diff;
-
+  
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
    signal(SIGCHLD, uquad_sig_handler);
+/*****************************************/
+
+   // Control de tiempos
+   struct timeval tv_in;
    
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
-   ///GPS config
+   ///GPS config - Envia comandos al gps a traves del puerto serie - //
 #if !DISABLE_GPS
 printf("antes de preconfig\n");  //dbg
    retval = preconfigure_gps();
@@ -176,18 +195,16 @@ printf("despues de preconfig\n"); //dbg
 
    sleep_ms(1000);  //necesario? TODO verificar
   
-//exit(4);
- 
-   /// GPS daemon
+   /// Ejecuta GPS daemon - proceso independiente
    gpsd_child_pid = init_gps();
    if(gpsd_child_pid == -1)
    {
       err_log_stderr("Failed to init gps!");
       quit(0);
    }
-#endif
+#endif //!DISABLE_GPS
 
-   /// Demonio S-BUS                                                        
+   /// Ejecuta Demonio S-BUS - proceso independiente
    sbusd_child_pid = futaba_sbus_start_daemon();                            
    if(sbusd_child_pid == -1)                                                
    {                                                                        
@@ -195,20 +212,17 @@ printf("despues de preconfig\n"); //dbg
       quit(1);                                                              
    }  
 
-   // para detectar si mueren gpsd o sbusd
-//   signal(SIGCHLD, uquad_sig_handler);
+   /// inicializa kernel messages queues - para comunicacion con sbusd
+   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
+   if(kmsgq == NULL)
+   {
+      quit_log_if(ERROR_FAIL,"Failed to start message queue!");
+   }
 
-   /// Kernel Messeges Queue                                                                          
-   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);                                                  
-   if(kmsgq == NULL)                                                                                  
-   {                                                                                                  
-      quit_log_if(ERROR_FAIL,"Failed to start message queue!");                                       
-   }    
-
-   //Doy tiempo a que inicien bien los programitas...
+   //Doy tiempo a que inicien bien los procesos...
    sleep_ms(500);   
 
-   /// IO manager
+   /// inicializa IO manager
    io = io_init();
    if(io==NULL)
    {
@@ -218,23 +232,12 @@ printf("despues de preconfig\n"); //dbg
    quit_log_if(retval, "Failed to add stdin to io list"); 
 
 #if PC_TEST
-   printf("Starting main in PC test mode\n");
-   printf("For configuration options view common/uquad_config.h\n");
+   err_log("WARNING: Comenzando en modo 'PC test' - Ver common/uquad_config.h");
 #endif
+
 #if DISABLE_GPS
-   printf("WARNING: GPS disabled!\n");
+   err_log("WARNING: GPS disabled!");
 #endif
-   static uint8_t *buff_out;            // buffer para enviar mensajes de kernel
-   static uint16_t ch_buff[CH_COUNT];   // arreglo para almacenar el valor de los canales a enviar
-   buff_out = (uint8_t *)ch_buff;
-
-   /// Valores iniciales de los canales de sbus
-   ch_buff[0] = 1500;      // roll
-   ch_buff[1] = 1500;      // pitch
-   //ch_buff[2] = 1500; // yaw
-   //ch_buff[3] = 1500; // throttle
-   //ch_buff[4] = 1500; // flight mode?
-
 
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -242,24 +245,86 @@ printf("despues de preconfig\n"); //dbg
    for(;;)
    {
       gettimeofday(&tv_in,NULL);
+
+      /// -- -- -- -- -- -- -- --
+      /// Poll IO devices
+      /// -- -- -- -- -- -- -- --
+      retval = io_poll(io);
+      quit_log_if(retval,"io_poll() error");      
       
       /// -- -- -- -- -- -- -- --
       /// Check stdin
       /// -- -- -- -- -- -- -- --
-//--------------------------------------------------------------------------
-      retval = io_poll(io);
-      quit_log_if(retval,"io_poll() error");
       retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
       log_n_continue(retval, "Failed to check stdin for input!");
-      //if(!read_ok)
- 	// goto end_stdin;
       if(read_ok)
       {
-         retval = fread(tmp_buff,sizeof(unsigned char),1,stdin); //TODO corregir que queda algo por leer en el buffer?
+         read_from_stdin();
+      }
+
+#if !DISABLE_GPS
+      /// if GPS
+      retval = get_gps_data();
+      if (retval < 0 )
+      {
+         err_log("No hay datos de gps");
+         //que hago si no hay datos!?
+      }    
+#endif
+
+      // envia mensaje de kernel para ser leidos por el demonio sbus
+      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+      if(retval != ERROR_OK)
+      {
+         quit_log_if(ERROR_FAIL,"Failed to send message!");
+      }
+
+      /// Control de tiempo del loop
+      wait_loop_T_US(MAIN_LOOP_T_US,tv_in);
+
+     
+   } // for(;;)
+
+   return 0; //never reaches here
+
+}
+
+
+
+/// -- -- -- -- -- -- -- --
+/// Aux functions
+/// -- -- -- -- -- -- -- --
+
+int wait_loop_T_US(unsigned long time_to_wait_us, struct timeval tv_in)
+{
+   struct timeval tv_end, tv_diff;
+   gettimeofday(&tv_end,NULL);
+   int retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+   if(retval > 0)
+   {
+      if(tv_diff.tv_usec < time_to_wait_us)
+         usleep(time_to_wait_us - (unsigned long)tv_diff.tv_usec); // Sobro tiempo, voy a dormir
+   } else
+         err_log("WARN: Main Absurd timing!");
+   
+#if DEBUG_TIMING_MAIN
+      gettimeofday(&tv_end,NULL);
+      retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+      printf("duracion loop main: %lu\n",(unsigned long)tv_diff.tv_usec);
+#endif
+
+   return retval;
+}
+
+
+void read_from_stdin(void)
+{
+         int retval = fread(tmp_buff,sizeof(unsigned char),1,stdin); //TODO corregir que queda algo por leer en el buffer?
          if(retval <= 0)
          {
 	    //log_n_jump(ERROR_READ, end_stdin,"No user input detected!");
             err_log_num("No user input detected!",ERROR_READ);
+            return;
          }
          switch(tmp_buff[0])
          {
@@ -287,45 +352,5 @@ printf("despues de preconfig\n"); //dbg
             err_log("Velocidad invalida. Ingrese 0,1,2,3 para 0%,10%,20%,30%");
             break;
          } //switch(tmp_buff[0])
-      }
-      //end_stdin: //vengo aca si algo sale mal con leer stdin
- //--------------------------------------------------------------------------
-#if !DISABLE_GPS
-      /// if GPS
-      retval = get_gps_data();
-      if (retval < 0 )
-      {
-         err_log("No hay datos de gps");
-         //que hago si no hay datos!?
-      }    
-#endif
-      // envia mensaje de kernel para ser leidos por el demonio sbus
-      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
-      if(retval != ERROR_OK)
-      {
-         quit_log_if(ERROR_FAIL,"Failed to send message!");
-      }
-
-      /// Control de tiempo del loop
-      gettimeofday(&tv_end,NULL);
-      retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      if(retval > 0)
-      {
-         if(tv_diff.tv_usec < MAIN_LOOP_T_US)
-            // Sobro tiempo, voy a dormir
-            usleep(MAIN_LOOP_T_US - (unsigned long)tv_diff.tv_usec);
-      }
-      else
-         fputs("WARN: Absurd timing!\n",stderr);
-      
-#if DEBUG_TIMING_MAIN
-      gettimeofday(&tv_end,NULL);
-      retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      printf("duracion loop main: %lu\n",(unsigned long)tv_diff.tv_usec);
-#endif
-
-   } // for(;;)
-
-   return 0; //never reaches here
-
 }
+
