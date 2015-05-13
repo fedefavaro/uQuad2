@@ -37,10 +37,6 @@
 #define GPS_UPDATE_10HZ 	"$PMTK220,100*2F\r\n"
 #define GPS_BAUD_57600	 	"$PMTK251,57600*2C\r\n"
 
-//#define GPS_UPDATE_10HZ         "$PMTK220,100*2F\n\r"
-//#define GPS_BAUD_57600          "$PMTK251,57600*2C\n\r"
-
-
 //#define BAUD_9600		B9600
 //#define BAUD_57600		B57600
 
@@ -104,56 +100,7 @@ int preconfigure_gps(void)
 
    return 0;
 }
-/*int preconfigure_gps(void)
-{
-   int ret;
-   int fd_gps;
 
-printf("entro preconfigure\n");
-
-   // Etapa de preconfiguracion
-   fd_gps = gps_connect(DEVICE, 9600);                                                  
-   if (fd_gps < 0) {
-      err_log("gps_connect(DEVICE, 9600) failed");                                     
-      return -1;
-   }                                       
-   sleep_ms(5);
-   //ret = gps_send_command(fd_gps, GPS_BAUD_57600);     
-   ret = system("echo -e '$PMTK251,57600*2C\r' > /dev/ttyUSB0");
-   if (ret < 0) {                                                                    
-      err_log("gps_send_command(fd_gps, GPS_BAUD_57600) failed");                                      
-      return -1;                                       
-   }                                       
-   sleep_ms(5); //para que termine de escribir en la uart
-
-   ret = gps_disconnect(fd_gps);                         
-   if (ret < 0) {                                                                    
-      err_log("gps_disconnect(fd_gps) failed");                                      
-      return -1;                                       
-   }                                         
-   fd_gps = gps_connect(DEVICE, 57600);                  
-   if (fd_gps < 0) {                                                                    
-      err_log("gps_connect(DEVICE, 57600) failed");                                      
-      return -1;                                       
-   }                                      
-   sleep_ms(5);
-   //ret = gps_send_command(fd_gps, GPS_UPDATE_10HZ);      
-   ret = system("echo -e '$PMTK220,100*2F\r' > /dev/ttyUSB0");
-   if (ret < 0) {                                                                    
-      err_log("gps_send_command(fd_gps, GPS_UPDATE_10HZ) failed");                                      
-      return -1;                                       
-   }                                         
-   sleep_ms(5); //para que termine de escribir en la uart
-   ret = gps_disconnect(fd_gps);                         
-   if (ret < 0) {                                                                    
-      err_log("gps_disconnect(fd_gps) failed");                                      
-      return -1;                                       
-   }                                         
-
-   sleep_ms(5);
-
-   return 0;
-}*/
 
 int init_gps(void)
 {                                                                                       
@@ -237,9 +184,6 @@ int get_gps_data(gps_t* gps)
       } else {
          /* Display data from the GPS receiver. */
          //if (gps_data.set & ...
-            //printf("latitude: %lf\n", my_gps_data.fix.latitude);
-            //printf("longitude: %lf\n", my_gps_data.fix.longitude);
-            //printf("altitude: %lf\n", my_gps_data.fix.altitude);
             gps->latitude	= my_gps_data.fix.latitude;
             gps->longitude	= my_gps_data.fix.longitude;
             gps->altitude	= my_gps_data.fix.altitude;
@@ -262,8 +206,6 @@ int gps_connect(const char *device, int baud)
     char str[128];
     int retval;
     int fd=0;
-
-//printf("entro connect\n");
 
     fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if(fd < 0)
@@ -313,6 +255,7 @@ int gps_disconnect(int fd)
     return retval;
 }
 
+
 int gps_send_command(int fd, const char *command)
 {
    int retval;
@@ -330,7 +273,7 @@ int gps_send_command(int fd, const char *command)
       err_log_num("write fallo con return value: ",retval); //write devuelve cant de bytes escritos
       return -1;
    }
-//printf("%s",command);
+
    return 0;
 }
 

@@ -229,7 +229,7 @@ void quit(int Q)
    int retval;
    
    if(Q == 2) {
-      err_log("interrumpido manualmente (ctrl-c)");
+      err_log("interrumpido manualmente (ctrl-c)");  //TODO no funco bien en la beagle
    } else
       err_log("algo salio mal, cerrando...");
    
