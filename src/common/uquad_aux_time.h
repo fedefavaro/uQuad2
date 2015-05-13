@@ -29,6 +29,7 @@
 #define UQUAD_AUX_TIME_H
 
 #include <uquad_error_codes.h>
+#include <quadcop_config.h>
 
 #include <sys/time.h>
 #include <unistd.h> // for usleep()
@@ -46,7 +47,7 @@
 
 #define sleep_ms(ms) usleep(1000*ms)
 
-#define MAIN_LOOP_T_US		105000UL
+#define MAIN_LOOP_T_US		10000UL//105000UL
 
 /** 
  * Calculate the difference between two time vals, without losing precision.

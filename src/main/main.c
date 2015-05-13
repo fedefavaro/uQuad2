@@ -119,34 +119,34 @@ int main(int argc, char *argv[])
 
 
    /// Ejecuta Demonio S-BUS - proceso independiente
-   sbusd_child_pid = futaba_sbus_start_daemon();                            
+/*   sbusd_child_pid = futaba_sbus_start_daemon();                            
    if(sbusd_child_pid == -1)                                                
    {                                                                        
       err_log_stderr("Failed to start child process (sbusd)!");             
       quit(1);                                                              
    }
-
+*/
 
    /// inicializa kernel messages queues - para comunicacion con sbusd
-   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
+/*   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
    if(kmsgq == NULL)
    {
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");
    }
-
+*/
    //Doy tiempo a que inicien bien los procesos...
    sleep_ms(500);   
 
 
    /// inicializa IO manager
-   io = io_init();
+/*   io = io_init();
    if(io==NULL)
    {
       quit_log_if(ERROR_FAIL,"io init failed!");
    }
    retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
    quit_log_if(retval, "Failed to add stdin to io list"); 
-
+*/
 
    /// inicializa UAVTalk
 //------------------------------------------------------------------------
@@ -211,12 +211,13 @@ int main(int argc, char *argv[])
 //------------------------------------------------------------------------
 
       // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
-      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+/*      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
       {
          quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
-
+*/
+//sleep_ms(5);
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_T_US,tv_in);
 
