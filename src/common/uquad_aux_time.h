@@ -28,6 +28,8 @@
 #ifndef UQUAD_AUX_TIME_H
 #define UQUAD_AUX_TIME_H
 
+#include <uquad_error_codes.h>
+
 #include <sys/time.h>
 #include <unistd.h> // for usleep()
 
@@ -44,6 +46,8 @@
 
 #define sleep_ms(ms) usleep(1000*ms)
 
+#define MAIN_LOOP_T_US		105000UL
+
 /** 
  * Calculate the difference between two time vals, without losing precision.
  * 
@@ -57,6 +61,7 @@
  */
 int uquad_timeval_substract (struct timeval * result, struct timeval x, struct timeval y);
 
+
 /**
  * Verifies that a time diff falls within a given range, in microseconds.
  *
@@ -67,5 +72,17 @@ int uquad_timeval_substract (struct timeval * result, struct timeval x, struct t
  * @return 0 iif in range, -1 iif less than min_us, 1 iif more than max_us
  */
 int in_range_us(struct timeval tv_diff, long int min_us, long int max_us);
+
+
+/**
+ * Manda el main a dormir el tiempo necesario para que el loop principal 
+ * dure 'loop_duration_usec'.
+ *
+ * @param loop_duration_usec Tiempo que se desea que dure el loop principal
+ * @param tv_in tiempo de compienzo del loop principal
+ *
+ * @return resultado de uquad_timeval_substract()
+ */
+int wait_loop_T_US(unsigned long loop_duration_usec, struct timeval tv_in);
 
 #endif

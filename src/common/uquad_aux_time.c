@@ -74,3 +74,29 @@ int in_range_us(struct timeval tv_diff, long int min_us, long int max_us)
     }
     return retval;
 }
+
+/**
+ * calcula diferencia entre tiempo de entrada al loop ('tv_in')y tiempo
+ * actual ('tv_end') y manda a dormir la cantidad de tiempo que falte 
+ * para completar 'loop_duration_usec'.
+ */
+int wait_loop_T_US(unsigned long loop_duration_usec, struct timeval tv_in)
+{
+   struct timeval tv_end, tv_diff;
+   gettimeofday(&tv_end,NULL);
+   int retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+   if(retval > 0)
+   {
+      if(tv_diff.tv_usec < loop_duration_usec)
+         usleep(loop_duration_usec - (unsigned long)tv_diff.tv_usec); // Sobro tiempo, voy a dormir
+   } else
+         err_log("WARN: Main Absurd timing!");
+   
+#if DEBUG_TIMING_MAIN
+      gettimeofday(&tv_end,NULL);
+      retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+      printf("duracion loop main: %lu\n",(unsigned long)tv_diff.tv_usec);
+#endif
+
+   return retval;
+}

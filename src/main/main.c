@@ -33,7 +33,6 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,22 +41,19 @@
 #define BUFF_SIZE		10
 
 #define KILL_SBUS		"killall sbusd"
-#define MAIN_LOOP_T_US		105000UL
 
-//Global vars
+/// Global vars
+
+// Almacena pids de hijos
 pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
 
-/********** Senhales *********************/
-sigset_t mask;
-sigset_t orig_mask;
-/*****************************************/
-/// IO
+// IO
 static io_t *io  	= NULL;
 uquad_bool_t read_ok	= false; //flag para determinar si se puede leer de un dispositivo
 unsigned char tmp_buff[2] = {0,0};  // Para leer entrada de usuario
 
-/// KMQ
+// KMQ
 uquad_kmsgq_t *kmsgq 	= NULL;
 // Valores iniciales de los canales a enviar a sbusd
 //ch_buff[0]  roll
@@ -69,12 +65,147 @@ uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1500,1500};
 uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
                                       // El casteo es necesario para enviar los mensajes de kernel (de a 1 byte en lugar de 2)
 
-/// Functions
-//Foward decls
-int wait_loop_T_US(unsigned long time_to_wait_us, struct timeval tv_in);
+
+/// Declaracion de funciones auxiliares
+void quit(int Q);
+void uquad_sig_handler(int signal_num);
+void set_signals(void);
 void read_from_stdin(void);
 
 
+/*********************************************/
+/**************** Main ***********************/
+/*********************************************/
+int main(int argc, char *argv[])
+{  
+   int retval;
+
+   //setea senales y mascara 
+   set_signals(); 
+
+   // Control de tiempos
+   struct timeval tv_in;
+   
+   // -- -- -- -- -- -- -- -- -- 
+   // Inicializacion
+   // -- -- -- -- -- -- -- -- -- 
+
+   ///GPS config - Envia comandos al gps a traves del puerto serie - //
+
+#if !DISABLE_GPS
+   retval = preconfigure_gps();
+   if(retval < 0)                                                 
+   {                                                                        
+      err_log("Failed to preconfigure gps!");
+      quit(0);                                                              
+   } 
+   sleep_ms(1000);  //necesario? TODO verificar
+  
+
+   /// Ejecuta GPS daemon - proceso independiente
+   gpsd_child_pid = init_gps();
+   if(gpsd_child_pid == -1)
+   {
+      err_log_stderr("Failed to init gps!");
+      quit(0);
+   }
+#endif //!DISABLE_GPS
+
+
+   /// Ejecuta Demonio S-BUS - proceso independiente
+   sbusd_child_pid = futaba_sbus_start_daemon();                            
+   if(sbusd_child_pid == -1)                                                
+   {                                                                        
+      err_log_stderr("Failed to start child process (sbusd)!");             
+      quit(1);                                                              
+   }  
+
+
+   /// inicializa kernel messages queues - para comunicacion con sbusd
+   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
+   if(kmsgq == NULL)
+   {
+      quit_log_if(ERROR_FAIL,"Failed to start message queue!");
+   }
+
+   //Doy tiempo a que inicien bien los procesos...
+   sleep_ms(500);   
+
+
+   /// inicializa IO manager
+   io = io_init();
+   if(io==NULL)
+   {
+      quit_log_if(ERROR_FAIL,"io init failed!");
+   }
+   retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
+   quit_log_if(retval, "Failed to add stdin to io list"); 
+
+   /// mensajitos al usuario
+#if PC_TEST
+   err_log("WARNING: Comenzando en modo 'PC test' - Ver common/quadcop_config.h");
+#endif
+
+#if DISABLE_GPS
+   err_log("WARNING: GPS disabled!");
+#endif
+
+
+   // -- -- -- -- -- -- -- -- -- 
+   // Loop
+   // -- -- -- -- -- -- -- -- -- 
+   for(;;)
+   {
+      gettimeofday(&tv_in,NULL); //para tener tiempo de entrada en cada loop
+
+      /// Polling de dispositivos IO
+      retval = io_poll(io);
+      quit_log_if(retval,"io_poll() error");      
+      
+      /// Check stdin
+      retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
+      log_n_continue(retval, "Failed to check stdin for input!");
+      if(read_ok)
+      {
+         read_from_stdin();
+      }
+
+#if !DISABLE_GPS
+      /// Obener datos del GPS
+      retval = get_gps_data();
+      if (retval < 0 )
+      {
+         err_log("No hay datos de gps");
+         //que hago si no hay datos!?
+      }    
+#endif
+
+      // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
+      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+      if(retval != ERROR_OK)
+      {
+         quit_log_if(ERROR_FAIL,"Failed to send message!");
+      }
+
+      /// Control de tiempos del loop
+      wait_loop_T_US(MAIN_LOOP_T_US,tv_in);
+
+     
+   } // for(;;)
+
+   return 0; //nunca deberia llegar aca
+
+} //FIN MAIN
+
+
+
+// -- -- -- -- -- -- -- -- -- 
+// Funciones auxiliares
+// -- -- -- -- -- -- -- -- --
+
+/*********************************************/
+/**** Para terminar la ejecucion limpiamente */
+/*********************************************/
 /**
  * Interrumpe ejecucion del programa. Dependiendo del valor del parametro
  * que se le pase interrumpe mas o menos cosas.
@@ -122,9 +253,16 @@ void quit(int Q)
       
    exit(0);
 
-}    
+}
 
-/********** Senhales *********************/
+
+/*********************************************/
+/*********** Manejo de senales ***************/
+/*********************************************/
+
+sigset_t mask;
+sigset_t orig_mask;
+
 void uquad_sig_handler(int signal_num)
 {
 
@@ -157,13 +295,9 @@ void uquad_sig_handler(int signal_num)
    err_log_num("Caught signal:",signal_num);
    quit(2);
 }
-/*****************************************/
 
-int main(int argc, char *argv[])
-{  
-   int retval;
-
-/********** Senhales *********************/
+void set_signals(void)
+{
    //mascaras para bloquear SIGCHLD
    sigemptyset (&mask);
    sigaddset (&mask, SIGCHLD);
@@ -173,149 +307,13 @@ int main(int argc, char *argv[])
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
    signal(SIGCHLD, uquad_sig_handler);
-/*****************************************/
-
-   // Control de tiempos
-   struct timeval tv_in;
-   
-   // -- -- -- -- -- -- -- -- -- 
-   // Inicializacion
-   // -- -- -- -- -- -- -- -- -- 
-
-   ///GPS config - Envia comandos al gps a traves del puerto serie - //
-#if !DISABLE_GPS
-printf("antes de preconfig\n");  //dbg
-   retval = preconfigure_gps();
-   if(retval < 0)                                                 
-   {                                                                        
-      err_log("Failed to preconfigure gps!");
-      quit(0);                                                              
-   } 
-printf("despues de preconfig\n"); //dbg
-
-   sleep_ms(1000);  //necesario? TODO verificar
-  
-   /// Ejecuta GPS daemon - proceso independiente
-   gpsd_child_pid = init_gps();
-   if(gpsd_child_pid == -1)
-   {
-      err_log_stderr("Failed to init gps!");
-      quit(0);
-   }
-#endif //!DISABLE_GPS
-
-   /// Ejecuta Demonio S-BUS - proceso independiente
-   sbusd_child_pid = futaba_sbus_start_daemon();                            
-   if(sbusd_child_pid == -1)                                                
-   {                                                                        
-      err_log_stderr("Failed to start child process (sbusd)!");             
-      quit(1);                                                              
-   }  
-
-   /// inicializa kernel messages queues - para comunicacion con sbusd
-   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
-   if(kmsgq == NULL)
-   {
-      quit_log_if(ERROR_FAIL,"Failed to start message queue!");
-   }
-
-   //Doy tiempo a que inicien bien los procesos...
-   sleep_ms(500);   
-
-   /// inicializa IO manager
-   io = io_init();
-   if(io==NULL)
-   {
-      quit_log_if(ERROR_FAIL,"io init failed!");
-   }
-   retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
-   quit_log_if(retval, "Failed to add stdin to io list"); 
-
-#if PC_TEST
-   err_log("WARNING: Comenzando en modo 'PC test' - Ver common/quadcop_config.h");
-#endif
-
-#if DISABLE_GPS
-   err_log("WARNING: GPS disabled!");
-#endif
-
-   // -- -- -- -- -- -- -- -- -- 
-   // Loop
-   // -- -- -- -- -- -- -- -- -- 
-   for(;;)
-   {
-      gettimeofday(&tv_in,NULL);
-
-      /// -- -- -- -- -- -- -- --
-      /// Poll IO devices
-      /// -- -- -- -- -- -- -- --
-      retval = io_poll(io);
-      quit_log_if(retval,"io_poll() error");      
-      
-      /// -- -- -- -- -- -- -- --
-      /// Check stdin
-      /// -- -- -- -- -- -- -- --
-      retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
-      log_n_continue(retval, "Failed to check stdin for input!");
-      if(read_ok)
-      {
-         read_from_stdin();
-      }
-
-#if !DISABLE_GPS
-      /// if GPS
-      retval = get_gps_data();
-      if (retval < 0 )
-      {
-         err_log("No hay datos de gps");
-         //que hago si no hay datos!?
-      }    
-#endif
-
-      // envia mensaje de kernel para ser leidos por el demonio sbus
-      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
-      if(retval != ERROR_OK)
-      {
-         quit_log_if(ERROR_FAIL,"Failed to send message!");
-      }
-
-      /// Control de tiempo del loop
-      wait_loop_T_US(MAIN_LOOP_T_US,tv_in);
-
-     
-   } // for(;;)
-
-   return 0; //never reaches here
 
 }
 
 
-
-/// -- -- -- -- -- -- -- --
-/// Aux functions
-/// -- -- -- -- -- -- -- --
-
-int wait_loop_T_US(unsigned long time_to_wait_us, struct timeval tv_in)
-{
-   struct timeval tv_end, tv_diff;
-   gettimeofday(&tv_end,NULL);
-   int retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-   if(retval > 0)
-   {
-      if(tv_diff.tv_usec < time_to_wait_us)
-         usleep(time_to_wait_us - (unsigned long)tv_diff.tv_usec); // Sobro tiempo, voy a dormir
-   } else
-         err_log("WARN: Main Absurd timing!");
-   
-#if DEBUG_TIMING_MAIN
-      gettimeofday(&tv_end,NULL);
-      retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      printf("duracion loop main: %lu\n",(unsigned long)tv_diff.tv_usec);
-#endif
-
-   return retval;
-}
-
+/*********************************************/
+/************* Leer de stdin *****************/
+/*********************************************/
 
 void read_from_stdin(void)
 {
@@ -353,4 +351,9 @@ void read_from_stdin(void)
             break;
          } //switch(tmp_buff[0])
 }
+
+
+
+
+
 
