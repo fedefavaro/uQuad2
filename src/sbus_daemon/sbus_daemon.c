@@ -3,7 +3,7 @@
 #include <custom_baud.h>
 #include <uquad_aux_time.h>
 #include <uquad_error_codes.h>
-#include <uquad_config.h>
+#include <quadcop_config.h>
 #include <uquad_kernel_msgq.h>
 
 #include <stdio.h>   /* Standard input/output definitions */

@@ -25,7 +25,7 @@
 
 #include <uquad_kernel_msgq.h>
 #include <uquad_error_codes.h>
-#include <uquad_config.h>
+#include <quadcop_config.h>
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
@@ -232,7 +232,7 @@ printf("despues de preconfig\n"); //dbg
    quit_log_if(retval, "Failed to add stdin to io list"); 
 
 #if PC_TEST
-   err_log("WARNING: Comenzando en modo 'PC test' - Ver common/uquad_config.h");
+   err_log("WARNING: Comenzando en modo 'PC test' - Ver common/quadcop_config.h");
 #endif
 
 #if DISABLE_GPS

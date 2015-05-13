@@ -29,7 +29,7 @@
 
 #include "gps_comm.h"
 #include <serial_comm.h>
-#include <uquad_config.h>
+#include <quadcop_config.h>
 #include <uquad_aux_time.h>
 
 //defines para etapa de preconfig

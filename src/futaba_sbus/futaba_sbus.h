@@ -22,12 +22,15 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ *
+ * TODO: Basado en https://developer.mbed.org/users/Digixx/notebook/futaba-s-bus-controlled-by-mbed/
  */
 
 #ifndef FUTABA_SBUS_h
 #define FUTABA_SBUS_h
 
-#include <uquad_config.h>
+#include <quadcop_config.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

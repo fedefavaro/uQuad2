@@ -24,7 +24,7 @@
  */
 
 #include "custom_baud.h"
-#include <uquad_config.h>
+#include <quadcop_config.h>
 
 #include <stdio.h>
 #include <fcntl.h>
