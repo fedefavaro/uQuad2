@@ -48,6 +48,9 @@
 pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
 
+// GPS
+gps_t gps;
+
 // IO
 static io_t *io  	= NULL;
 uquad_bool_t read_ok	= false; //flag para determinar si se puede leer de un dispositivo
@@ -172,12 +175,16 @@ int main(int argc, char *argv[])
 
 #if !DISABLE_GPS
       /// Obener datos del GPS
-      retval = get_gps_data();
+      retval = get_gps_data(&gps);
       if (retval < 0 )
-      {
+      {  
+         //que hago si NO hay datos!?
          err_log("No hay datos de gps");
-         //que hago si no hay datos!?
-      }    
+      } else {
+         //que hago si SI hay datos!?
+         printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
+                gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
+      }
 #endif
 
       // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)

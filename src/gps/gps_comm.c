@@ -51,14 +51,14 @@ struct gps_data_t my_gps_data;
 
 int preconfigure_gps(void)
 {
-printf("entro preconfigure\n");
+//printf("entro preconfigure\n");
    int ret;
    int fd_gps;
 
    //abro puerto serie del gps
    fd_gps = open_port(DEVICE);
    if (fd_gps < 0) return -1;
-   fputs("GPS conectado\n",stderr); //dbg
+   //fputs("GPS conectado\n",stderr); //dbg
    sleep_ms(10);
 
    //configuro al baudrate inicial: 9600
@@ -100,7 +100,7 @@ printf("entro preconfigure\n");
 	err_log_stderr("Failed to close serial port!");
         return -1;
    }                                                             
-   fputs("GPS desconectado\n",stderr); //dbg
+   //fputs("GPS desconectado\n",stderr); //dbg
 
    return 0;
 }
@@ -223,7 +223,7 @@ int start_gpsd(void)
 }
 
 
-int get_gps_data(void)
+int get_gps_data(gps_t* gps)
 {
    /* Put this in a loop with a call to a high resolution sleep () in it. */
    if (gps_waiting(&my_gps_data, 1000)) {
@@ -237,9 +237,14 @@ int get_gps_data(void)
       } else {
          /* Display data from the GPS receiver. */
          //if (gps_data.set & ...
-            printf("latitude: %lf\n", my_gps_data.fix.latitude);
-            printf("longitude: %lf\n", my_gps_data.fix.longitude);
-            printf("altitude: %lf\n", my_gps_data.fix.altitude);
+            //printf("latitude: %lf\n", my_gps_data.fix.latitude);
+            //printf("longitude: %lf\n", my_gps_data.fix.longitude);
+            //printf("altitude: %lf\n", my_gps_data.fix.altitude);
+            gps->latitude	= my_gps_data.fix.latitude;
+            gps->longitude	= my_gps_data.fix.longitude;
+            gps->altitude	= my_gps_data.fix.altitude;
+            gps->speed		= my_gps_data.fix.speed;
+            gps->track		= my_gps_data.fix.track;
       }
    } 
 #if DEBUG
@@ -258,7 +263,7 @@ int gps_connect(const char *device, int baud)
     int retval;
     int fd=0;
 
-printf("entro connect\n");
+//printf("entro connect\n");
 
     fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if(fd < 0)
@@ -325,7 +330,7 @@ int gps_send_command(int fd, const char *command)
       err_log_num("write fallo con return value: ",retval); //write devuelve cant de bytes escritos
       return -1;
    }
-printf("%s",command);
+//printf("%s",command);
    return 0;
 }
 

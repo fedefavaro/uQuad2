@@ -40,6 +40,14 @@
 #define	START_GPSD_DEV		"/dev/ttyUSB0"
 #define	START_GPSD_PORT		"1234"
 
+typedef struct gps {
+   double latitude;	/* Latitude in degrees (valid if mode >= 2) */
+   double longitude;	/* Longitude in degrees (valid if mode >= 2) */
+   double altitude;	/* Altitude in meters (valid if mode == 3) */
+   double speed;	/* Speed over ground, meters/sec */
+   double track;	/* Course made good (relative to true north) */
+} gps_t;
+
 int preconfigure_gps(void);
 int init_gps(void);
 int deinit_gps(void);
@@ -49,7 +57,7 @@ int deinit_gps(void);
  * @return pid del child process o codigo de error
  */ 
 int start_gpsd(void);
-int get_gps_data(void);
+int get_gps_data(gps_t* gps);
 
 int gps_connect(const char *device, int baud);
 int gps_disconnect(int fd);
