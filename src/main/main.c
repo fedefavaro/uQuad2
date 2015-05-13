@@ -30,6 +30,7 @@
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
 #include <gps_comm.h>
+#include <UAVTalk.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -68,6 +69,8 @@ uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1500,1500};
 uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
                                       // El casteo es necesario para enviar los mensajes de kernel (de a 1 byte en lugar de 2)
 
+// UAVTalk
+int fd_CC3D;
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -116,23 +119,23 @@ int main(int argc, char *argv[])
 
 
    /// Ejecuta Demonio S-BUS - proceso independiente
-   sbusd_child_pid = futaba_sbus_start_daemon();                            
+/*   sbusd_child_pid = futaba_sbus_start_daemon();                            
    if(sbusd_child_pid == -1)                                                
    {                                                                        
       err_log_stderr("Failed to start child process (sbusd)!");             
       quit(1);                                                              
-   }  
+   }  */
 
 
    /// inicializa kernel messages queues - para comunicacion con sbusd
-   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
+/*   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
    if(kmsgq == NULL)
    {
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");
    }
 
    //Doy tiempo a que inicien bien los procesos...
-   sleep_ms(500);   
+   sleep_ms(500);   */
 
 
    /// inicializa IO manager
@@ -144,7 +147,14 @@ int main(int argc, char *argv[])
    retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
    quit_log_if(retval, "Failed to add stdin to io list"); 
 
-   /// mensajitos al usuario
+
+   /// inicializa UAVTalk
+//------------------------------------------------------------------------
+   fd_CC3D = uav_talk_init();
+   bool CC3D_readOK;
+//------------------------------------------------------------------------
+
+   /// mensajitos al usuario...
 #if PC_TEST
    err_log("WARNING: Comenzando en modo 'PC test' - Ver common/quadcop_config.h");
 #endif
@@ -187,12 +197,25 @@ int main(int argc, char *argv[])
       }
 #endif
 
+//UAVTalk TODO esto deberia estar en un loop mucho mas rapido
+//------------------------------------------------------------------------
+     CC3D_readOK = check_read_locks(fd_CC3D);
+     if (CC3D_readOK) {
+		
+        if (uavtalk_read(fd_CC3D)) {
+           // imprimo lo que leo?
+        } else {
+           err_log("uavtalk_read failed");
+        }
+     } else err_log("UAVTalk: read NOT ok");
+//------------------------------------------------------------------------
+
       // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
-      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+/*      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
       {
          quit_log_if(ERROR_FAIL,"Failed to send message!");
-      }
+      }*/
 
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_T_US,tv_in);
@@ -246,6 +269,7 @@ void quit(int Q)
    retval = io_deinit(io);
    if(retval != ERROR_OK)
       err_log("Could not close IO correctly!");
+
    /// Kernel Messeges Queue
    uquad_kmsgq_deinit(kmsgq);
    
@@ -256,7 +280,12 @@ void quit(int Q)
       if(retval != ERROR_OK)
          err_log("Could not close gps correctly!");
    }
-#endif //DISABLE_GPS   
+#endif //DISABLE_GPS
+
+   /// cerrar UAVTalk
+   retval = uav_talk_deinit(fd_CC3D);
+   if(retval != ERROR_OK)
+      err_log("Could not close UAVTalk correctly!");
       
    exit(0);
 

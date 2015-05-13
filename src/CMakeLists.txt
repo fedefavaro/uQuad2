@@ -7,6 +7,7 @@ include_directories(kernel_msgq)
 include_directories(serial_comm)
 include_directories(futaba_sbus)
 include_directories(gps)
+include_directories(UAVTalk)
 
 # Add libm, for pow()
 link_libraries(m)
@@ -27,3 +28,4 @@ add_subdirectory(futaba_sbus)
 add_subdirectory(main)
 add_subdirectory(sbus_daemon) #necesario??
 add_subdirectory(gps)
+add_subdirectory(UAVTalk)

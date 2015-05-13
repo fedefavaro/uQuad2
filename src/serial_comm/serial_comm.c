@@ -50,7 +50,7 @@ int open_port(char *device)
 {
   int fd; /* File descriptor for the port */
 
-  fd = open(device, O_RDWR | O_NOCTTY /*| O_NDELAY*/);
+  fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);//| O_NDELAY);
   if (fd == -1)
   //{
     //Could not open the port.
@@ -88,7 +88,7 @@ int configure_port(int fd)
 
 }
 
-int configure_port_gps(int fd, speed_t baudrate)
+int configure_port_gps(int fd, speed_t baudrate) //TODO cambiar nombre
 {
   struct termios options;
   int rc;
