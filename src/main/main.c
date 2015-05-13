@@ -119,23 +119,23 @@ int main(int argc, char *argv[])
 
 
    /// Ejecuta Demonio S-BUS - proceso independiente
-/*   sbusd_child_pid = futaba_sbus_start_daemon();                            
+   sbusd_child_pid = futaba_sbus_start_daemon();                            
    if(sbusd_child_pid == -1)                                                
    {                                                                        
       err_log_stderr("Failed to start child process (sbusd)!");             
       quit(1);                                                              
-   }  */
+   }
 
 
    /// inicializa kernel messages queues - para comunicacion con sbusd
-/*   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
+   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
    if(kmsgq == NULL)
    {
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");
    }
 
    //Doy tiempo a que inicien bien los procesos...
-   sleep_ms(500);   */
+   sleep_ms(500);   
 
 
    /// inicializa IO manager
@@ -172,16 +172,16 @@ int main(int argc, char *argv[])
       gettimeofday(&tv_in,NULL); //para tener tiempo de entrada en cada loop
 
       /// Polling de dispositivos IO
-      retval = io_poll(io);
-      quit_log_if(retval,"io_poll() error");      
+//      retval = io_poll(io);
+//      quit_log_if(retval,"io_poll() error");      
       
       /// Check stdin
-      retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
-      log_n_continue(retval, "Failed to check stdin for input!");
-      if(read_ok)
-      {
-         read_from_stdin();
-      }
+//      retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
+//      log_n_continue(retval, "Failed to check stdin for input!");
+//      if(read_ok)
+//      {
+//         read_from_stdin();
+//      }
 
 #if !DISABLE_GPS
       /// Obener datos del GPS
@@ -211,11 +211,11 @@ int main(int argc, char *argv[])
 //------------------------------------------------------------------------
 
       // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
-/*      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
       {
          quit_log_if(ERROR_FAIL,"Failed to send message!");
-      }*/
+      }
 
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_T_US,tv_in);

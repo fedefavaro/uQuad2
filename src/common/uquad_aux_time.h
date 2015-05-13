@@ -46,7 +46,7 @@
 
 #define sleep_ms(ms) usleep(1000*ms)
 
-#define MAIN_LOOP_T_US		20000UL//105000UL
+#define MAIN_LOOP_T_US		105000UL
 
 /** 
  * Calculate the difference between two time vals, without losing precision.
