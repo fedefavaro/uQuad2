@@ -267,7 +267,7 @@ void uavtalk_send_msg(int fd, uavtalk_message_t *msg) {
 		return;
 	}
         int ret = write(fd,buff,i+1);
-        if (ret < i)
+        if (ret < i+1)
 	  printf("write failed. chars written %d/%d\n",ret,i);
 	
 	return;
@@ -516,7 +516,7 @@ int uavtalk_read(int fd) {
 			}
 		}
 
-		usleep(190); // wait at least 1 byte
+		//usleep(190); // wait at least 1 byte
 	   	
         }
 	

@@ -34,6 +34,8 @@
 //#include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h>
+#include <sys/ioctl.h> 
+#include <linux/serial.h>
 #include <unistd.h>
 
 #define LOOP_T_US               14000UL
@@ -52,13 +54,19 @@ int open_port(char *device)
 
   fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);//| O_NDELAY);
   if (fd == -1)
-  //{
+  {
     //Could not open the port.
     err_log_str("open_port: Unable to open: ", device);
-  //}
-  //else
-    //fcntl(fd, F_SETFL, 0);
+  } else {
+     //fcntl(fd, F_SETFL, 0);
+     
+     struct serial_struct serial;
+     ioctl(fd, TIOCGSERIAL, &serial); 
+     serial.flags |= ASYNC_LOW_LATENCY; // (0x2000)
+     ioctl(fd, TIOCSSERIAL, &serial);
 
+  }
+  
   return fd;
 }
 
