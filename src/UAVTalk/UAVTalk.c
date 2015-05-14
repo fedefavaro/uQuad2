@@ -451,7 +451,7 @@ int uavtalk_read(int fd) {
 		if (uavtalk_parse_char(c, &msg)) {
 			// consume msg
 			switch (msg.ObjID) {
-				case FLIGHTTELEMETRYSTATS_OBJID:
+/*				case FLIGHTTELEMETRYSTATS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
 				case FLIGHTTELEMETRYSTATS_OBJID_001:
 #endif
@@ -459,17 +459,21 @@ int uavtalk_read(int fd) {
 						case TELEMETRYSTATS_STATE_DISCONNECTED:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_HANDSHAKEREQ;
 							uavtalk_send_gcstelemetrystats(fd);
+							//printf("HANDSHAKEREQ\n");
 						break;
 						case TELEMETRYSTATS_STATE_HANDSHAKEACK:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_CONNECTED;
 							uavtalk_send_gcstelemetrystats(fd);
+							//printf("CONNECTED\n");
 						break;
 						case TELEMETRYSTATS_STATE_CONNECTED:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_CONNECTED;
 							last_flighttelemetry_connect = uavtalk_get_time_usec();
+							//printf("CONNECTED 2\n");
 						break;
 					}
 				break;
+*/
 				case ATTITUDEACTUAL_OBJID:
 				case ATTITUDESTATE_OBJID:
 					last_flighttelemetry_connect = uavtalk_get_time_usec();
@@ -482,6 +486,7 @@ int uavtalk_read(int fd) {
                                             osd_heading = osd_yaw;
                                         //}
 				break;
+/*
 				case FLIGHTSTATUS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
 				case FLIGHTSTATUS_OBJID_001:
@@ -493,7 +498,7 @@ int uavtalk_read(int fd) {
         				osd_armed		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_ARMED);
         				osd_mode		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
 				break;
-
+*/
 /*#ifdef OP_DEBUG
 				case SYSTEMALARMS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
@@ -511,14 +516,14 @@ int uavtalk_read(int fd) {
 #endif*/
 
 			}
-			if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
-				uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
-			}
+//			if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
+//				uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
+//			}
 		}
 
 		//usleep(190); // wait at least 1 byte
 	   	
-        }
+        } //while()
 	
 #ifdef DEBUG
         //uavtalk_show_msg(&msg);
@@ -537,7 +542,7 @@ int uavtalk_read(int fd) {
 	// periodically send gcstelemetrystats
 	if (last_gcstelemetrystats_send + GCSTELEMETRYSTATS_SEND_PERIOD < current_time_usec)
 	{
-		uavtalk_send_gcstelemetrystats(fd);
+//		uavtalk_send_gcstelemetrystats(fd);
 	}
 
         return show_prio_info;
