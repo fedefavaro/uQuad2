@@ -163,6 +163,9 @@ int main(int argc, char *argv[])
 #endif
 
 
+//int8_t fin[1];
+//fin[0]=UAVTALK_SYNC_VAL;
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
@@ -200,12 +203,11 @@ int main(int argc, char *argv[])
 //------------------------------------------------------------------------
      CC3D_readOK = check_read_locks(fd_CC3D);
      if (CC3D_readOK) {
-		
-        if (uavtalk_read(fd_CC3D)) {
+	if (uavtalk_read(fd_CC3D)) {
            // imprimo lo que leo?
         } else {
            err_log("uavtalk_read failed");
-        }
+        }     
      } else err_log("UAVTalk: read NOT ok");
 //------------------------------------------------------------------------
 
@@ -220,6 +222,8 @@ int main(int argc, char *argv[])
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_T_US,tv_in);
 
+//      if (write(fd_CC3D,fin,1) < 0)
+//	  printf("write failed\n");
      
    } // for(;;)
 

@@ -38,11 +38,10 @@
 #include <string.h>
 
 #define CC3D_DEVICE	"/dev/ttyUSB0" //TODO que onda cuando tenga 2 ftdi?
-//#define CC3D_BAUD_57600
-#define CC3D_BAUD_115200
+#define CC3D_BAUD_57600
+//#define CC3D_BAUD_115200
 
 static struct timeval tv_start;
-static int32_t currentTime, lastTime=0;
   
 static unsigned long last_gcstelemetrystats_send = 0;
 static unsigned long last_flighttelemetry_connect = 0;
@@ -131,11 +130,13 @@ int32_t uavtalk_get_time_usec(void)
 
 void uav_talk_print_attitude(void)
 {
+   static int32_t lastTime=0;
+   
    printf("Roll: %d  ", osd_roll); 
    printf("Pitch: %d  ", osd_pitch);
    printf("Yaw: %d  ", osd_yaw);
    //printf("Throttle: %d\n", osd_throttle);
-   currentTime = uavtalk_get_time_usec();
+   int32_t currentTime = uavtalk_get_time_usec();
    printf("Time: %d ms\n", (currentTime - lastTime)/1000);
    lastTime = currentTime;
 }
@@ -208,7 +209,8 @@ void uavtalk_send_msg(int fd, uavtalk_message_t *msg) {
 	uint8_t j;
 	uint8_t c;
 
-	char buff[(msg->Length & 0xff) + 20];
+	//char buff[(msg->Length & 0xff) + 20];
+	uint8_t buff[300];
 	int i = 0;
 
 	if (op_uavtalk_mode & UAVTALK_MODE_PASSIVE)
@@ -216,68 +218,66 @@ void uavtalk_send_msg(int fd, uavtalk_message_t *msg) {
 	   printf("No tengo UAVTalk activado!\n");
            return;
 	}
-
+	
 	c = (uint8_t) (msg->Sync);
 	buff[i]=c;
 	msg->Crc = crc_table[0 ^ c];
 	
 	c = (uint8_t) (msg->MsgType);
-	buff[i++]=c;
+	buff[++i]=c;
 	msg->Crc = crc_table[msg->Crc ^ c];
 	
 	c = (uint8_t) (msg->Length & 0xff);
-	buff[i++]=c;
-	msg->Crc = crc_table[msg->Crc ^ c];
-	
-	c = (uint8_t) ((msg->Length >> 8) & 0xff);
-	buff[i++]=c;
-	msg->Crc = crc_table[msg->Crc ^ c];
-	
-	c = (uint8_t) (msg->ObjID & 0xff);
-	buff[i++]=c;
-	msg->Crc = crc_table[msg->Crc ^ c];
-	
-	c = (uint8_t) ((msg->ObjID >> 8) & 0xff);
-	buff[i++]=c;
-	msg->Crc = crc_table[msg->Crc ^ c];
-	
-	c = (uint8_t) ((msg->ObjID >> 16) & 0xff);
-	buff[i++]=c;
-	msg->Crc = crc_table[msg->Crc ^ c];
-	
-	c = (uint8_t) ((msg->ObjID >> 24) & 0xff);
-	buff[i++]=c;
+	buff[++i]=c;
 	msg->Crc = crc_table[msg->Crc ^ c];
 
+	c = (uint8_t) ((msg->Length >> 8) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+
+	c = (uint8_t) (msg->ObjID & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+
+	c = (uint8_t) ((msg->ObjID >> 8) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+
+	c = (uint8_t) ((msg->ObjID >> 16) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+
+	c = (uint8_t) ((msg->ObjID >> 24) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	
 	c = 0; //(uint8_t) (msg->InstID & 0xff);
-	buff[i++]=c;
+	buff[++i]=c;
 	msg->Crc = crc_table[msg->Crc ^ c];
 	
 	c = 0; //(uint8_t) ((msg->InstID >> 8) & 0xff);
-	buff[i++]=c;
+	buff[++i]=c;
 	msg->Crc = crc_table[msg->Crc ^ c];
         
 	if (msg->Length > HEADER_LEN) {
 	  d = msg->Data;
 	  for (j=0; j<msg->Length-HEADER_LEN; j++) {
 		c = *d++;
-		buff[i++]=c;
+		buff[++i]=c;
 		msg->Crc = crc_table[msg->Crc ^ c];
           }
 	}
 	
-	buff[i++]=msg->Crc;
-	buff[i++]='\0';
-
+	buff[++i]=msg->Crc;
 	if(!check_write_locks(fd))
 	{
 		printf("Unable to write, will lock\n");
 		return;
 	}
-        int ret = write(fd,buff,i+1);
-        if (ret < i+1)
+	int ret = write(fd,buff,i+1);
+	if (ret < i+1)
 	  printf("write failed. chars written %d/%d\n",ret,i);
-	
+
 	return;
 
 }
@@ -486,7 +486,7 @@ int uavtalk_read(int fd)
         				osd_roll		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
         				osd_pitch		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
         				osd_yaw			= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
-					printf("ATTITUDE\n");
+					//printf("ATTITUDE\n");
                                         // if we don't have a GPS, use Yaw for heading
                                         //if (osd_lat == 0) {
                                             osd_heading = osd_yaw;
@@ -537,6 +537,7 @@ int uavtalk_read(int fd)
         //uavtalk_show_msg(&msg);
         uav_talk_print_attitude();
 #endif
+	
 	// check connect timeout
 	int32_t current_time_usec = uavtalk_get_time_usec();
 	if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < current_time_usec)
@@ -546,12 +547,12 @@ int uavtalk_read(int fd)
 	}
 	
 	// periodically send gcstelemetrystats
-	if (last_gcstelemetrystats_send + GCSTELEMETRYSTATS_SEND_PERIOD < current_time_usec)
+	if (last_gcstelemetrystats_send + 1000*GCSTELEMETRYSTATS_SEND_PERIOD < current_time_usec)
 	{
 		uavtalk_send_gcstelemetrystats(fd);
 	}
 
-	printf("time: %lu\n", (unsigned long)uavtalk_get_time_usec() - start_time);
+	//printf("time: %lu\n", uavtalk_get_time_usec() - start_time);
 
         return show_prio_info;
 }
