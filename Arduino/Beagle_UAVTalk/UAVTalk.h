@@ -31,7 +31,7 @@
 
 #include "OSD_Config.h"
 
-#define SERIAL_PORT          Serial1
+#define SERIAL_PORT          Serial3
 
 
 // TODO enhancement:

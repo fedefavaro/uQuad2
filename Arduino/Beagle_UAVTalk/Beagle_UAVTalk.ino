@@ -56,7 +56,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 void setup() {
   
   Serial.begin(115200);
-  Serial3.begin(115200);
   SERIAL_PORT.begin(TELEMETRY_SPEED);  //definido en UAVTalk.h
 
 }
@@ -68,7 +67,6 @@ void loop() {
     } else {
         //espero? delay?
         //delay(50);
-        Serial3.println("No data\r\n");
     }
     
 }
