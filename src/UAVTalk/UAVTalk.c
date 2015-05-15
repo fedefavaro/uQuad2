@@ -37,7 +37,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define CC3D_DEVICE	"/dev/ttyUSB0" //TODO que onda cuando tenga 2 ftdi?
+//#define CC3D_DEVICE	"/dev/ttyUSB0" //TODO que onda cuando tenga 2 ftdi?
+#define CC3D_DEVICE	"/dev/ttyO1"
+
 #define CC3D_BAUD_57600
 //#define CC3D_BAUD_115200
 
