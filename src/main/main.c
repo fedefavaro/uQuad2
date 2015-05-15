@@ -137,7 +137,6 @@ int main(int argc, char *argv[])
    //Doy tiempo a que inicien bien los procesos...
    sleep_ms(500);   
 
-
    /// inicializa IO manager
 /*   io = io_init();
    if(io==NULL)

@@ -38,6 +38,8 @@
 #include <string.h>
 
 #define CC3D_DEVICE	"/dev/ttyUSB0" //TODO que onda cuando tenga 2 ftdi?
+//#define CC3D_BAUD_57600
+#define CC3D_BAUD_115200
 
 static struct timeval tv_start;
 static int32_t currentTime, lastTime=0;
@@ -90,8 +92,11 @@ int uav_talk_init(void)
    if (fd < 0)
       return -1;
    printf("CC3D conectada. fd: %d\n",fd); //dbg
-
-   int ret = configure_port_gps(fd, /*B57600*/B115200); //TODO cambiar nombre
+#ifdef CC3D_BAUD_115200
+   int ret = configure_port_gps(fd, B115200); //TODO cambiar nombre
+#else //CC3D_BAUD_57600
+   int ret = configure_port_gps(fd, B57600); //TODO cambiar nombre
+#endif
    if (ret < 0)
       return -1;
 
@@ -135,14 +140,17 @@ void uav_talk_print_attitude(void)
    lastTime = currentTime;
 }
 
-
+/* devuelve true si puedo leer, false si no puedo */
 bool check_read_locks(int fd) {
 
   fd_set rfds;
   struct timeval tv;
   tv.tv_sec = 0;
-  tv.tv_usec = 0;
-  
+#ifdef CC3D_BAUD_115200
+  tv.tv_usec = 100;   //Espero un byte: T_byte=1/(BAUDRATE/10)
+#else //#ifdef CC3D_BAUD_57600
+  tv.tv_usec = 190;
+#endif  
    FD_ZERO(&rfds);
    FD_SET(fd, &rfds);
    int retval = select(fd+1, &rfds, NULL, NULL, &tv);
@@ -284,6 +292,7 @@ void uavtalk_respond_object(int fd, uavtalk_message_t *msg_to_respond, uint8_t t
 	msg.ObjID	= msg_to_respond->ObjID;
 	
 	uavtalk_send_msg(fd,&msg);
+	printf("RESPOND OBJECT\n");
 }
 
 
@@ -309,6 +318,7 @@ void uavtalk_send_gcstelemetrystats(int fd)
 	uavtalk_send_msg(fd,&msg);
 	//last_gcstelemetrystats_send = millis();
 	last_gcstelemetrystats_send =  uavtalk_get_time_usec();
+	printf("SEND GCSTELEMETRY\n");
 }
 
 
@@ -423,24 +433,19 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 }
 
 
-int uavtalk_read(int fd) {
-	//static uint8_t crlf_count = 0;
+int uavtalk_read(int fd)
+{
+	int ret = 0;  
+
+	int32_t start_time = uavtalk_get_time_usec();
+
 	static uavtalk_message_t msg;
 	uint8_t show_prio_info = 0;
 	uint8_t c;
 
-	int ret = 0;  	
-
 	// grabbing data
-	while (!show_prio_info )
-	{
-				
-		if (!check_read_locks(fd))
-		{
-			continue;
-			//printf(".\n");	
-		}
-
+	while (!show_prio_info && check_read_locks(fd))
+	{				
 		ret = read(fd,&c,1);
 		if (ret < 0) {
 		  printf("read failed\n");
@@ -451,7 +456,7 @@ int uavtalk_read(int fd) {
 		if (uavtalk_parse_char(c, &msg)) {
 			// consume msg
 			switch (msg.ObjID) {
-/*				case FLIGHTTELEMETRYSTATS_OBJID:
+				case FLIGHTTELEMETRYSTATS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
 				case FLIGHTTELEMETRYSTATS_OBJID_001:
 #endif
@@ -459,21 +464,21 @@ int uavtalk_read(int fd) {
 						case TELEMETRYSTATS_STATE_DISCONNECTED:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_HANDSHAKEREQ;
 							uavtalk_send_gcstelemetrystats(fd);
-							//printf("HANDSHAKEREQ\n");
+							printf("HANDSHAKEREQ\n");
 						break;
 						case TELEMETRYSTATS_STATE_HANDSHAKEACK:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_CONNECTED;
 							uavtalk_send_gcstelemetrystats(fd);
-							//printf("CONNECTED\n");
+							printf("CONNECTED\n");
 						break;
 						case TELEMETRYSTATS_STATE_CONNECTED:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_CONNECTED;
 							last_flighttelemetry_connect = uavtalk_get_time_usec();
-							//printf("CONNECTED 2\n");
+							printf("CONNECTED 2\n");
 						break;
 					}
 				break;
-*/
+
 				case ATTITUDEACTUAL_OBJID:
 				case ATTITUDESTATE_OBJID:
 					last_flighttelemetry_connect = uavtalk_get_time_usec();
@@ -481,12 +486,13 @@ int uavtalk_read(int fd) {
         				osd_roll		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
         				osd_pitch		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
         				osd_yaw			= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+					printf("ATTITUDE\n");
                                         // if we don't have a GPS, use Yaw for heading
                                         //if (osd_lat == 0) {
                                             osd_heading = osd_yaw;
                                         //}
 				break;
-/*
+
 				case FLIGHTSTATUS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
 				case FLIGHTSTATUS_OBJID_001:
@@ -497,9 +503,10 @@ int uavtalk_read(int fd) {
 #endif
         				osd_armed		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_ARMED);
         				osd_mode		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
+					printf("FLIGHTSTATUS\n");
 				break;
-*/
-/*#ifdef OP_DEBUG
+
+#ifdef OP_DEBUG
 				case SYSTEMALARMS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
 				case SYSTEMALARMS_OBJID_001:
@@ -512,13 +519,14 @@ int uavtalk_read(int fd) {
 //					op_alarm += msg.Data[SYSTEMALARMS_ALARM_EVENTSYSTEM] * 0x10;
 					op_alarm += msg.Data[SYSTEMALARMS_ALARM_MANUALCONTROL] * 0x10;
 					if (op_alarm > 0x11) show_prio_info = 1;
+					printf("ALARMS\n");
 				break;
-#endif*/
+#endif
 
 			}
-//			if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
-//				uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
-//			}
+			if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
+				uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
+			}
 		}
 
 		//usleep(190); // wait at least 1 byte
@@ -529,10 +537,8 @@ int uavtalk_read(int fd) {
         //uavtalk_show_msg(&msg);
         uav_talk_print_attitude();
 #endif
-
-	int32_t current_time_usec = uavtalk_get_time_usec();
-
 	// check connect timeout
+	int32_t current_time_usec = uavtalk_get_time_usec();
 	if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < current_time_usec)
 	{
 		gcstelemetrystatus = TELEMETRYSTATS_STATE_DISCONNECTED;
@@ -542,8 +548,10 @@ int uavtalk_read(int fd) {
 	// periodically send gcstelemetrystats
 	if (last_gcstelemetrystats_send + GCSTELEMETRYSTATS_SEND_PERIOD < current_time_usec)
 	{
-//		uavtalk_send_gcstelemetrystats(fd);
+		uavtalk_send_gcstelemetrystats(fd);
 	}
+
+	printf("time: %lu\n", (unsigned long)uavtalk_get_time_usec() - start_time);
 
         return show_prio_info;
 }
