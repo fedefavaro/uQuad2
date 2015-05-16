@@ -118,33 +118,33 @@ int main(int argc, char *argv[])
 
 
    /// Ejecuta Demonio S-BUS - proceso independiente
-/*   sbusd_child_pid = futaba_sbus_start_daemon();                            
+   sbusd_child_pid = futaba_sbus_start_daemon();                            
    if(sbusd_child_pid == -1)                                                
    {                                                                        
       err_log_stderr("Failed to start child process (sbusd)!");             
       quit(1);                                                              
    }
-*/
+
 
    /// inicializa kernel messages queues - para comunicacion con sbusd
-/*   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
+   kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
    if(kmsgq == NULL)
    {
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");
    }
-*/
+
    //Doy tiempo a que inicien bien los procesos...
    sleep_ms(500);   
 
    /// inicializa IO manager
-/*   io = io_init();
+   io = io_init();
    if(io==NULL)
    {
       quit_log_if(ERROR_FAIL,"io init failed!");
    }
    retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
    quit_log_if(retval, "Failed to add stdin to io list"); 
-*/
+
 
    /// inicializa UAVTalk
 //------------------------------------------------------------------------
@@ -161,9 +161,7 @@ int main(int argc, char *argv[])
    err_log("WARNING: GPS disabled!");
 #endif
 
-
-//int8_t fin[1];
-//fin[0]=UAVTALK_SYNC_VAL;
+int8_t count_50 = 1; // controla timepo de ejecucion
 
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -172,58 +170,62 @@ int main(int argc, char *argv[])
    {
       gettimeofday(&tv_in,NULL); //para tener tiempo de entrada en cada loop
 
-      /// Polling de dispositivos IO
-//      retval = io_poll(io);
-//      quit_log_if(retval,"io_poll() error");      
+      // loop 50 ms
+      CC3D_readOK = check_read_locks(fd_CC3D);
+      if (CC3D_readOK) {
+         if (uavtalk_read(fd_CC3D)) {
+            // imprimo lo que leo?
+         } else {
+            err_log("uavtalk_read failed");
+         }     
+      } else err_log("UAVTalk: read NOT ok");
+
+      ++count_50;
       
-      /// Check stdin
-//      retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
-//      log_n_continue(retval, "Failed to check stdin for input!");
-//      if(read_ok)
-//      {
-//         read_from_stdin();
-//      }
+      // loop 100 ms
+      if(count_50 > 1) { 
+
+         sleep_ms(5); //era 105000 us ??
+
+         /// Polling de dispositivos IO
+         retval = io_poll(io);
+         quit_log_if(retval,"io_poll() error");      
+      
+         /// Check stdin
+         retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
+         log_n_continue(retval, "Failed to check stdin for input!");
+         if(read_ok)
+         {
+            read_from_stdin();
+         }
 
 #if !DISABLE_GPS
-      /// Obener datos del GPS
-      retval = get_gps_data(&gps);
-      if (retval < 0 )
-      {  
-         //que hago si NO hay datos!?
-         err_log("No hay datos de gps");
-      } else {
-         //que hago si SI hay datos!?
-         printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
-                gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
-      }
+         /// Obener datos del GPS
+         retval = get_gps_data(&gps);
+         if (retval < 0 )
+         {  
+            //que hago si NO hay datos!?
+            err_log("No hay datos de gps");
+         } else {
+            //que hago si SI hay datos!?
+            printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
+                   gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
+         }
 #endif
 
-//UAVTalk TODO esto deberia estar en un loop mucho mas rapido
-//------------------------------------------------------------------------
-     CC3D_readOK = check_read_locks(fd_CC3D);
-     if (CC3D_readOK) {
-	if (uavtalk_read(fd_CC3D)) {
-           // imprimo lo que leo?
-        } else {
-           err_log("uavtalk_read failed");
-        }     
-     } else err_log("UAVTalk: read NOT ok");
-//------------------------------------------------------------------------
+         // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
+         retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+         if(retval != ERROR_OK)
+         {
+            quit_log_if(ERROR_FAIL,"Failed to send message!");
+         }
 
-      // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
-/*      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
-      if(retval != ERROR_OK)
-      {
-         quit_log_if(ERROR_FAIL,"Failed to send message!");
-      }
-*/
-//sleep_ms(5);
+         count_50 = 0;
+      } // if(count_50 > 1)
+
       /// Control de tiempos del loop
-      wait_loop_T_US(MAIN_LOOP_T_US,tv_in);
+      wait_loop_T_US(MAIN_LOOP_50_MS,tv_in);
 
-//      if (write(fd_CC3D,fin,1) < 0)
-//	  printf("write failed\n");
-     
    } // for(;;)
 
    return 0; //nunca deberia llegar aca
