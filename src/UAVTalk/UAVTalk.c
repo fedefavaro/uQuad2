@@ -152,7 +152,8 @@ bool check_read_locks(int fd) {
 #ifdef CC3D_BAUD_115200
   tv.tv_usec = 100;   //Espero un byte: T_byte=1/(BAUDRATE/10)
 #else //#ifdef CC3D_BAUD_57600
-  tv.tv_usec = 190;
+//  tv.tv_usec = 175;
+  tv.tv_usec = 0;
 #endif  
    FD_ZERO(&rfds);
    FD_SET(fd, &rfds);
@@ -294,7 +295,7 @@ void uavtalk_respond_object(int fd, uavtalk_message_t *msg_to_respond, uint8_t t
 	msg.ObjID	= msg_to_respond->ObjID;
 	
 	uavtalk_send_msg(fd,&msg);
-	printf("RESPOND OBJECT\n");
+	//printf("RESPOND OBJECT\n");
 }
 
 
@@ -320,7 +321,7 @@ void uavtalk_send_gcstelemetrystats(int fd)
 	uavtalk_send_msg(fd,&msg);
 	//last_gcstelemetrystats_send = millis();
 	last_gcstelemetrystats_send =  uavtalk_get_time_usec();
-	printf("SEND GCSTELEMETRY\n");
+	//printf("SEND GCSTELEMETRY\n");
 }
 
 
@@ -466,17 +467,17 @@ int uavtalk_read(int fd)
 						case TELEMETRYSTATS_STATE_DISCONNECTED:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_HANDSHAKEREQ;
 							uavtalk_send_gcstelemetrystats(fd);
-							printf("HANDSHAKEREQ\n");
+							//printf("HANDSHAKEREQ\n");
 						break;
 						case TELEMETRYSTATS_STATE_HANDSHAKEACK:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_CONNECTED;
 							uavtalk_send_gcstelemetrystats(fd);
-							printf("CONNECTED\n");
+							//printf("CONNECTED\n");
 						break;
 						case TELEMETRYSTATS_STATE_CONNECTED:
 							gcstelemetrystatus = TELEMETRYSTATS_STATE_CONNECTED;
 							last_flighttelemetry_connect = uavtalk_get_time_usec();
-							printf("CONNECTED 2\n");
+							//printf("CONNECTED 2\n");
 						break;
 					}
 				break;
@@ -493,6 +494,7 @@ int uavtalk_read(int fd)
                                         //if (osd_lat == 0) {
                                             osd_heading = osd_yaw;
                                         //}
+					serial_flush(fd);
 				break;
 
 				case FLIGHTSTATUS_OBJID:
@@ -505,9 +507,9 @@ int uavtalk_read(int fd)
 #endif
         				osd_armed		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_ARMED);
         				osd_mode		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
-					printf("FLIGHTSTATUS\n");
+					//printf("FLIGHTSTATUS\n");
 				break;
-
+/*
 #ifdef OP_DEBUG
 				case SYSTEMALARMS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
@@ -521,10 +523,10 @@ int uavtalk_read(int fd)
 //					op_alarm += msg.Data[SYSTEMALARMS_ALARM_EVENTSYSTEM] * 0x10;
 					op_alarm += msg.Data[SYSTEMALARMS_ALARM_MANUALCONTROL] * 0x10;
 					if (op_alarm > 0x11) show_prio_info = 1;
-					printf("ALARMS\n");
+					//printf("ALARMS\n");
 				break;
 #endif
-
+*/
 			}
 			if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
 				uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);

@@ -130,6 +130,14 @@ int configure_port_gps(int fd, speed_t baudrate) //TODO cambiar nombre
 }
 
 
+void serial_flush(int fd)
+{
+
+   tcflush(fd,TCIOFLUSH);
+   return;
+
+}
+
 
 
 

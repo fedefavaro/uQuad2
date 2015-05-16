@@ -31,7 +31,6 @@
 #include <futaba_sbus.h>
 #include <gps_comm.h>
 #include <UAVTalk.h>
-
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
