@@ -241,7 +241,7 @@ int buff_len;
       // loop 100 ms
       if(count_50 > 1) { 
 
-         sleep_ms(5); //era 105000 us ??
+         //sleep_ms(5); //era 105000 us ??
 
          /// Polling de dispositivos IO
          retval = io_poll(io);

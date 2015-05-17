@@ -543,7 +543,7 @@ int uavtalk_read(int fd, actitud_t* act)
 	
 #ifdef DEBUG
         //uavtalk_show_msg(&msg);
-        uav_talk_print_attitude();
+        //uav_talk_print_attitude();
 #endif
 	
 	// check connect timeout
