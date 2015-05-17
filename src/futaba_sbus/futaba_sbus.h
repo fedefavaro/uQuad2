@@ -43,7 +43,7 @@
 #if PC_TEST
 #define START_SBUS_ARG 		"sbusd.log" //test en un PC linux
 #else
-#define START_SBUS_ARG		"/dev/ttyO1" //en la beagle
+#define START_SBUS_ARG		"/dev/ttyO0" //en la beagle
 #endif
 
 /** 

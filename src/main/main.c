@@ -84,12 +84,6 @@ void read_from_stdin(void);
 int main(int argc, char *argv[])
 {  
    int retval;
-
-   //setea senales y mascara 
-   set_signals(); 
-
-   // Control de tiempos
-   struct timeval tv_in;
    
 //---------------------------------------------
 #if !PC_TEST
@@ -100,8 +94,14 @@ int main(int argc, char *argv[])
       exit(0);
    }
 #endif
+//---------------------------------------------
 
-exit(0);
+//setea senales y mascara                                                     
+   set_signals();                                                                
+                                                                                 
+   // Control de tiempos                                                         
+   struct timeval tv_in;  
+
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
