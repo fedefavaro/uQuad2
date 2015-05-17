@@ -437,7 +437,7 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 }
 
 
-int uavtalk_read(int fd, actitud_t act)
+int uavtalk_read(int fd, actitud_t* act)
 {
 	int ret = 0;  
 
@@ -488,11 +488,11 @@ int uavtalk_read(int fd, actitud_t act)
 					last_flighttelemetry_connect = uavtalk_get_time_usec();
 					show_prio_info = 1;
         				osd_roll		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
-					act.roll = osd_roll;
-        				osd_pitch		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
-					act.pitch = osd_pitch;
+					act->roll = osd_roll;
+					osd_pitch		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
+					act->pitch = osd_pitch;
         				osd_yaw			= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
-					act.yaw = osd_yaw;
+					act->yaw = osd_yaw;
 					//printf("ATTITUDE\n");
                                         // if we don't have a GPS, use Yaw for heading
                                         //if (osd_lat == 0) {
@@ -573,7 +573,7 @@ int uavtalk_state(void)
 
 
 
-int uavtalk_to_str(char* buf_str, actitud_t act)
+int uavtalk_to_str(char* buf_str, actitud_t* act)
 {
    char* buf_ptr = buf_str;
    int ret;
@@ -592,13 +592,13 @@ int uavtalk_to_str(char* buf_str, actitud_t act)
       return -1;
    }
    
-   buf_ptr += sprintf(buf_ptr, ",%" PRId16 , act.roll);
-   buf_ptr += sprintf(buf_ptr, ",%" PRId16 , act.pitch);
-   buf_ptr += sprintf(buf_ptr, ",%" PRId16 , act.yaw);
-//   buf_ptr += sprintf(buf_ptr, ",%" PRIo16 , act.throttle);
-   sprintf(buf_ptr,"\n");
+   buf_ptr += sprintf(buf_ptr, ",%d", act->roll);
+   buf_ptr += sprintf(buf_ptr, ",%d", act->pitch);
+   buf_ptr += sprintf(buf_ptr, ",%d", act->yaw);
+//   buf_ptr += sprintf(buf_ptr, ",%d", act->throttle);
+   buf_ptr += sprintf(buf_ptr,"\n");
 
-   return 0; //char_count?
+   return (buf_ptr-buf_str); //char_count
 
 }
 

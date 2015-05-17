@@ -35,6 +35,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <stdlib.h>
 
 #define CH_COUNT		5
@@ -50,6 +51,9 @@ pid_t gpsd_child_pid = 0;
 
 // GPS
 gps_t gps;
+
+// LOG
+int log_fd;
 
 // IO
 static io_t *io  	= NULL;
@@ -129,13 +133,20 @@ int main(int argc, char *argv[])
 
 /// Log
 //-------------------------------------------------------
-   FILE * fp;
+   log_fd = open("log_attitude",O_RDWR | O_CREAT | O_NONBLOCK );
+   if(log_fd < 0)
+   {
+      err_log_stderr("Failed to open log file!");
+      quit(1);
+   }
+
+/*   FILE * fp;
    fp = fopen("log_attitude", "w");
    if(fp == NULL)
    {
 	err_log_stderr("Failed to open log file!");
 	quit(1);
-   }
+   }*/
 //-------------------------------------------------------
 
    /// Ejecuta Demonio S-BUS - proceso independiente
@@ -172,6 +183,7 @@ int main(int argc, char *argv[])
    fd_CC3D = uav_talk_init();
    bool CC3D_readOK;
 //------------------------------------------------------------------------
+   bool log_writeOK;
 
    /// mensajitos al usuario...
 #if PC_TEST
@@ -183,8 +195,10 @@ int main(int argc, char *argv[])
 #endif
 
 int8_t count_50 = 1; // controla timepo de ejecucion
-actitud_t act; //almacena variables de actitud leidas de la cc3d
-char str_act[512]; //TODO determinar valor
+actitud_t act = {0,0,0,0}; //almacena variables de actitud leidas de la cc3d
+
+char buff_act[512]; //TODO determinar valor
+int buff_len;
 
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -196,16 +210,25 @@ char str_act[512]; //TODO determinar valor
       // loop 50 ms
       CC3D_readOK = check_read_locks(fd_CC3D);
       if (CC3D_readOK) {
-         if (uavtalk_read(fd_CC3D, act)) {
+         if (uavtalk_read(fd_CC3D, &act)) {
             
-            uavtalk_to_str(str_act,act);
+            buff_len = uavtalk_to_str(buff_act, &act);
 /// Log
 //-------------------------------------------------------
-	    retval = fprintf(fp, "%s", str_act);
+	    log_writeOK =check_write_locks(log_fd);
+            if (log_writeOK) {
+               retval = write(log_fd, buff_act, buff_len);
+               if(retval < 0)
+               {
+                  err_log_stderr("Failed to write to log file!");
+               }
+            }
+
+      /*    retval = fprintf(fp, "%s", str_act);
 	    if(retval < 0)
 	    {
 	       err_log("Failed to write to log file!");
-	    }
+	    }*/
 //-------------------------------------------------------
 
          } else {
@@ -310,6 +333,10 @@ void quit(int Q)
 
    /// Kernel Messeges Queue
    uquad_kmsgq_deinit(kmsgq);
+
+//-----------------------------------
+   close(log_fd);
+//-----------------------------------
    
 #if !DISABLE_GPS
    if(Q != 2) {
