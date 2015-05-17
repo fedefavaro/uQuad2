@@ -30,8 +30,9 @@
 
 #if PC_TEST
    #define SBUS_LOG_TO_FILE	1  //sbus logea en un archivo en lugar de imprimir en stdout
-   #define DISABLE_GPS		1
 #endif //PC_TEST
+
+#define DISABLE_GPS		1
 
 #define DEBUG                   1
 
