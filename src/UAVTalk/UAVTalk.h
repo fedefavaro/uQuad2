@@ -238,13 +238,20 @@ typedef struct __uavtalk_message {
 	uint8_t Crc;
 } uavtalk_message_t;
 
+typedef struct actitud {
+	int16_t roll;
+	int16_t pitch;
+	int16_t yaw;
+	uint16_t throttle;
+} actitud_t;
 
 int uav_talk_init(void);
 int uav_talk_deinit(int fd);
 bool check_read_locks(int fd);
 
-int uavtalk_read(int fd);
+int uavtalk_read(int fd, actitud_t act);
 int uavtalk_state(void);
 
+int uavtalk_to_str(char* buf_str, actitud_t act);
 
 #endif /* UAVTALK_H_ */

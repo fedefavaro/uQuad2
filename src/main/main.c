@@ -116,6 +116,15 @@ int main(int argc, char *argv[])
    }
 #endif //!DISABLE_GPS
 
+/// Log
+//-------------------------------------------------------
+   int fp = fopen("log_attitude", "w");
+   if(fp == NULL)
+   {
+	err_log_stderr("Failed to open log file!");
+	return -1;
+   }
+//-------------------------------------------------------
 
    /// Ejecuta Demonio S-BUS - proceso independiente
    sbusd_child_pid = futaba_sbus_start_daemon();                            
@@ -162,6 +171,8 @@ int main(int argc, char *argv[])
 #endif
 
 int8_t count_50 = 1; // controla timepo de ejecucion
+actitud_t act; //almacena variables de actitud leidas de la cc3d
+char str_act[512]; //TODO determinar valor
 
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -173,8 +184,18 @@ int8_t count_50 = 1; // controla timepo de ejecucion
       // loop 50 ms
       CC3D_readOK = check_read_locks(fd_CC3D);
       if (CC3D_readOK) {
-         if (uavtalk_read(fd_CC3D)) {
-            // imprimo lo que leo?
+         if (uavtalk_read(fd_CC3D, act)) {
+            
+            uavtalk_to_str(str_act,act);
+/// Log
+//-------------------------------------------------------
+	    retval = fprintf(fp, "%s", str_act);
+	    if(retval < 0)
+	    {
+	       err_log("Failed to write to log file!");
+	    }
+//-------------------------------------------------------
+
          } else {
             err_log("uavtalk_read failed");
          }     
