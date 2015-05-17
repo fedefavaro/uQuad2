@@ -129,11 +129,12 @@ int main(int argc, char *argv[])
 
 /// Log
 //-------------------------------------------------------
-   int fp = fopen("log_attitude", "w");
+   FILE * fp;
+   fp = fopen("log_attitude", "w");
    if(fp == NULL)
    {
 	err_log_stderr("Failed to open log file!");
-	return -1;
+	quit(1);
    }
 //-------------------------------------------------------
 
