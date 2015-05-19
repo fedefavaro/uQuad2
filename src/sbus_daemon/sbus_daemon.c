@@ -156,11 +156,11 @@ int main(int argc, char *argv[])
    {
       gettimeofday(&tv_in,NULL);
 
-      if((err_count > MAX_ERR_SBUSD) || (rcv_err_count > MAX_ERR_SBUSD))
-      {
-         err_log("error count exceded");
-         quit();
-      }
+      //if((err_count > MAX_ERR_SBUSD) || (rcv_err_count > MAX_ERR_SBUSD))
+      //{
+        // err_log("error count exceded");
+        // quit();
+      //}
 
       if(msg_received)
       {
@@ -191,8 +191,8 @@ int main(int argc, char *argv[])
 	else
 	{
 	   /// This loop was fine
-	   if(err_count > 0)
-	      err_count--;
+	   //if(err_count > 0)
+	     // err_count--;
 	}
 #else
 	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
@@ -210,8 +210,8 @@ int main(int argc, char *argv[])
 	printf("%s",str);
 #endif // SBUS_LOG_TO_FILE
 	/// This loop was fine
-	if(err_count > 0)
-	   err_count--;
+	//if(err_count > 0)
+	  // err_count--;
 #endif // !PC_TEST
 		
       // si pasaron mas de ~100ms es hora de leer el mensaje
@@ -229,8 +229,8 @@ int main(int argc, char *argv[])
          if(ret == ERROR_OK)
          {
                msg_received = true;
-               if(rcv_err_count > 0)
-                   rcv_err_count--;
+               //if(rcv_err_count > 0)
+                 //  rcv_err_count--;
                // Parse message. 2 bytes per channel.
                ch_buff = (int16_t *)rbuf.mtext;
                /// send ack
@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
          {
 #if DEBUG
                // este error va a estar siempre porque el main y el sbusd no estan perfectamente sincronizados, pero no hay que darle importancia a menos que aparezca muy seguido
-               err_log("Failed to read msg!"); 
+               //err_log("Failed to read msg!"); 
 #endif //DEBUG
                msg_received = false;
                rcv_err_count++;

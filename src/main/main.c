@@ -29,7 +29,6 @@
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
-#include <gps_comm.h>
 #include <UAVTalk.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -47,10 +46,6 @@
 
 // Almacena pids de hijos
 pid_t sbusd_child_pid = 0;
-pid_t gpsd_child_pid = 0;
-
-// GPS
-gps_t gps;
 
 // LOG
 int log_fd;
@@ -79,7 +74,7 @@ int fd_CC3D;
 void quit(int Q);
 void uquad_sig_handler(int signal_num);
 void set_signals(void);
-void read_from_stdin(void);
+int read_from_stdin(void);
 
 
 /*********************************************/
@@ -100,7 +95,7 @@ int main(int argc, char *argv[])
 #endif
 //---------------------------------------------
 
-//setea senales y mascara                                                     
+   //setea senales y mascara                                                     
    set_signals();                                                                
                                                                                  
    // Control de tiempos                                                         
@@ -110,29 +105,7 @@ int main(int argc, char *argv[])
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
-   ///GPS config - Envia comandos al gps a traves del puerto serie - //
-
-#if !DISABLE_GPS
-   retval = preconfigure_gps();
-   if(retval < 0)                                                 
-   {                                                                        
-      err_log("Failed to preconfigure gps!");
-      quit(0);                                                              
-   } 
-   sleep_ms(1000);  //necesario? TODO verificar
-  
-
-   /// Ejecuta GPS daemon - proceso independiente
-   gpsd_child_pid = init_gps();
-   if(gpsd_child_pid == -1)
-   {
-      err_log_stderr("Failed to init gps!");
-      quit(0);
-   }
-#endif //!DISABLE_GPS
-
-/// Log
-//-------------------------------------------------------
+   /// Log
    log_fd = open("log_attitude",O_RDWR | O_CREAT | O_NONBLOCK );
    if(log_fd < 0)
    {
@@ -140,14 +113,6 @@ int main(int argc, char *argv[])
       quit(1);
    }
 
-/*   FILE * fp;
-   fp = fopen("log_attitude", "w");
-   if(fp == NULL)
-   {
-	err_log_stderr("Failed to open log file!");
-	quit(1);
-   }*/
-//-------------------------------------------------------
 
    /// Ejecuta Demonio S-BUS - proceso independiente
    sbusd_child_pid = futaba_sbus_start_daemon();                            
@@ -156,7 +121,6 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to start child process (sbusd)!");             
       quit(1);                                                              
    }
-
 
    /// inicializa kernel messages queues - para comunicacion con sbusd
    kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
@@ -179,11 +143,11 @@ int main(int argc, char *argv[])
 
 
    /// inicializa UAVTalk
-//------------------------------------------------------------------------
+#if !DISABLE_UAVTALK
    fd_CC3D = uav_talk_init();
    bool CC3D_readOK;
-//------------------------------------------------------------------------
    bool log_writeOK;
+#endif
 
    /// mensajitos al usuario...
 #if PC_TEST
@@ -200,6 +164,8 @@ actitud_t act = {0,0,0,0}; //almacena variables de actitud leidas de la cc3d
 char buff_act[512]; //TODO determinar valor
 int buff_len;
 
+int commandoOK = -1;
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
@@ -207,14 +173,41 @@ int buff_len;
    {
       gettimeofday(&tv_in,NULL); //para tener tiempo de entrada en cada loop
 
-      // loop 50 ms
+      /// Polling de dispositivos IO
+      retval = io_poll(io);
+      quit_log_if(retval,"io_poll() error");      
+    
+      /// Check stdin
+      retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
+      if(retval < 0)
+      {
+         err_log("Failed to check stdin for input!");
+      }
+      if(read_ok)
+      {
+         commandoOK = read_from_stdin();
+         
+      }
+
+      if(commandoOK==0)
+      {
+         // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
+         retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+         if(retval != ERROR_OK)
+         {
+            quit_log_if(ERROR_FAIL,"Failed to send message!");
+         }
+         commandoOK = -1;
+      }
+
+#if !DISABLE_UAVTALK   
+      /// Leo data de CC3D y Log
       CC3D_readOK = check_read_locks(fd_CC3D);
       if (CC3D_readOK) {
          if (uavtalk_read(fd_CC3D, &act)) {
             
             buff_len = uavtalk_to_str(buff_act, &act);
-/// Log
-//-------------------------------------------------------
+
 	    log_writeOK =check_write_locks(log_fd);
             if (log_writeOK) {
                retval = write(log_fd, buff_act, buff_len);
@@ -224,61 +217,12 @@ int buff_len;
                }
             }
 
-      /*    retval = fprintf(fp, "%s", str_act);
-	    if(retval < 0)
-	    {
-	       err_log("Failed to write to log file!");
-	    }*/
-//-------------------------------------------------------
-
          } else {
             err_log("uavtalk_read failed");
          }     
       } else err_log("UAVTalk: read NOT ok");
-
-      ++count_50;
-      
-      // loop 100 ms
-      if(count_50 > 1) { 
-
-         //sleep_ms(5); //era 105000 us ??
-
-         /// Polling de dispositivos IO
-         retval = io_poll(io);
-         quit_log_if(retval,"io_poll() error");      
-      
-         /// Check stdin
-         retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
-         log_n_continue(retval, "Failed to check stdin for input!");
-         if(read_ok)
-         {
-            read_from_stdin();
-         }
-
-#if !DISABLE_GPS
-         /// Obener datos del GPS
-         retval = get_gps_data(&gps);
-         if (retval < 0 )
-         {  
-            //que hago si NO hay datos!?
-            err_log("No hay datos de gps");
-         } else {
-            //que hago si SI hay datos!?
-            printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
-                   gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
-         }
 #endif
-
-         // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
-         retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
-         if(retval != ERROR_OK)
-         {
-            quit_log_if(ERROR_FAIL,"Failed to send message!");
-         }
-
-         count_50 = 0;
-      } // if(count_50 > 1)
-
+      
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_50_MS,tv_in);
 
@@ -334,19 +278,9 @@ void quit(int Q)
    /// Kernel Messeges Queue
    uquad_kmsgq_deinit(kmsgq);
 
-//-----------------------------------
+   /// Log
    close(log_fd);
-//-----------------------------------
    
-#if !DISABLE_GPS
-   if(Q != 2) {
-      /// cerrar conexiones con GPSD y terminarlo
-      retval = deinit_gps();
-      if(retval != ERROR_OK)
-         err_log("Could not close gps correctly!");
-   }
-#endif //DISABLE_GPS
-
    /// cerrar UAVTalk
    retval = uav_talk_deinit(fd_CC3D);
    if(retval != ERROR_OK)
@@ -377,9 +311,6 @@ void uquad_sig_handler(int signal_num)
       {
          err_log_num("WARN: sbusd died! sig num:", signal_num);
          quit(1); //exit sin cerrar sbusd
-      } else if(p == gpsd_child_pid) {
-         err_log_num("WARN: gpsd died! sig num:", signal_num);
-         quit(0); //exit sin cerrar gpsd
       } else {
          err_log_num("SIGCHLD desconocido, return:", signal_num);
          //quit(0);
@@ -416,15 +347,18 @@ void set_signals(void)
 /************* Leer de stdin *****************/
 /*********************************************/
 
-void read_from_stdin(void)
+int read_from_stdin(void)
 {
-         int retval = fread(tmp_buff,sizeof(unsigned char),1,stdin); //TODO corregir que queda algo por leer en el buffer?
+         int retval = fread(tmp_buff,sizeof(unsigned char),2,stdin); //TODO corregir que queda algo por leer en el buffer?
          if(retval <= 0)
          {
 	    //log_n_jump(ERROR_READ, end_stdin,"No user input detected!");
             err_log_num("No user input detected!",ERROR_READ);
-            return;
+            return -1;
          }
+
+         retval = 0;
+
          switch(tmp_buff[0])
          {
          case '0':
@@ -439,6 +373,12 @@ void read_from_stdin(void)
          case '3':
             ch_buff[0] = 1650;
             break;
+         case '4':
+            ch_buff[0] = 1700;
+            break;
+         case '5':
+            ch_buff[0] = 1750;
+            break;
          case 'F':
             err_log("Failsafe set");
             ch_buff[4] = 50;
@@ -448,9 +388,12 @@ void read_from_stdin(void)
             ch_buff[4] = 100;
             break;
          default:
-            err_log("Velocidad invalida. Ingrese 0,1,2,3 para 0%,10%,20%,30%");
+            err_log("comando invalido");
+            retval = -1;
             break;
          } //switch(tmp_buff[0])
+
+         return retval;
 }
 
 
