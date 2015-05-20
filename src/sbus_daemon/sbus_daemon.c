@@ -145,9 +145,11 @@ int main(int argc, char *argv[])
 #endif //PC_TEST
 
    // Lleva a cero todos los canales y el mensaje sbus
-   //futaba_sbus_reset_channels();
-   //futaba_sbus_reset_msg();
+   //futaba_sbus_set_channel(1, 1500); //init roll en cero
+   //futaba_sbus_set_channel(2, 1500); //init pitch en cero
    futaba_sbus_set_channel(3, 1500); //init yaw en cero
+   //futaba_sbus_set_channel(4, 1000); //init throttle en cero
+   //futaba_sbus_set_channel(5, 1000); //inint flight mode
    futaba_sbus_update_msg();
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop

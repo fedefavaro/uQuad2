@@ -346,7 +346,7 @@ void set_signals(void)
 /*********************************************/
 /************* Leer de stdin *****************/
 /*********************************************/
-
+bool negativos = false;
 int read_from_stdin(void)
 {
          int retval = fread(tmp_buff,sizeof(unsigned char),2,stdin); //TODO corregir que queda algo por leer en el buffer?
@@ -379,19 +379,46 @@ int read_from_stdin(void)
          case '5':
             ch_buff[2] = 1750;
             break;
+         case '6':
+            ch_buff[2] = 1800;
+            break;
+         case '7':
+            ch_buff[2] = 1850;
+            break;
+         case '8':
+            ch_buff[2] = 1900;
+            break;
+         case '9':
+            ch_buff[2] = 1950;
+            break;
          case 'F':
             err_log("Failsafe set");
             ch_buff[4] = 50;
-            break;
+            return retval;
+            //break;
          case 'f':
             err_log("Failsafe clear");
             ch_buff[4] = 100;
+            return retval;
+            //break;
+         case 'n':
+            if(negativos) {
+              err_log("Pasar a positivos");
+              negativos = false;
+            } else {
+              err_log("Pasar a negativos");
+              negativos = true;
+            }
+            retval = 1;
             break;
          default:
             err_log("comando invalido");
             retval = -1;
             break;
          } //switch(tmp_buff[0])
+
+         if(negativos && retval==0)
+            ch_buff[2] = 1500 - (ch_buff[2] - 1500);
 
          return retval;
 }
