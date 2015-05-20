@@ -62,8 +62,8 @@ uquad_kmsgq_t *kmsgq 	= NULL;
 //ch_buff[1]  pitch
 //ch_buff[2]  yaw
 //ch_buff[3]  throttle
-//ch_buff[4]  flight mode?
-uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1500,1500}; 
+//ch_buff[4]  flight mode? //activar failsafe
+uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1000,1000}; 
 uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
                                       // El casteo es necesario para enviar los mensajes de kernel (de a 1 byte en lugar de 2)
 
@@ -362,22 +362,22 @@ int read_from_stdin(void)
          switch(tmp_buff[0])
          {
          case '0':
-            ch_buff[0] = 1500;
+            ch_buff[2] = 1500;
             break;
          case '1':
-            ch_buff[0] = 1550;
+            ch_buff[2] = 1550;
             break;
          case '2':
-            ch_buff[0] = 1600;
+            ch_buff[2] = 1600;
             break;
          case '3':
-            ch_buff[0] = 1650;
+            ch_buff[2] = 1650;
             break;
          case '4':
-            ch_buff[0] = 1700;
+            ch_buff[2] = 1700;
             break;
          case '5':
-            ch_buff[0] = 1750;
+            ch_buff[2] = 1750;
             break;
          case 'F':
             err_log("Failsafe set");

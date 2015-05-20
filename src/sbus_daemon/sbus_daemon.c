@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
    int ret = ERROR_OK;
    int err_count = 0;
    int rcv_err_count = 0;
-   int loop_count = 0;
+   //int loop_count = 0;
    bool msg_received = false;
    char* device;
    /* Para parsear el los mensajes se recorre el arreglo con un puntero
@@ -145,9 +145,10 @@ int main(int argc, char *argv[])
 #endif //PC_TEST
 
    // Lleva a cero todos los canales y el mensaje sbus
-   futaba_sbus_reset_channels();
-   futaba_sbus_reset_msg();
-
+   //futaba_sbus_reset_channels();
+   //futaba_sbus_reset_msg();
+   futaba_sbus_set_channel(3, 1500); //init yaw en cero
+   futaba_sbus_update_msg();
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -164,9 +165,9 @@ int main(int argc, char *argv[])
 
       if(msg_received)
       {
-         futaba_sbus_set_channel(1, ch_buff[0]);
-         futaba_sbus_set_channel(2, ch_buff[1]);
-         //futaba_sbus_set_channel(3, ch_buff[2]);
+         //futaba_sbus_set_channel(1, ch_buff[0]);
+         //futaba_sbus_set_channel(2, ch_buff[1]);
+         futaba_sbus_set_channel(3, ch_buff[2]);
          //futaba_sbus_set_channel(4, ch_buff[3]);
          //futaba_sbus_set_channel(5, ch_buff[4]);
  //------------------------------------------------------------ 
@@ -183,17 +184,16 @@ int main(int argc, char *argv[])
       }
 
 #if !PC_TEST
-        ret = futaba_sbus_write_msg(fd);
-        if (ret < 0)
-        {
-           err_count++;
-	}
-	else
-	{
-	   /// This loop was fine
+      ret = futaba_sbus_write_msg(fd);
+      if (ret < 0)
+      {
+         //err_count++;
+      } else
+      {
+        /// This loop was fine
 	   //if(err_count > 0)
 	     // err_count--;
-	}
+      }
 #else
 	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
 	convert_sbus_data(str);
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 	if(ret < 0)
 	{
 	    err_log("Failed to write to log file!");
-	    err_count++;
+	    //err_count++;
 	}
 #else
 	/* Escribe en stdout */
@@ -214,45 +214,39 @@ int main(int argc, char *argv[])
 	  // err_count--;
 #endif // !PC_TEST
 		
-      // si pasaron mas de ~100ms es hora de leer el mensaje
-      if (loop_count > 6) //14ms * 6 = 98ms
-      {  
-
+     
 #if DEBUG_TIMING_SBUSD
-         gettimeofday(&tv_end,NULL);
-         ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);
-         printf("duracion loop sbusd (98ms): %lu\n",(unsigned long)tv_diff.tv_usec);
-         tv_last = tv_end;
+        gettimeofday(&tv_end,NULL);
+        ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);
+        printf("duracion loop sbusd (98ms): %lu\n",(unsigned long)tv_diff.tv_usec);
+        tv_last = tv_end;
 #endif //DEBUG_TIMING_SBUSD
 
-         ret = uquad_read(&rbuf);
-         if(ret == ERROR_OK)
-         {
-               msg_received = true;
-               //if(rcv_err_count > 0)
-                 //  rcv_err_count--;
-               // Parse message. 2 bytes per channel.
-               ch_buff = (int16_t *)rbuf.mtext;
-               /// send ack
-               ret = uquad_send_ack();
-               if(ret != ERROR_OK)
-               {
-                     err_log("Failed to send ack!");
-               }
-         }
-         else
-         {
+      ret = uquad_read(&rbuf);
+      if(ret == ERROR_OK)
+      { 
+              msg_received = true;
+              //if(rcv_err_count > 0)
+                //  rcv_err_count--;
+              // Parse message. 2 bytes per channel.
+              ch_buff = (int16_t *)rbuf.mtext;
+              /// send ack
+              ret = uquad_send_ack();
+              if(ret != ERROR_OK)
+              {
+                    err_log("Failed to send ack!");
+              }
+      }
+      else
+      {
 #if DEBUG
                // este error va a estar siempre porque el main y el sbusd no estan perfectamente sincronizados, pero no hay que darle importancia a menos que aparezca muy seguido
                //err_log("Failed to read msg!"); 
 #endif //DEBUG
-               msg_received = false;
-               rcv_err_count++;
-         }
-      
-         loop_count = 0;
+              msg_received = false;
+              //rcv_err_count++;
       }
-
+      
       /// Control de tiempo del loop corto (14ms)
       gettimeofday(&tv_end,NULL);
       ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
@@ -266,9 +260,7 @@ int main(int argc, char *argv[])
          err_log("WARN: Absurd timing!");
          err_count++;
       }
-        
-      loop_count++;
-
+      
 #if DEBUG_TIMING_SBUSD
       gettimeofday(&tv_end,NULL);
       ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
