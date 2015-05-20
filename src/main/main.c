@@ -411,6 +411,18 @@ int read_from_stdin(void)
             }
             retval = 1;
             break;
+         case 'M':                                               
+            ch_buff[0] = 2000;
+            ch_buff[1] = 2000;
+            ch_buff[2] = 2000;        
+            err_log("Seteando maximo valor"); 
+            break;
+         case 'm':                                  
+            ch_buff[0] = 1000;                                           
+            ch_buff[1] = 1000;                      
+            ch_buff[2] = 1000;                                              
+            err_log("Seteando minimo valor");                                 
+            break;
          default:
             err_log("comando invalido");
             retval = -1;
