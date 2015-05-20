@@ -167,8 +167,8 @@ int main(int argc, char *argv[])
 
       if(msg_received)
       {
-         //futaba_sbus_set_channel(1, ch_buff[0]);
-         //futaba_sbus_set_channel(2, ch_buff[1]);
+         futaba_sbus_set_channel(1, ch_buff[0]);
+         futaba_sbus_set_channel(2, ch_buff[1]);
          futaba_sbus_set_channel(3, ch_buff[2]);
          //futaba_sbus_set_channel(4, ch_buff[3]);
          //futaba_sbus_set_channel(5, ch_buff[4]);

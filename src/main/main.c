@@ -423,6 +423,12 @@ int read_from_stdin(void)
             ch_buff[2] = 1000;                                              
             err_log("Seteando minimo valor");                                 
             break;
+         case 'b':                                            
+            ch_buff[0] = 1500;                 
+            ch_buff[1] = 1500;                 
+            ch_buff[2] = 1500;                      
+            err_log("Seteando valor medio");                            
+            break;
          default:
             err_log("comando invalido");
             retval = -1;
