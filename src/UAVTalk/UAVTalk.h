@@ -239,9 +239,9 @@ typedef struct __uavtalk_message {
 } uavtalk_message_t;
 
 typedef struct actitud {
-	int16_t roll;
-	int16_t pitch;
-	int16_t yaw;
+	double roll;
+	double pitch;
+	double yaw;
 	uint16_t throttle;
 } actitud_t;
 
