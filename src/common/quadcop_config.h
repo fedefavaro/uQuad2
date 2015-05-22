@@ -26,14 +26,14 @@
 #ifndef UQUAD_CONFIG_h
 #define UQUAD_CONFIG_h
 
-#define PC_TEST			1	
+#define PC_TEST			0	
 
 #if PC_TEST
    #define SBUS_LOG_TO_FILE	0  //sbus logea en un archivo en lugar de imprimir en stdout
 #endif //PC_TEST
 
 #define DISABLE_GPS		1
-#define DISABLE_UAVTALK		1
+#define DISABLE_UAVTALK		0
 
 #define DEBUG                   1
 

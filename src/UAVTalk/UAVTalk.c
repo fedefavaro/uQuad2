@@ -442,7 +442,7 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 int uavtalk_read(int fd, actitud_t* act)
 {
 	int ret = 0;  
-
+        struct timeval tv_aux;
 	int32_t start_time = uavtalk_get_time_usec();
 
 	static uavtalk_message_t msg;
@@ -495,7 +495,8 @@ int uavtalk_read(int fd, actitud_t* act)
 					act->pitch 		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
         				//osd_yaw			= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
 					act->yaw		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
-                                        gettimeofday(&act->ts,NULL);
+                                        gettimeofday(&tv_aux,NULL);
+                                        uquad_timeval_substract(&act->ts, tv_aux, tv_start);
 					//printf("ATTITUDE\n");
                                         // if we don't have a GPS, use Yaw for heading
                                         //if (osd_lat == 0) {
@@ -580,7 +581,7 @@ int uavtalk_to_str(char* buf_str, actitud_t act)
 {
    char* buf_ptr = buf_str;
    int ret;
-   struct timeval tv_ts; //for timestamp
+   //struct timeval tv_ts; //for timestamp
 
    // Timestamp
    buf_ptr += sprintf(buf_ptr, "%04lu:%06lu", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
