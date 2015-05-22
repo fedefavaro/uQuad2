@@ -70,6 +70,9 @@ uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
 // UAVTalk
 int fd_CC3D;
 
+// Control de yaw
+int8_t Kp = 1;  // tau = 1/Kp // Probar tau = 1 y tau = 2
+
 /// Declaracion de funciones auxiliares
 void quit(int Q);
 void uquad_sig_handler(int signal_num);
@@ -83,7 +86,19 @@ int read_from_stdin(void);
 int main(int argc, char *argv[])
 {  
    int retval;
+   char* log_name;
    
+   if(argc<2)
+    {
+	err_log("especificar nombre del archivo de logeo");
+	exit(1);
+    }
+    else
+    {
+	log_name = argv[1];
+    }
+
+
 //---------------------------------------------
 #if !PC_TEST
    retval = system("echo 2 > /sys/kernel/debug/omap_mux/dss_data6");
@@ -106,7 +121,7 @@ int main(int argc, char *argv[])
    // -- -- -- -- -- -- -- -- -- 
 
    /// Log
-   log_fd = open("log_attitude",O_RDWR | O_CREAT | O_NONBLOCK );
+   log_fd = open(log_name ,O_RDWR | O_CREAT | O_NONBLOCK );
    if(log_fd < 0)
    {
       err_log_stderr("Failed to open log file!");
@@ -173,6 +188,35 @@ int commandoOK = -1;
    {
       gettimeofday(&tv_in,NULL); //para tener tiempo de entrada en cada loop
 
+#if !DISABLE_UAVTALK   
+      /// Leo data de CC3D y Log
+      CC3D_readOK = check_read_locks(fd_CC3D);
+      if (CC3D_readOK) {
+         if (uavtalk_read(fd_CC3D, &act)) {
+            
+            buff_len = uavtalk_to_str(buff_act, act);
+
+	    log_writeOK =check_write_locks(log_fd);
+            if (log_writeOK) {
+               retval = write(log_fd, buff_act, buff_len);
+               if(retval < 0)
+               {
+                  err_log_stderr("Failed to write to log file!");
+                  continue;
+               }
+            }
+
+         } else {
+            err_log("uavtalk_read failed");
+            continue;
+         }     
+      } else {
+         err_log("UAVTalk: read NOT ok");
+         continue;
+      }
+
+#endif
+
       /// Polling de dispositivos IO
       retval = io_poll(io);
       quit_log_if(retval,"io_poll() error");      
@@ -191,6 +235,9 @@ int commandoOK = -1;
 
       if(commandoOK==0)
       {
+         //Control
+         ch_buff[2] = Kp*(ch_buff[2] - act.yaw);
+ 
          // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
          retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
          if(retval != ERROR_OK)
@@ -200,29 +247,6 @@ int commandoOK = -1;
          commandoOK = -1;
       }
 
-#if !DISABLE_UAVTALK   
-      /// Leo data de CC3D y Log
-      CC3D_readOK = check_read_locks(fd_CC3D);
-      if (CC3D_readOK) {
-         if (uavtalk_read(fd_CC3D, &act)) {
-            
-            buff_len = uavtalk_to_str(buff_act, &act);
-
-	    log_writeOK =check_write_locks(log_fd);
-            if (log_writeOK) {
-               retval = write(log_fd, buff_act, buff_len);
-               if(retval < 0)
-               {
-                  err_log_stderr("Failed to write to log file!");
-               }
-            }
-
-         } else {
-            err_log("uavtalk_read failed");
-         }     
-      } else err_log("UAVTalk: read NOT ok");
-#endif
-      
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_50_MS,tv_in);
 
@@ -379,7 +403,7 @@ int read_from_stdin(void)
          case '5':
             ch_buff[2] = 1750;
             break;
-         case '6':
+/*         case '6':
             ch_buff[2] = 1800;
             break;
          case '7':
@@ -390,7 +414,7 @@ int read_from_stdin(void)
             break;
          case '9':
             ch_buff[2] = 1950;
-            break;
+            break;*/
          case 'F':
             err_log("Failsafe set");
             ch_buff[4] = 50;

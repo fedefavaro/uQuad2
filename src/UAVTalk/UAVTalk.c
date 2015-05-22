@@ -131,17 +131,19 @@ int32_t uavtalk_get_time_usec(void)
 }
 
 
-void uav_talk_print_attitude(void)
+void uav_talk_print_attitude(actitud_t act)
 {
    static int32_t lastTime=0;
    
-   printf("Roll: %d  ", osd_roll); 
-   printf("Pitch: %d  ", osd_pitch);
-   printf("Yaw: %d  ", osd_yaw);
+   printf("Roll: %lf  ", act.roll); 
+   printf("Pitch: %lf  ", act.pitch);
+   printf("Yaw: %lf  ", act.yaw);
    //printf("Throttle: %d\n", osd_throttle);
-   int32_t currentTime = uavtalk_get_time_usec();
-   printf("Time: %d ms\n", (currentTime - lastTime)/1000);
-   lastTime = currentTime;
+   printf("Time: %04lu:%06lu\n", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
+   
+   //int32_t currentTime = uavtalk_get_time_usec();
+   //printf("Time: %lf ms\n", (currentTime - lastTime)/1000);
+   //lastTime = currentTime;
 }
 
 /* devuelve true si puedo leer, false si no puedo */
@@ -487,12 +489,13 @@ int uavtalk_read(int fd, actitud_t* act)
 				case ATTITUDESTATE_OBJID:
 					last_flighttelemetry_connect = uavtalk_get_time_usec();
 					show_prio_info = 1;
-        				osd_roll		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
+        				//osd_roll		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
 					act->roll 		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
-					osd_pitch		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
+					//osd_pitch		= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
 					act->pitch 		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
-        				osd_yaw			= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+        				//osd_yaw			= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
 					act->yaw		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+                                        gettimeofday(&act->ts,NULL);
 					//printf("ATTITUDE\n");
                                         // if we don't have a GPS, use Yaw for heading
                                         //if (osd_lat == 0) {
@@ -573,28 +576,29 @@ int uavtalk_state(void)
 
 
 
-int uavtalk_to_str(char* buf_str, actitud_t* act)
+int uavtalk_to_str(char* buf_str, actitud_t act)
 {
    char* buf_ptr = buf_str;
    int ret;
    struct timeval tv_ts; //for timestamp
 
    // Timestamp
-   gettimeofday(&tv_ts,NULL);
-   ret = uquad_timeval_substract(&tv_ts, tv_ts, tv_start);
-   if(ret > 0)
-   {
-      buf_ptr += sprintf(buf_ptr, "%04lu:%06lu", (unsigned long)tv_ts.tv_sec, (unsigned long)tv_ts.tv_usec);
-   }
-   else
-   {
-      err_log("WARN: Absurd timing!");
-      return -1;
-   }
+   buf_ptr += sprintf(buf_ptr, "%04lu:%06lu", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
+   //gettimeofday(&tv_ts,NULL);
+   //ret = uquad_timeval_substract(&tv_ts, tv_ts, tv_start);
+   //if(ret > 0)
+   //{
+      //buf_ptr += sprintf(buf_ptr, "%04lu:%06lu", (unsigned long)tv_ts.tv_sec, (unsigned long)tv_ts.tv_usec);
+   //}
+   //else
+   //{
+      //err_log("WARN: Absurd timing!");
+      //return -1;
+   //}
    
-   buf_ptr += sprintf(buf_ptr, ",%lf", act->roll);
-   buf_ptr += sprintf(buf_ptr, ",%lf", act->pitch);
-   buf_ptr += sprintf(buf_ptr, ",%lf", act->yaw);
+   buf_ptr += sprintf(buf_ptr, ",%lf", act.roll);
+   buf_ptr += sprintf(buf_ptr, ",%lf", act.pitch);
+   buf_ptr += sprintf(buf_ptr, ",%lf", act.yaw);
 //   buf_ptr += sprintf(buf_ptr, ",%lf", act->throttle);
    buf_ptr += sprintf(buf_ptr,"\n");
 

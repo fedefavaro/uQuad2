@@ -1,4 +1,6 @@
 #!/bin/sh -e
+#Args:
+#   ./go.sh <log_name>
 
 # Make sure only root can run our script
 #if [[ $EUID -ne 0 ]]; then
@@ -22,8 +24,16 @@ cp build/sbus_daemon/sbusd build/main/
 #    exit
 #}
 
+if [ $1 ];
+then
+    log_name=$1
+else
+    echo No se especifico archivo de logeo, cerrando...
+    exit
+fi
+
 cd build/main
-./path_follower
+./path_follower ${log_name}
 cd ../..
 
 
