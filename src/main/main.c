@@ -71,8 +71,8 @@ uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
 int fd_CC3D;
 
 // Control de yaw
-double u = 0: //senal de control (setpoint de velocidad angular) 
-int8_t Kp = 1;  // tau = 1/Kp // Probar tau = 1 y tau = 2
+double u = 0; //senal de control (setpoint de velocidad angular) 
+int Kp = 1;  // tau = 1/Kp // Probar tau = 1 y tau = 2
 double yaw_d = 0;
 
 /// Declaracion de funciones auxiliares
@@ -235,24 +235,26 @@ int commandoOK = -1;
          
       }
 
-      if(commandoOK==0)
-      {
+
+      //if(commandoOK==0)
+      //{
          //Control
          u = Kp*(yaw_d - act.yaw);
+         printf("senal de control: %lf\n", u); // dbg
          
          //Convertir velocidad en comando
-         ch_buff[2] = (uint16_t) u*25/11 + 1500;
-         printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+         ch_buff[2] = (uint16_t) (u*25/11 + 1500);
+         //commandoOK = -1;
+      //}
 
-         // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
-         retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
-         if(retval != ERROR_OK)
-         {
-            quit_log_if(ERROR_FAIL,"Failed to send message!");
-         }
-         commandoOK = -1;
+      printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+      // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
+      retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+      if(retval != ERROR_OK)
+      {
+         quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
-
+      
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_50_MS,tv_in);
 
