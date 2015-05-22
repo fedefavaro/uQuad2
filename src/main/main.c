@@ -71,7 +71,9 @@ uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
 int fd_CC3D;
 
 // Control de yaw
+double u = 0: //senal de control (setpoint de velocidad angular) 
 int8_t Kp = 1;  // tau = 1/Kp // Probar tau = 1 y tau = 2
+double yaw_d = 0;
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -236,12 +238,12 @@ int commandoOK = -1;
       if(commandoOK==0)
       {
          //Control
-         //ch_buff[2] = (uint16_t) Kp*(ch_buff[2] - act.yaw);
+         u = Kp*(yaw_d - act.yaw);
          
          //Convertir velocidad en comando
+         ch_buff[2] = (uint16_t) u*25/11 + 1500;
+         printf("comando a enviar: %u\n", ch_buff[2]); // dbg
 
-         //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
-        
          // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
          retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
          if(retval != ERROR_OK)
@@ -390,6 +392,36 @@ int read_from_stdin(void)
          switch(tmp_buff[0])
          {
          case '0':
+            yaw_d = 0;
+            break;
+         case '1':
+            yaw_d = 10;
+            break;
+         case '2':
+            yaw_d = 20;
+            break;
+         case '3':
+            yaw_d = 30;
+            break;
+         case '4':
+            yaw_d = 40;
+            break;
+         case '5':
+            yaw_d = 50;
+            break;
+         case '6':
+            yaw_d = 60;
+            break;
+         case '7':
+            yaw_d = 70;
+            break;
+         case '8':
+            yaw_d = 80;
+            break;
+         case '9':
+            yaw_d = 90;
+            break;
+/*         case '0':
             ch_buff[2] = 1500;
             break;
          case '1':
@@ -407,7 +439,7 @@ int read_from_stdin(void)
          case '5':
             ch_buff[2] = 1750;
             break;
-/*         case '6':
+         case '6':
             ch_buff[2] = 1800;
             break;
          case '7':
@@ -464,8 +496,8 @@ int read_from_stdin(void)
          } //switch(tmp_buff[0])
 
          if(negativos && retval==0)
-            ch_buff[2] = 1500 - (ch_buff[2] - 1500);
-
+            //ch_buff[2] = 1500 - (ch_buff[2] - 1500);
+	    yaw_d = -yaw_d;
          return retval;
 }
 
