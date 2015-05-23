@@ -559,15 +559,15 @@ int read_from_stdin(void)
             ch_buff[4] = 1000;
             puts("Seteando minimo valor");
             break;
+#endif //SETANDO_CC3D
          case 'b':                                            
             ch_buff[0] = 1500;
             ch_buff[1] = 1500;
             ch_buff[2] = 1500;
             ch_buff[3] = 1000;  // neutral throttle
             ch_buff[4] = 1500;
-            puts("Seteando valor medio");
+            puts("Seteando valor neutro");
             break;
-#endif //SETANDO_CC3D 
          case 'A':                                     
             ch_buff[0] = 1500; //roll
             ch_buff[1] = 1500; //pitch

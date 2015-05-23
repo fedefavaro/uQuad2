@@ -102,6 +102,8 @@ int uav_talk_init(void)
    if (ret < 0)
       return -1;
 
+   serial_flush(fd);
+   
    return fd;
      
 }

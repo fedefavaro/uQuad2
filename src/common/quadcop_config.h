@@ -33,7 +33,7 @@
 #endif //PC_TEST
 
 #define DISABLE_GPS		1
-#define DISABLE_UAVTALK		1
+#define DISABLE_UAVTALK		0
 
 #define DEBUG                   1
 
