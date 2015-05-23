@@ -32,8 +32,16 @@ else
     exit
 fi
 
+if [ $2 ];
+then
+    throttle_inicial=$2
+else
+    echo No se especifico throttle inicial, cerrando...
+    exit
+fi
+
 cd build/main
-./path_follower ${log_name}
+./path_follower ${log_name} ${throttle_inicial}
 cd ../..
 
 

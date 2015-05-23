@@ -148,8 +148,8 @@ int main(int argc, char *argv[])
    futaba_sbus_set_channel(1, 1500); //init roll en cero
    futaba_sbus_set_channel(2, 1500); //init pitch en cero
    futaba_sbus_set_channel(3, 1500); //init yaw en cero
-   //futaba_sbus_set_channel(4, 1000); //init throttle en cero
-   //futaba_sbus_set_channel(5, 1000); //inint flight mode
+   futaba_sbus_set_channel(4, 1000); //init throttle en cero
+   futaba_sbus_set_channel(5, 1500); //inint flight mode 2
    futaba_sbus_update_msg();
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
@@ -182,14 +182,14 @@ int main(int argc, char *argv[])
          futaba_sbus_set_channel(1, ch_buff[0]);
          futaba_sbus_set_channel(2, ch_buff[1]);
          futaba_sbus_set_channel(3, ch_buff[2]);
-         //futaba_sbus_set_channel(4, ch_buff[3]);
-         //futaba_sbus_set_channel(5, ch_buff[4]);
+         futaba_sbus_set_channel(4, ch_buff[3]);
+         futaba_sbus_set_channel(5, ch_buff[4]); // flight mode no se modifica
  //------------------------------------------------------------ 
-         if ( (ch_buff[4] == 50) && 
+         if ( (ch_buff[5] == 50) && 
             (futaba_sbus_get_failsafe() == SBUS_SIGNAL_OK) )
             futaba_sbus_set_failsafe(SBUS_SIGNAL_FAILSAFE);
  //------------------------------------------------------------ 
-         if ( (ch_buff[4] == 100) && 
+         if ( (ch_buff[5] == 100) && 
             (futaba_sbus_get_failsafe() == SBUS_SIGNAL_FAILSAFE) )
             futaba_sbus_set_failsafe(SBUS_SIGNAL_OK);
  //------------------------------------------------------------  

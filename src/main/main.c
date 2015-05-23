@@ -42,10 +42,17 @@
 
 #define KILL_SBUS		"killall sbusd"
 
+#define PRUEBA_YAW
+//#define PRUEBA_THROTTLE
+#define SETANDO_CC3D
+
 /// Global vars
 
 // Almacena pids de hijos
 pid_t sbusd_child_pid = 0;
+
+// Para prueba yaw
+uint16_t throttle_inicial = 0;
 
 // LOG
 int log_fd;
@@ -57,15 +64,27 @@ unsigned char tmp_buff[2] = {0,0};  // Para leer entrada de usuario
 
 // KMQ
 uquad_kmsgq_t *kmsgq 	= NULL;
-// Valores iniciales de los canales a enviar a sbusd
-//ch_buff[0]  roll
-//ch_buff[1]  pitch
-//ch_buff[2]  yaw
-//ch_buff[3]  throttle
-//ch_buff[4]  flight mode? //activar failsafe
-uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1000,1000}; 
-uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
-                                      // El casteo es necesario para enviar los mensajes de kernel (de a 1 byte en lugar de 2)
+
+/** 
+ * Valores iniciales de los canales a enviar al proceso sbusd
+ *
+ * ch_buff[0]  roll
+ * ch_buff[1]  pitch
+ * ch_buff[2]  yaw
+ * ch_buff[3]  throttle
+ * ch_buff[4]  flight mode
+ * ch_buff[5]  activar/desactivar failsafe
+ *
+ * init todo en cero y flight mode en 2 
+ */
+uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1500,1500};
+
+/** 
+ * Buffer para enviar mensajes de kernel
+ * El casteo es necesario para enviar los mensajes de kernel
+ * (de a 1 byte en lugar de 2)
+ */
+uint8_t *buff_out=(uint8_t *)ch_buff; 
 
 // UAVTalk
 int fd_CC3D;
@@ -87,17 +106,42 @@ int read_from_stdin(void);
 /*********************************************/
 int main(int argc, char *argv[])
 {  
+#ifdef PRUEBA_YAW
+   puts("INICIANDO PARA PRUEBA YAW");
+   #ifdef PRUEBA_THROTTLE
+      #error NO SE PUEDE HACER PRUEBA TRHOTTLE Y YAW A LA VEZ
+   #endif
+#endif
+#ifdef PRUEBA_THROTTLE
+   puts("INICIANDO PARA PRUEBA THROTTLE");
+   #ifdef PRUEBA_YAW
+      #error NO SE PUEDE HACER PRUEBA TRHOTTLE Y YAW A LA VEZ
+   #endif
+#endif
+#ifdef SETANDO_CC3D
+   puts("INICIANDO PARA SETEO CC3D");
+   #ifdef PRUEBA_THROTTLE
+      puts("WARN: DESCONECTAR MOTORES!!!");
+   #endif
+   #ifdef PRUEBA_YAW
+      puts("WARN: DESCONECTAR MOTORES!!!");
+   #endif
+#endif
+
    int retval;
    char* log_name;
    
-   if(argc<2)
+   if(argc<3)
     {
-	err_log("especificar nombre del archivo de logeo");
+	err_log("USAGE: ../path_follower log_name throttle_inicial");
 	exit(1);
     }
     else
     {
 	log_name = argv[1];
+#ifdef PRUEBA_YAW
+        throttle_inicial = atoi(argv[2]);
+#endif
     }
 
 
@@ -235,19 +279,18 @@ int commandoOK = -1;
          
       }
 
-
-      //if(commandoOK==0)
-      //{
-         //Control
-         u = Kp*(yaw_d - act.yaw);
-         //printf("senal de control: %lf\n", u); // dbg
+#ifndef SETANDO_CC3D
+#ifdef PRUEBA_YAW
+      //Control
+      u = Kp*(yaw_d - act.yaw);
+      //printf("senal de control: %lf\n", u); // dbg
          
-         //Convertir velocidad en comando
-         ch_buff[2] = (uint16_t) (u*25/11 + 1500);
-         //commandoOK = -1;
-      //}
-
+      //Convertir velocidad en comando
+      ch_buff[2] = (uint16_t) (u*25/11 + 1500);
       //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+#endif //PRUEBA_YAW
+#endif //SETANDO_CC3D
+
       // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)
@@ -393,6 +436,11 @@ int read_from_stdin(void)
 
          switch(tmp_buff[0])
          {
+#ifdef PRUEBA_YAW
+         case 'S':
+            ch_buff[3] = throttle_inicial; //valor pasado como parametro
+            printf("Comenzando. Throttle: %d", throttle_inicial);
+            break;
          case '0':
             yaw_d = 0;
             break;
@@ -423,76 +471,102 @@ int read_from_stdin(void)
          case '9':
             yaw_d = 90;
             break;
-/*         case '0':
-            ch_buff[2] = 1500;
+#endif //PRUEBA_YAW
+#ifdef PRUEBA_THROTTLE
+         case '0':
+            ch_buff[3] = 1000;
             break;
          case '1':
-            ch_buff[2] = 1550;
+            ch_buff[3] = 1100;
             break;
          case '2':
-            ch_buff[2] = 1600;
+            ch_buff[3] = 1200;
             break;
          case '3':
-            ch_buff[2] = 1650;
+            ch_buff[3] = 1300;
             break;
          case '4':
-            ch_buff[2] = 1700;
+            ch_buff[3] = 1400;
             break;
          case '5':
-            ch_buff[2] = 1750;
+            ch_buff[3] = 1500;
             break;
          case '6':
-            ch_buff[2] = 1800;
+            ch_buff[3] = 1600;
             break;
          case '7':
-            ch_buff[2] = 1850;
+            ch_buff[3] = 1700;
             break;
          case '8':
-            ch_buff[2] = 1900;
+            ch_buff[3] = 1800;
             break;
          case '9':
-            ch_buff[2] = 1950;
-            break;*/
+            ch_buff[3] = 1900;
+            break;
+#endif //PRUEBA_THROTTLE
          case 'F':
-            err_log("Failsafe set");
-            ch_buff[4] = 50;
+            puts("WARN: Failsafe set");
+            ch_buff[5] = 50;
             return retval;
             //break;
          case 'f':
-            err_log("Failsafe clear");
-            ch_buff[4] = 100;
+            puts("WARN: Failsafe clear");
+            ch_buff[5] = 100;
             return retval;
             //break;
          case 'n':
             if(negativos) {
-              err_log("Pasar a positivos");
+              puts("Pasar a positivos");
               negativos = false;
             } else {
-              err_log("Pasar a negativos");
+              puts("Pasar a negativos");
               negativos = true;
             }
             retval = 1;
             break;
-         case 'M':                                               
-            ch_buff[0] = 2000;
-            ch_buff[1] = 2000;
-            ch_buff[2] = 2000;        
-            err_log("Seteando maximo valor"); 
+#ifdef SETANDO_CC3D
+// Para setear aximos y minimos en CC3D
+         case 'M':                                     
+            ch_buff[0] = 2000; //roll
+            ch_buff[1] = 2000; //pitch
+            ch_buff[2] = 2000; //yaw
+            ch_buff[3] = 2000; //throttle
+            ch_buff[4] = 2000; //flight mode       
+            puts("Seteando maximo valor"); 
             break;
          case 'm':                                  
-            ch_buff[0] = 1000;                                           
-            ch_buff[1] = 1000;                      
-            ch_buff[2] = 1000;                                              
-            err_log("Seteando minimo valor");                                 
+            ch_buff[0] = 1000;
+            ch_buff[1] = 1000;
+            ch_buff[2] = 1000;
+            ch_buff[3] = 990; //min throttle
+            ch_buff[4] = 1000;
+            puts("Seteando minimo valor");
             break;
          case 'b':                                            
-            ch_buff[0] = 1500;                 
-            ch_buff[1] = 1500;                 
-            ch_buff[2] = 1500;                      
-            err_log("Seteando valor medio");                            
+            ch_buff[0] = 1500;
+            ch_buff[1] = 1500;
+            ch_buff[2] = 1500;
+            ch_buff[3] = 1000;  // neutral throttle
+            ch_buff[4] = 1500;
+            puts("Seteando valor medio");
             break;
+         case 'A':                                     
+            ch_buff[0] = 1500; //roll
+            ch_buff[1] = 1500; //pitch
+            ch_buff[2] = 1000; //yaw
+            ch_buff[3] = 990; //throttle  
+            puts("Armando..."); 
+            break;
+         case 'D':                                                          
+            ch_buff[0] = 1500; //roll                                       
+            ch_buff[1] = 1500; //pitch                                          
+            ch_buff[2] = 2000; //yaw
+            ch_buff[3] = 990; //throttle                       
+            puts("Desarmando...");                              
+            break; 
+#endif //SETANDO_CC3D
          default:
-            err_log("comando invalido");
+            puts("comando invalido");
             retval = -1;
             break;
          } //switch(tmp_buff[0])
@@ -500,6 +574,7 @@ int read_from_stdin(void)
          if(negativos && retval==0)
             //ch_buff[2] = 1500 - (ch_buff[2] - 1500);
 	    yaw_d = -yaw_d;
+
          return retval;
 }
 
