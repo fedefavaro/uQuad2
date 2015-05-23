@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
 	log_name = argv[1];
 #ifdef PRUEBA_YAW
         throttle_inicial = atoi(argv[2]);
+        printf("Throttle inicial: %u", throttle_inicial);
 #endif
     }
 
@@ -439,7 +440,7 @@ int read_from_stdin(void)
 #ifdef PRUEBA_YAW
          case 'S':
             ch_buff[3] = throttle_inicial; //valor pasado como parametro
-            printf("Comenzando. Throttle: %d", throttle_inicial);
+            puts("Comenzando");
             break;
          case '0':
             yaw_d = 0;
