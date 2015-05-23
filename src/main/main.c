@@ -44,7 +44,7 @@
 
 #define PRUEBA_YAW
 //#define PRUEBA_THROTTLE
-#define SETANDO_CC3D
+//#define SETANDO_CC3D
 
 /// Global vars
 
@@ -77,7 +77,7 @@ uquad_kmsgq_t *kmsgq 	= NULL;
  *
  * init todo en cero y flight mode en 2 
  */
-uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1500,1500};
+uint16_t ch_buff[CH_COUNT]={1500,1500,1500,950,2000};
 
 /** 
  * Buffer para enviar mensajes de kernel
@@ -538,7 +538,7 @@ int read_from_stdin(void)
             ch_buff[0] = 1000;
             ch_buff[1] = 1000;
             ch_buff[2] = 1000;
-            ch_buff[3] = 990; //min throttle
+            ch_buff[3] = 950; //min throttle
             ch_buff[4] = 1000;
             puts("Seteando minimo valor");
             break;
@@ -550,21 +550,21 @@ int read_from_stdin(void)
             ch_buff[4] = 1500;
             puts("Seteando valor medio");
             break;
+#endif //SETANDO_CC3D 
          case 'A':                                     
             ch_buff[0] = 1500; //roll
             ch_buff[1] = 1500; //pitch
             ch_buff[2] = 1000; //yaw
-            ch_buff[3] = 990; //throttle  
+            ch_buff[3] = 950; //throttle  
             puts("Armando..."); 
             break;
          case 'D':                                                          
             ch_buff[0] = 1500; //roll                                       
             ch_buff[1] = 1500; //pitch                                          
             ch_buff[2] = 2000; //yaw
-            ch_buff[3] = 990; //throttle                       
+            ch_buff[3] = 950; //throttle                       
             puts("Desarmando...");                              
             break; 
-#endif //SETANDO_CC3D
          default:
             puts("comando invalido");
             retval = -1;
