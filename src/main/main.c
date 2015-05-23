@@ -240,14 +240,14 @@ int commandoOK = -1;
       //{
          //Control
          u = Kp*(yaw_d - act.yaw);
-         printf("senal de control: %lf\n", u); // dbg
+         //printf("senal de control: %lf\n", u); // dbg
          
          //Convertir velocidad en comando
          ch_buff[2] = (uint16_t) (u*25/11 + 1500);
          //commandoOK = -1;
       //}
 
-      printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+      //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
       // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
       retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
       if(retval != ERROR_OK)

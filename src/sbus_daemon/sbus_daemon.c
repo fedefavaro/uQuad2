@@ -154,16 +154,28 @@ int main(int argc, char *argv[])
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-   
+   int cont_loop_14 = 0;
    for(;;)
    {
       gettimeofday(&tv_in,NULL);
 
-      //if((err_count > MAX_ERR_SBUSD) || (rcv_err_count > MAX_ERR_SBUSD))
-      //{
-        // err_log("error count exceded");
-        // quit();
-      //}
+      ret = uquad_read(&rbuf);
+      if(ret == ERROR_OK)
+      { 
+         msg_received = true;
+         // Parse message. 2 bytes per channel.
+         ch_buff = (int16_t *)rbuf.mtext;
+         // send ack
+         ret = uquad_send_ack();
+         if(ret != ERROR_OK)
+         {
+            err_log("Failed to send ack!");
+         }
+      }
+      else
+      {
+         msg_received = false;
+      }
 
       if(msg_received)
       {
@@ -186,88 +198,39 @@ int main(int argc, char *argv[])
       }
 
 #if !PC_TEST
-      ret = futaba_sbus_write_msg(fd);
-      if (ret < 0)
+      futaba_sbus_write_msg(fd);
+#else
+      // En modo PC test se escribe el mensaje a un archivo de texto o a stdout
+      convert_sbus_data(str);
+#if SBUS_LOG_TO_FILE
+      // Escribe en un arhivo/
+      ret = fprintf(fp, "%s", str);
+      if(ret < 0)
       {
-         //err_count++;
-      } else
-      {
-        /// This loop was fine
-	   //if(err_count > 0)
-	     // err_count--;
+         err_log("Failed to write to log file!");
       }
 #else
-	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
-	convert_sbus_data(str);
-#if SBUS_LOG_TO_FILE
-	/* Escribe en un arhivo */
-	ret = fprintf(fp, "%s", str);
-	if(ret < 0)
-	{
-	    err_log("Failed to write to log file!");
-	    //err_count++;
-	}
-#else
-	/* Escribe en stdout */
-	printf("%s",str);
+      // Escribe en stdout
+      printf("%s",str);
 #endif // SBUS_LOG_TO_FILE
-	/// This loop was fine
-	//if(err_count > 0)
-	  // err_count--;
+
 #endif // !PC_TEST
 		
-     
-#if DEBUG_TIMING_SBUSD
-        gettimeofday(&tv_end,NULL);
-        ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);
-        printf("duracion loop sbusd (98ms): %lu\n",(unsigned long)tv_diff.tv_usec);
-        tv_last = tv_end;
-#endif //DEBUG_TIMING_SBUSD
-
-      ret = uquad_read(&rbuf);
-      if(ret == ERROR_OK)
-      { 
-              msg_received = true;
-              //if(rcv_err_count > 0)
-                //  rcv_err_count--;
-              // Parse message. 2 bytes per channel.
-              ch_buff = (int16_t *)rbuf.mtext;
-              /// send ack
-              ret = uquad_send_ack();
-              if(ret != ERROR_OK)
-              {
-                    err_log("Failed to send ack!");
-              }
-      }
-      else
-      {
-#if DEBUG
-               // este error va a estar siempre porque el main y el sbusd no estan perfectamente sincronizados, pero no hay que darle importancia a menos que aparezca muy seguido
-               //err_log("Failed to read msg!"); 
-#endif //DEBUG
-              msg_received = false;
-              //rcv_err_count++;
-      }
-      
-      /// Control de tiempo del loop corto (14ms)
+      /// Control de tiempo
       gettimeofday(&tv_end,NULL);
       ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
       if(ret > 0)
       {
          if(tv_diff.tv_usec < LOOP_T_US)
             usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
-      }
-      else
-      {
-         err_log("WARN: Absurd timing!");
-         err_count++;
-      }
-      
 #if DEBUG_TIMING_SBUSD
-      gettimeofday(&tv_end,NULL);
-      ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      printf("duracion loop sbusd (14ms): %lu\n",(unsigned long)tv_diff.tv_usec);
+         gettimeofday(&tv_end,NULL);
+         ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+         printf("duracion loop sbusd (14ms): %lu\n",(unsigned long)tv_diff.tv_usec);
 #endif
+      } else {
+         err_log("WARN: Absurd timing!");
+      }
       
    } //for(;;)  
 
