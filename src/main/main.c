@@ -100,6 +100,13 @@ void uquad_sig_handler(int signal_num);
 void set_signals(void);
 int read_from_stdin(void);
 
+// Control activado/desactivado //TODO aca?
+typedef enum {
+	STOPPED = 0,
+	STARTED
+} estado_control_t;
+
+estado_control_t control_status = STOPPED;
 
 /*********************************************/
 /**************** Main ***********************/
@@ -282,13 +289,16 @@ int commandoOK = -1;
 
 #ifndef SETANDO_CC3D
 #ifdef PRUEBA_YAW
-      //Control
-      u = Kp*(yaw_d - act.yaw);
-      //printf("senal de control: %lf\n", u); // dbg
+      if(control_status == STARTED)
+      {
+         //Control
+         u = Kp*(yaw_d - act.yaw);
+         //printf("senal de control: %lf\n", u); // dbg
          
-      //Convertir velocidad en comando
-      ch_buff[2] = (uint16_t) (u*25/11 + 1500);
-      //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+         //Convertir velocidad en comando
+         ch_buff[2] = (uint16_t) (u*25/11 + 1500);
+         //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+      }
 #endif //PRUEBA_YAW
 #endif //SETANDO_CC3D
 
@@ -441,6 +451,12 @@ int read_from_stdin(void)
          case 'S':
             ch_buff[3] = throttle_inicial; //valor pasado como parametro
             puts("Comenzando");
+            control_status = STARTED;
+            break;
+         case 'P':
+            ch_buff[3] = 1000;
+            puts("Deteniendo");
+            control_status = STOPPED;
             break;
          case '0':
             yaw_d = 0;
