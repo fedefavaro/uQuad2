@@ -88,6 +88,8 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 
 // UAVTalk
 int fd_CC3D;
+actitud_t act_last;
+double yaw_rate;
 
 // Control de yaw
 double u = 0; //senal de control (setpoint de velocidad angular) 
@@ -170,7 +172,8 @@ int main(int argc, char *argv[])
    // Control de tiempos                                                         
    struct timeval tv_in_loop,
                   tv_start_main,
-                  tv_in_aux;
+                  tv_in_aux,
+                  dt;
 
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
@@ -234,6 +237,7 @@ int main(int argc, char *argv[])
 
 int8_t count_50 = 1; // controla timepo de ejecucion
 actitud_t act = {0,0,0,0}; //almacena variables de actitud leidas de la cc3d
+act_last = act;
 
 char buff_act[512]; //TODO determinar valor
 char buf_pwm[512]; //TODO determinar valor
@@ -302,9 +306,19 @@ int commandoOK = -1;
          quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
       
-      // Log de actitud
+      // velocidad
+      retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
+      if(retval > 0) {
+         yaw_rate = (act.yaw - act_last.yaw) / (long)(dt.tv_usec);
+         act_last = act;
+      } else {
+         err_log("WARN: Absurd timing!");
+         yaw_rate = sqrt (-1); //NaN
+      }
+      // Log
       buff_len = uavtalk_to_str(buff_act, act);
-      buff_len += sprintf(buf_pwm, "%u %u %u %u\n",
+      buff_len += sprintf(buf_pwm, "%lf\t%u %u %u %u\n",
+                       yaw_rate,
                        ch_buff[0],
                        ch_buff[1],
                        ch_buff[2],
