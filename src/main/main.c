@@ -309,7 +309,7 @@ int commandoOK = -1;
       // velocidad
       retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
       if(retval > 0) {
-         yaw_rate = (act.yaw - act_last.yaw) / (long)(dt.tv_usec);
+         yaw_rate = 1000000*(act.yaw - act_last.yaw) / (long)(dt.tv_usec);
          act_last = act;
       } else {
          err_log("WARN: Absurd timing!");
