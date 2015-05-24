@@ -86,4 +86,14 @@ int in_range_us(struct timeval tv_diff, long int min_us, long int max_us);
  */
 int wait_loop_T_US(unsigned long loop_duration_usec, struct timeval tv_in);
 
+
+/**
+ * Devuelve tiempo de comienzo del main.
+ *
+ * @return tiempo de comienzo del main
+ */
+void set_main_start_time(void);
+
+struct timeval get_main_start_time(void);
+
 #endif

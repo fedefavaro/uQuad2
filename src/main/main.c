@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 	log_name = argv[1];
 #ifdef PRUEBA_YAW
         throttle_inicial = atoi(argv[2]);
-        printf("Throttle inicial: %u", throttle_inicial);
+        printf("Throttle inicial: %u\n", throttle_inicial);
 #endif
     }
 
@@ -168,20 +168,25 @@ int main(int argc, char *argv[])
    set_signals();                                                                
                                                                                  
    // Control de tiempos                                                         
-   struct timeval tv_in;  
+   struct timeval tv_in_loop,
+                  tv_start_main,
+                  tv_in_aux;
 
    // -- -- -- -- -- -- -- -- -- 
    // Inicializacion
    // -- -- -- -- -- -- -- -- -- 
 
+   /// Tiempo
+   set_main_start_time();
+   //tv_start = get_main_start_time();
+
    /// Log
-   log_fd = open(log_name ,O_RDWR | O_CREAT | O_NONBLOCK );
+   log_fd = open(log_name, O_RDWR | O_CREAT | O_NONBLOCK );
    if(log_fd < 0)
    {
       err_log_stderr("Failed to open log file!");
       quit(1);
    }
-
 
    /// Ejecuta Demonio S-BUS - proceso independiente
    sbusd_child_pid = futaba_sbus_start_daemon();                            
@@ -214,9 +219,9 @@ int main(int argc, char *argv[])
    /// inicializa UAVTalk
 #if !DISABLE_UAVTALK
    fd_CC3D = uav_talk_init();
+#endif
    bool CC3D_readOK;
    bool log_writeOK;
-#endif
 
    /// mensajitos al usuario...
 #if PC_TEST
@@ -231,6 +236,7 @@ int8_t count_50 = 1; // controla timepo de ejecucion
 actitud_t act = {0,0,0,0}; //almacena variables de actitud leidas de la cc3d
 
 char buff_act[512]; //TODO determinar valor
+char buf_pwm[512]; //TODO determinar valor
 int buff_len;
 
 int commandoOK = -1;
@@ -240,27 +246,14 @@ int commandoOK = -1;
    // -- -- -- -- -- -- -- -- -- 
    for(;;)
    {
-      gettimeofday(&tv_in,NULL); //para tener tiempo de entrada en cada loop
+      gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
 
 #if !DISABLE_UAVTALK   
       /// Leo data de CC3D y Log
       CC3D_readOK = check_read_locks(fd_CC3D);
       if (CC3D_readOK) {
-         if (uavtalk_read(fd_CC3D, &act)) {
-            
-            buff_len = uavtalk_to_str(buff_act, act);
-
-	    log_writeOK =check_write_locks(log_fd);
-            if (log_writeOK) {
-               retval = write(log_fd, buff_act, buff_len);
-               if(retval < 0)
-               {
-                  err_log_stderr("Failed to write to log file!");
-                  continue;
-               }
-            }
-
-         } else {
+         if (!uavtalk_read(fd_CC3D, &act))
+         {
             err_log("uavtalk_read failed");
             continue;
          }     
@@ -309,8 +302,24 @@ int commandoOK = -1;
          quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
       
+      // Log de actitud
+      buff_len = uavtalk_to_str(buff_act, act);
+      buff_len += sprintf(buf_pwm, "%u %u %u %u\n",
+                       ch_buff[0],
+                       ch_buff[1],
+                       ch_buff[2],
+                       ch_buff[3]);
+  
+      strcat(buff_act, buf_pwm);
+      log_writeOK = check_write_locks(log_fd);
+      if (log_writeOK) {
+         retval = write(log_fd, buff_act, buff_len);
+         if(retval < 0)
+            err_log_stderr("Failed to write to log file!");   
+      }
+  
       /// Control de tiempos del loop
-      wait_loop_T_US(MAIN_LOOP_50_MS,tv_in);
+      wait_loop_T_US(MAIN_LOOP_50_MS,tv_in_loop);
 
    } // for(;;)
 

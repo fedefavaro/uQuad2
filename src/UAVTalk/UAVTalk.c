@@ -44,7 +44,7 @@
 #define CC3D_BAUD_57600
 //#define CC3D_BAUD_115200
 
-static struct timeval tv_start;
+//static struct timeval tv_start;
   
 static unsigned long last_gcstelemetrystats_send = 0;
 static unsigned long last_flighttelemetry_connect = 0;
@@ -78,16 +78,16 @@ static const uint8_t crc_table[256] = {
 
 
 
-void uav_talk_get_start_time(void)
+/*void uav_talk_get_start_time(void)
 {
    gettimeofday(&tv_start,NULL);
      
-}
+}*/
 
 
 int uav_talk_init(void)
 {
-   uav_talk_get_start_time();
+   //uav_talk_get_start_time();
    
    /// Puerto Serie Beagle-CC3D
    int fd = open_port(CC3D_DEVICE);
@@ -128,14 +128,14 @@ int32_t uavtalk_get_time_usec(void)
 	struct timeval tv_aux;
 
         gettimeofday(&tv_aux,NULL);
-        uquad_timeval_substract(&tv_diff, tv_aux, tv_start);
+        uquad_timeval_substract(&tv_diff, tv_aux, get_main_start_time());
       	return (int32_t)(tv_diff.tv_sec * 1000000 + tv_diff.tv_usec);
 }
 
 
 void uav_talk_print_attitude(actitud_t act)
 {
-   static int32_t lastTime=0;
+   //static int32_t lastTime=0;
    
    printf("Roll: %lf  ", act.roll); 
    printf("Pitch: %lf  ", act.pitch);
@@ -464,7 +464,7 @@ int uavtalk_read(int fd, actitud_t* act)
 		if (uavtalk_parse_char(c, &msg)) {
 			// consume msg
 			switch (msg.ObjID) {
-				case FLIGHTTELEMETRYSTATS_OBJID:
+/*				case FLIGHTTELEMETRYSTATS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
 				case FLIGHTTELEMETRYSTATS_OBJID_001:
 #endif
@@ -486,7 +486,7 @@ int uavtalk_read(int fd, actitud_t* act)
 						break;
 					}
 				break;
-
+*/
 				case ATTITUDEACTUAL_OBJID:
 				case ATTITUDESTATE_OBJID:
 					last_flighttelemetry_connect = uavtalk_get_time_usec();
@@ -498,7 +498,7 @@ int uavtalk_read(int fd, actitud_t* act)
         				//osd_yaw			= (int16_t) uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
 					act->yaw		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
                                         gettimeofday(&tv_aux,NULL);
-                                        uquad_timeval_substract(&act->ts, tv_aux, tv_start);
+                                        uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
 					//printf("ATTITUDE\n");
                                         // if we don't have a GPS, use Yaw for heading
                                         //if (osd_lat == 0) {
@@ -507,7 +507,7 @@ int uavtalk_read(int fd, actitud_t* act)
 					serial_flush(fd);
 				break;
 
-				case FLIGHTSTATUS_OBJID:
+/*				case FLIGHTSTATUS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
 				case FLIGHTSTATUS_OBJID_001:
 				case FLIGHTSTATUS_OBJID_002:
@@ -519,7 +519,7 @@ int uavtalk_read(int fd, actitud_t* act)
         				osd_mode		= uavtalk_get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
 					//printf("FLIGHTSTATUS\n");
 				break;
-/*
+
 #ifdef OP_DEBUG
 				case SYSTEMALARMS_OBJID:
 #ifdef VERSION_ADDITIONAL_UAVOBJID
@@ -538,9 +538,9 @@ int uavtalk_read(int fd, actitud_t* act)
 #endif
 */
 			}
-			if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
-				uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
-			}
+			//if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
+			//	uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
+			//}
 		}
 
 		//usleep(190); // wait at least 1 byte
@@ -553,19 +553,19 @@ int uavtalk_read(int fd, actitud_t* act)
 #endif
 	
 	// check connect timeout
-	int32_t current_time_usec = uavtalk_get_time_usec();
+/*	int32_t current_time_usec = uavtalk_get_time_usec();
 	if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < current_time_usec)
 	{
 		gcstelemetrystatus = TELEMETRYSTATS_STATE_DISCONNECTED;
 		show_prio_info = 1;
 	}
-	
+*/	
 	// periodically send gcstelemetrystats
-	if (last_gcstelemetrystats_send + 1000*GCSTELEMETRYSTATS_SEND_PERIOD < current_time_usec)
+/*	if (last_gcstelemetrystats_send + 1000*GCSTELEMETRYSTATS_SEND_PERIOD < current_time_usec)
 	{
 		uavtalk_send_gcstelemetrystats(fd);
 	}
-
+*/
 	//printf("time: %lu\n", uavtalk_get_time_usec() - start_time);
 
         return show_prio_info;
@@ -583,29 +583,17 @@ int uavtalk_to_str(char* buf_str, actitud_t act)
 {
    char* buf_ptr = buf_str;
    int ret;
-   //struct timeval tv_ts; //for timestamp
-
-   // Timestamp
-   buf_ptr += sprintf(buf_ptr, "%04lu:%06lu", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
-   //gettimeofday(&tv_ts,NULL);
-   //ret = uquad_timeval_substract(&tv_ts, tv_ts, tv_start);
-   //if(ret > 0)
-   //{
-      //buf_ptr += sprintf(buf_ptr, "%04lu:%06lu", (unsigned long)tv_ts.tv_sec, (unsigned long)tv_ts.tv_usec);
-   //}
-   //else
-   //{
-      //err_log("WARN: Absurd timing!");
-      //return -1;
-   //}
    
-   buf_ptr += sprintf(buf_ptr, ",%lf", act.roll);
-   buf_ptr += sprintf(buf_ptr, ",%lf", act.pitch);
-   buf_ptr += sprintf(buf_ptr, ",%lf", act.yaw);
-//   buf_ptr += sprintf(buf_ptr, ",%lf", act->throttle);
-   buf_ptr += sprintf(buf_ptr,"\n");
+   // Timestamp
+   buf_ptr += sprintf(buf_ptr, "%04lu %06lu", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
+  
+   buf_ptr += sprintf(buf_ptr, " %lf", act.roll);
+   buf_ptr += sprintf(buf_ptr, " %lf", act.pitch);
+   buf_ptr += sprintf(buf_ptr, " %lf", act.yaw);
+//   buf_ptr += sprintf(buf_ptr, " %lf", act->throttle);
+   buf_ptr += sprintf(buf_ptr,"\t");
 
-   return (buf_ptr-buf_str); //char_count
+   return (buf_ptr - buf_str); //char_count
 
 }
 

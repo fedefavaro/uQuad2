@@ -100,3 +100,18 @@ int wait_loop_T_US(unsigned long loop_duration_usec, struct timeval tv_in)
 
    return retval;
 }
+
+static struct timeval main_start_time;
+
+void set_main_start_time(void)
+{
+   gettimeofday(&main_start_time,NULL);
+   return;
+}
+
+
+struct timeval get_main_start_time(void)
+{
+   return main_start_time;
+}
+
