@@ -95,6 +95,8 @@ double yaw_rate;
 double u = 0; //senal de control (setpoint de velocidad angular) 
 int Kp = 1;  // tau = 1/Kp // Probar tau = 1 y tau = 2
 double yaw_d = 0;
+double vel_pos = 0;                                                                  
+double vel_neg = 0; 
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -105,7 +107,8 @@ int read_from_stdin(void);
 // Control activado/desactivado //TODO aca?
 typedef enum {
 	STOPPED = 0,
-	STARTED
+	STARTED,
+        OPEN
 } estado_control_t;
 
 estado_control_t control_status = STOPPED;
@@ -296,6 +299,23 @@ int commandoOK = -1;
          ch_buff[2] = (uint16_t) (u*25/11 + 1500);
          //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
       }
+      if(control_status == OPEN)
+      {
+         // Reviso si llegue al limite
+         if( act.yaw > 145 )
+         { 
+           yaw_d = vel_neg;
+         }
+         if( act.yaw < -145 )
+         {
+           yaw_d = vel_pos;                                                                                                
+         }
+         
+         //Convertir velocidad en comando                                                                                 
+         ch_buff[2] = (uint16_t) (yaw_d*25/11 + 1500); //uso angulo pero es velocidad!
+      }
+//printf("%lf  %lf  %lf\n", yaw_d, vel_neg, vel_pos); // dbg
+ 
 #endif //PRUEBA_YAW
 #endif //SETANDO_CC3D
 
@@ -473,9 +493,16 @@ int read_from_stdin(void)
 #ifdef PRUEBA_YAW
          case 'S':
             ch_buff[3] = throttle_inicial; //valor pasado como parametro
-            puts("Comenzando");
+            puts("Comenzando lazo cerrado");
             control_status = STARTED;
             break;
+         case 'E':                                                                                                        
+            ch_buff[3] = throttle_inicial; //valor pasado como parametro                                                  
+            vel_pos = yaw_d;                                                     
+            vel_neg = -yaw_d;                                                    
+            control_status = OPEN;             
+            puts("Comenzando lazo abierto");                                                                                           
+            break; 
          case 'P':
             ch_buff[3] = 1000;
             puts("Deteniendo");
