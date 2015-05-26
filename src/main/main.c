@@ -253,7 +253,8 @@ int err_count = 0;
 
 // Espero a tener comunicacion estable con cc3d
 #if !DISABLE_UAVTALK                                                  
-   while(!uavtalk_read(fd_CC3D, &act));
+   //leo hasta que no quede nada
+   //ojo que cuando lea en el loop no va a haber datos!
 #endif 
 
    // -- -- -- -- -- -- -- -- -- 
@@ -261,30 +262,29 @@ int err_count = 0;
    // -- -- -- -- -- -- -- -- -- 
    for(;;)
    {
-      if (err_count > 5) quit(0);
-
-      gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
+      //para tener tiempo de entrada en cada loop
+      gettimeofday(&tv_in_loop,NULL);
       
-      if (!first_run) {
-#if !DISABLE_UAVTALK   
-         /// Leo data de CC3D y Log
-         CC3D_readOK = check_read_locks(fd_CC3D);
-         if (CC3D_readOK) {
-            if (!uavtalk_read(fd_CC3D, &act))
-            {
-               err_log("uavtalk_read failed");
-               err_count++;
-               continue;
-            }     
-            // loop ok
-            if (err_count > 0) err_count--;
+      //control de errores ??
+      // TODO
 
-         } else {
-            err_log("UAVTalk: read NOT ok");
+#if !DISABLE_UAVTALK
+      /// Leo datos de CC3D
+      CC3D_readOK = check_read_locks(fd_CC3D);
+      if (CC3D_readOK) {
+         
+         reval = uavtalk_read(fd_CC3D, &act);
+         if (retval < 0)
+         {
+            err_log("uavtalk_read failed");
             continue;
-            //quit(0);
          }
-      } else first_run = false;
+ 
+      } else {
+         err_log("UAVTalk: read NOT ok");
+         continue;
+         //quit(0);
+      }
 #endif
 
       /// Polling de dispositivos IO
@@ -345,6 +345,7 @@ int err_count = 0;
       // velocidad
       retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
       if(retval > 0) {
+         if(dt.tv_usec > 50000) err_log("WARN: se perdieron muestras");
          yaw_rate = 1000000*(act.yaw - act_last.yaw) / (long)(dt.tv_usec);
          act_last = act;
       } else {

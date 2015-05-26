@@ -395,6 +395,7 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 					cnt = 0;
 
                                         // Agregado por mi
+                                        // descarto cualquier mensaje que no sea actitud
                                         if (msg->ObjID != ATTITUDEACTUAL_OBJID && 
                                             msg->ObjID != ATTITUDESTATE_OBJID)
                                         {
@@ -467,7 +468,7 @@ int uavtalk_read(int fd, actitud_t* act)
 		ret = read(fd,&c,1);
 		if (ret < 0) {
 		  printf("read failed\n");
-    		  return -1;		
+    		  return -1;
 		}
 
 		// parse data to msg
@@ -513,7 +514,7 @@ int uavtalk_read(int fd, actitud_t* act)
 					//printf("ATTITUDE\n");
                                         // if we don't have a GPS, use Yaw for heading
                                         //if (osd_lat == 0) {
-                                            osd_heading = osd_yaw;
+                                            //osd_heading = osd_yaw;
                                         //}
 					//serial_flush(fd);
 				break;
@@ -552,9 +553,10 @@ int uavtalk_read(int fd, actitud_t* act)
 			//if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
 			//	uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
 			//}
-		} else if (ret == -1) //Lei algo que no era la actitud
+		} else if (ret == -1) {
+                   printf("No era actitud\n");
                    return -1;
-
+                }
 		//usleep(190); // wait at least 1 byte
 	   	
         } //while()
@@ -608,5 +610,66 @@ int uavtalk_to_str(char* buf_str, actitud_t act)
    return (buf_ptr - buf_str); //char_count
 
 }
+
+
+void uavtalk_print_msg(uavtalk_message_t *msg)
+{
+	uint8_t *d;
+	uint8_t j;
+	uint8_t c;
+
+	//char buff[(msg->Length & 0xff) + 20];
+	uint8_t buff[300];
+	int i = 0;
+	c = (uint8_t) (msg->Sync);
+	buff[i]=c;
+	msg->Crc = crc_table[0 ^ c];
+	c = (uint8_t) (msg->MsgType);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = (uint8_t) (msg->Length & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = (uint8_t) ((msg->Length >> 8) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = (uint8_t) (msg->ObjID & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = (uint8_t) ((msg->ObjID >> 8) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = (uint8_t) ((msg->ObjID >> 16) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = (uint8_t) ((msg->ObjID >> 24) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = 0; //(uint8_t) (msg->InstID & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+	c = 0; //(uint8_t) ((msg->InstID >> 8) & 0xff);
+	buff[++i]=c;
+	msg->Crc = crc_table[msg->Crc ^ c];
+    	if (msg->Length > HEADER_LEN) {
+	  d = msg->Data;
+	  for (j=0; j<msg->Length-HEADER_LEN; j++) {
+		c = *d++;
+		buff[++i]=c;
+		msg->Crc = crc_table[msg->Crc ^ c];
+          }
+	}
+	buff[++i]=msg->Crc;
+
+        int k;
+        for (k=0;k<i+1;k++)
+           printf("%02X ", buff[k]);
+	printf("\n");
+
+	return;
+}
+
+
+
 
 
