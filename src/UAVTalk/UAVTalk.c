@@ -515,7 +515,7 @@ int uavtalk_read(int fd, actitud_t* act)
                                         //if (osd_lat == 0) {
                                             osd_heading = osd_yaw;
                                         //}
-					serial_flush(fd);
+					//serial_flush(fd);
 				break;
 
 /*				case FLIGHTSTATUS_OBJID:

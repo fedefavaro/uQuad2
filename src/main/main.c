@@ -175,7 +175,8 @@ int main(int argc, char *argv[])
    // Control de tiempos                                                         
    struct timeval tv_in_loop,
                   tv_start_main,
-                  tv_in_aux,
+                  tv_aux,
+                  tv_diff,
                   dt;
 
    // -- -- -- -- -- -- -- -- -- 
@@ -184,7 +185,7 @@ int main(int argc, char *argv[])
 
    /// Tiempo
    set_main_start_time();
-   //tv_start = get_main_start_time();
+   tv_start_main = get_main_start_time();
 
    /// Log
    log_fd = open(log_name, O_RDWR | O_CREAT | O_NONBLOCK );
@@ -247,29 +248,43 @@ char buf_pwm[512]; //TODO determinar valor
 int buff_len;
 
 int commandoOK = -1;
+bool first_run = true;
+int err_count = 0;
+
+// Espero a tener comunicacion estable con cc3d
+#if !DISABLE_UAVTALK                                                  
+   while(!uavtalk_read(fd_CC3D, &act));
+#endif 
 
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
    for(;;)
    {
+      if (err_count > 5) quit(0);
+
       gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
-
+      
+      if (!first_run) {
 #if !DISABLE_UAVTALK   
-      /// Leo data de CC3D y Log
-      CC3D_readOK = check_read_locks(fd_CC3D);
-      if (CC3D_readOK) {
-         if (!uavtalk_read(fd_CC3D, &act))
-         {
-            err_log("uavtalk_read failed");
-            continue;
-         }     
-      } else {
-         err_log("UAVTalk: read NOT ok");
-         //continue;
-         quit(0);
-      }
+         /// Leo data de CC3D y Log
+         CC3D_readOK = check_read_locks(fd_CC3D);
+         if (CC3D_readOK) {
+            if (!uavtalk_read(fd_CC3D, &act))
+            {
+               err_log("uavtalk_read failed");
+               err_count++;
+               continue;
+            }     
+            // loop ok
+            if (err_count > 0) err_count--;
 
+         } else {
+            err_log("UAVTalk: read NOT ok");
+            continue;
+            //quit(0);
+         }
+      } else first_run = false;
 #endif
 
       /// Polling de dispositivos IO
@@ -336,9 +351,17 @@ int commandoOK = -1;
          err_log("WARN: Absurd timing!");
          yaw_rate = sqrt (-1); //NaN
       }
-      // Log
+     
+       // Log
+      
+      gettimeofday(&tv_aux,NULL);
+      uquad_timeval_substract(&tv_diff, tv_aux, tv_start_main);
+
       buff_len = uavtalk_to_str(buff_act, act);
-      buff_len += sprintf(buf_pwm, "%lf\t%u %u %u %u\n",
+      
+      buff_len += sprintf(buf_pwm, "%ld %ld  %lf\t%u %u %u %u\n",
+                       tv_diff.tv_sec,
+                       tv_diff.tv_usec, 
                        yaw_rate,
                        ch_buff[0],
                        ch_buff[1],
