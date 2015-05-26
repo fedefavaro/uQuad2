@@ -266,7 +266,8 @@ int commandoOK = -1;
          }     
       } else {
          err_log("UAVTalk: read NOT ok");
-         continue;
+         //continue;
+         quit(0);
       }
 
 #endif
@@ -308,7 +309,7 @@ int commandoOK = -1;
          }
          if( act.yaw < -145 )
          {
-           yaw_d = vel_pos;                                                                                                
+           yaw_d = vel_pos;   
          }
          
          //Convertir velocidad en comando                                                                                 

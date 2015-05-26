@@ -102,6 +102,7 @@ int uav_talk_init(void)
    if (ret < 0)
       return -1;
 
+   // Clean serial buffer from cc3d
    serial_flush(fd);
    
    return fd;
@@ -392,6 +393,7 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 					msg->ObjID += ((uint32_t) c) << 24;
 					status = UAVTALK_PARSE_STATE_GOT_OBJID;
 					cnt = 0;
+
                                         // Agregado por mi
                                         if (msg->ObjID != ATTITUDEACTUAL_OBJID && 
                                             msg->ObjID != ATTITUDESTATE_OBJID)
@@ -399,6 +401,7 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
                                            status = UAVTALK_PARSE_STATE_WAIT_SYNC;
                                            return -1;
                                         }
+
 				break;
 			}
 		break;
@@ -549,7 +552,7 @@ int uavtalk_read(int fd, actitud_t* act)
 			//if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
 			//	uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
 			//}
-		} else if (ret == -1)
+		} else if (ret == -1) //Lei algo que no era la actitud
                    return -1;
 
 		//usleep(190); // wait at least 1 byte
