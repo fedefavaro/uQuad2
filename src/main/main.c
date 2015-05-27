@@ -253,8 +253,10 @@ int err_count = 0;
 
 // Espero a tener comunicacion estable con cc3d
 #if !DISABLE_UAVTALK                                                  
-   //leo hasta que no quede nada
+   //limpio cc3d serial input buffer
    //ojo que cuando lea en el loop no va a haber datos!
+   err_log("Clearing CC3D input buffer...");
+   while(read(fd_CC3D,tmp_buff,1) > 0);
 #endif 
 
    // -- -- -- -- -- -- -- -- -- 

@@ -467,8 +467,8 @@ int uavtalk_read(int fd, actitud_t* act)
 	while (!show_prio_info && check_read_locks(fd))
 	{				
 		ret = read(fd,&c,1);
-		if (ret < 0) {
-		  printf("read failed\n");
+		if (ret <= 0) {
+		  err_log("read failed");
     		  return -1;
 		}
 
@@ -517,7 +517,8 @@ int uavtalk_read(int fd, actitud_t* act)
                                         //if (osd_lat == 0) {
                                             //osd_heading = osd_yaw;
                                         //}
-					serial_flush(fd);
+					//serial_flush(fd);
+					while(read(fd,&c,1) > 0);
 				break;
 
 /*				case FLIGHTSTATUS_OBJID:
@@ -555,7 +556,7 @@ int uavtalk_read(int fd, actitud_t* act)
 			//	uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
 			//}
 		} else if (ret == -1) {
-                   printf("No era actitud\n");
+                   err_log("No era actitud");
                    return -1;
                 }
 		//usleep(190); // wait at least 1 byte
@@ -563,8 +564,8 @@ int uavtalk_read(int fd, actitud_t* act)
         } //while()
 	
 #ifdef DEBUG
-        //uavtalk_show_msg(&msg);
-        uav_talk_print_attitude(*act);
+        //uavtalk_print_msg(&msg);
+        //uav_talk_print_attitude(*act);
 #endif
 	
 	// check connect timeout
