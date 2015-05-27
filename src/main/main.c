@@ -44,7 +44,7 @@
 
 #define PRUEBA_YAW
 //#define PRUEBA_THROTTLE
-//#define SETANDO_CC3D
+#define SETANDO_CC3D
 
 /// Global vars
 
@@ -273,7 +273,7 @@ int err_count = 0;
       CC3D_readOK = check_read_locks(fd_CC3D);
       if (CC3D_readOK) {
          
-         reval = uavtalk_read(fd_CC3D, &act);
+         retval = uavtalk_read(fd_CC3D, &act);
          if (retval < 0)
          {
             err_log("uavtalk_read failed");
@@ -285,6 +285,8 @@ int err_count = 0;
          continue;
          //quit(0);
       }
+#else
+      sleep_ms(15); //simulo demora en lectura // TODO determinar cuanto
 #endif
 
       /// Polling de dispositivos IO
@@ -341,18 +343,19 @@ int err_count = 0;
       {
          quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
-      
+
+#if !DISABLE_UAVTALK       
       // velocidad
       retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
       if(retval > 0) {
-         if(dt.tv_usec > 50000) err_log("WARN: se perdieron muestras");
+         if(dt.tv_usec > 60000) err_log("WARN: se perdieron muestras");
          yaw_rate = 1000000*(act.yaw - act_last.yaw) / (long)(dt.tv_usec);
          act_last = act;
       } else {
          err_log("WARN: Absurd timing!");
          yaw_rate = sqrt (-1); //NaN
       }
-     
+#endif
        // Log
       
       gettimeofday(&tv_aux,NULL);
@@ -533,7 +536,7 @@ int read_from_stdin(void)
             puts("Deteniendo");
             control_status = STOPPED;
             break;
-         case '0':
+        /* case '0':
             yaw_d = 0;
             break;
          case '1':
@@ -562,7 +565,37 @@ int read_from_stdin(void)
             break;
          case '9':
             yaw_d = 90;
-            break;
+            break;*/
+         case '0':                                                               
+            ch_buff[2] = 1500;                                                   
+            break;                                                               
+         case '1':                                                               
+            ch_buff[2] = 1510;                                                   
+            break;                                                               
+         case '2':                                                               
+            ch_buff[2] = 1520;                                                   
+            break;                                                               
+         case '3':                                                               
+            ch_buff[2] = 1530;                                                   
+            break;                                                               
+         case '4':                                                               
+            ch_buff[2] = 1540;                                                   
+            break;                                                               
+         case '5':                                                               
+            ch_buff[2] = 1550;                                                   
+            break;                                                               
+         case '6':                                                               
+            ch_buff[2] = 1800;                                                   
+            break;                                                               
+         case '7':                                                               
+            ch_buff[2] = 1850;                                                   
+            break;                                                               
+         case '8':                                                               
+            ch_buff[2] = 1900;                                                   
+            break;                                                              
+         case '9':                                                               
+            ch_buff[2] = 1950;                                                   
+            break; 
 #endif //PRUEBA_YAW
 #ifdef PRUEBA_THROTTLE
          case '0':
@@ -664,8 +697,8 @@ int read_from_stdin(void)
          } //switch(tmp_buff[0])
 
          if(negativos && retval==0)
-            //ch_buff[2] = 1500 - (ch_buff[2] - 1500);
-	    yaw_d = -yaw_d;
+            ch_buff[2] = 1500 - (ch_buff[2] - 1500);
+	    //yaw_d = -yaw_d;
 
          return retval;
 }

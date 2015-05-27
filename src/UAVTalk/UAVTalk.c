@@ -41,8 +41,8 @@
 //#define CC3D_DEVICE	"/dev/ttyUSB0" //TODO que onda cuando tenga 2 ftdi?
 #define CC3D_DEVICE	"/dev/ttyO1"
 
-#define CC3D_BAUD_57600
-//#define CC3D_BAUD_115200
+//#define CC3D_BAUD_57600
+#define CC3D_BAUD_115200
 
 //static struct timeval tv_start;
   
@@ -156,7 +156,8 @@ bool check_read_locks(int fd) {
   struct timeval tv;
   tv.tv_sec = 0;
 #ifdef CC3D_BAUD_115200
-  tv.tv_usec = 100;   //Espero un byte: T_byte=1/(BAUDRATE/10)
+//  tv.tv_usec = 100;   //Espero un byte: T_byte=1/(BAUDRATE/10)
+  tv.tv_usec = 0;
 #else //#ifdef CC3D_BAUD_57600
 //  tv.tv_usec = 175;
   tv.tv_usec = 0;
@@ -516,7 +517,7 @@ int uavtalk_read(int fd, actitud_t* act)
                                         //if (osd_lat == 0) {
                                             //osd_heading = osd_yaw;
                                         //}
-					//serial_flush(fd);
+					serial_flush(fd);
 				break;
 
 /*				case FLIGHTSTATUS_OBJID:
@@ -563,7 +564,7 @@ int uavtalk_read(int fd, actitud_t* act)
 	
 #ifdef DEBUG
         //uavtalk_show_msg(&msg);
-        //uav_talk_print_attitude();
+        uav_talk_print_attitude(*act);
 #endif
 	
 	// check connect timeout
