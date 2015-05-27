@@ -328,63 +328,14 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg, int fd)
 	}
 }
 
-/**
- *
- * BUFFER
- *
- */
-actitud_t act_buffer[NUM_PROMEDIOS];
 
 
-int add_to_buff(actitud_t act)
-{
-   int i;
-   for(i=0; i < NUM_PROMEDIOS-1; i++)
-   {
-      act_buffer[NUM_PROMEDIOS-1-i] = act_buffer[NUM_PROMEDIOS-2-i];
-   }
-   act_buffer[0] = act;
-
-//   act_buffer[NUM_PROMEDIOS-1] = act_buffer[NUM_PROMEDIOS-2]
-//   act_buffer[NUM_PROMEDIOS-2] = act;
-      
-   return 0;
-}
-
-double get_avg_speed(void)
-{
-   double yaw_dot_sup = 0;
-   double yaw_dot_inf = 0;
-   double mean_time = 0.05; //TODO usar tiempo del timestamp de las muestras (act.ts)
-   int i;
-   
-   // Promedio de muestras superiores e inferiores
-   for(i=0; i < NUM_PROMEDIOS/2; i++)
-   {
-      yaw_dot_sup += act_buffer[NUM_PROMEDIOS-1-i].yaw;
-      yaw_dot_inf += act_buffer[i].yaw; 
-   }
-   //yaw_dot_sup = yaw_dot_sup/(NUM_PROMEDIOS/2);
-   //yaw_dot_inf = yaw_dot_inf/(NUM_PROMEDIOS/2);
-   
-   double yaw_dot = ( (yaw_dot_sup - yaw_dot_inf)*(2/NUM_PROMEDIOS) )/mean_time;
-
-   return yaw_dot;
-}
-
-
-actitud_t get_last_act(void)
-{
-   return act_buffer[NUM_PROMEDIOS-1];
-}
-
-
-int uavtalk_read(int fd)
+int uavtalk_read(int fd, actitud_t* act)
 {
 	int ret = 0;  
         struct timeval tv_aux;
 	//int32_t start_time = uavtalk_get_time_usec();
-	actitud_t act;        
+	//actitud_t act;        
 
         //static int runs_uavtalk_T = 0;
         //static int runs_uavtalk_A = 0;
@@ -410,15 +361,15 @@ int uavtalk_read(int fd)
 
 				case ATTITUDEACTUAL_OBJID:
 				case ATTITUDESTATE_OBJID:
-				   //last_flighttelemetry_connect = uavtalk_get_time_usec();
 				   show_prio_info = 1;
-        			   act.roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
-				   act.pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
-				   act.yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
-                                   gettimeofday(&tv_aux,NULL);
-                                   uquad_timeval_substract(&act.ts, tv_aux, get_main_start_time());
+        			   act->roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
+				   act->pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
+				   act->yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+                                   // Timestamp
+				   gettimeofday(&tv_aux,NULL);
+                                   uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
 				   
-                                   //chequeo si muestra anterior no fue hace mucho
+/*                                   //chequeo si muestra anterior no fue hace mucho
                                    ret = uquad_timeval_substract(&tv_aux, act.ts, act_buffer[NUM_PROMEDIOS].ts);
                                    if (ret < 0)
                                    {
@@ -433,7 +384,7 @@ int uavtalk_read(int fd)
 					   add_to_buff(act);
 					}
       				   }
-				   
+*/				   
 				   serial_flush(fd);
 				   //while(read(fd,&c,1) > 0);
 				   //printf("atitude: %d\n", ++runs_uavtalk_A);
@@ -472,8 +423,8 @@ int uavtalk_to_str(char* buf_str, actitud_t act)
   
    buf_ptr += sprintf(buf_ptr, " %lf", act.roll);
    buf_ptr += sprintf(buf_ptr, " %lf", act.pitch);
-   buf_ptr += sprintf(buf_ptr, " %lf", act.yaw);
-   buf_ptr += sprintf(buf_ptr,"\t");
+   buf_ptr += sprintf(buf_ptr, " %lf ", act.yaw);
+   //buf_ptr += sprintf(buf_ptr,"\t");
 
    return (buf_ptr - buf_str); //char_count
 

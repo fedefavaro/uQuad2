@@ -206,8 +206,6 @@
 #define UAVTALK_TYPE_ACK				(UAVTALK_TYPE_VER | 0x03)
 #define UAVTALK_TYPE_NACK				(UAVTALK_TYPE_VER | 0x04)
 
-#define NUM_PROMEDIOS		4
-
 typedef enum {
 	UAVTALK_PARSE_STATE_WAIT_SYNC = 0,
 	UAVTALK_PARSE_STATE_GOT_SYNC,
@@ -238,6 +236,7 @@ typedef struct __uavtalk_message {
 	uint8_t Crc;
 } uavtalk_message_t;
 
+
 typedef struct actitud {
 	double roll;
 	double pitch;
@@ -250,7 +249,7 @@ int uav_talk_deinit(int fd);
 bool check_read_locks(int fd);
 bool check_write_locks(int fd);
 
-int uavtalk_read(int fd);
+int uavtalk_read(int fd, actitud_t* act);
 int uavtalk_state(void);
 
 int uavtalk_to_str(char* buf_str, actitud_t act);

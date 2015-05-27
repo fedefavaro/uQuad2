@@ -29,12 +29,14 @@
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
+#include <serial_comm.h>
 #include <UAVTalk.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <math.h>
 #include <stdlib.h>
 
 #define CH_COUNT		5
@@ -88,12 +90,14 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 
 // UAVTalk
 int fd_CC3D;
-//actitud_t act_last;
+actitud_t act_last;
 double yaw_rate;
 
 // Control de yaw
 double u = 0; //senal de control (setpoint de velocidad angular) 
-int Kp = 1;  // tau = 1/Kp // Probar tau = 1 y tau = 2
+//double Kp = 0.7;  // tau = 1/Kp // Probar tau = 1 y tau = 2
+//double Td = 0.4;
+
 double yaw_d = 0;
 double vel_pos = 0;                                                                  
 double vel_neg = 0; 
@@ -240,8 +244,8 @@ int main(int argc, char *argv[])
 #endif
 
 int8_t count_50 = 1; // controla timepo de ejecucion
-actitud_t act = {0,0,0,0}; //almacena variables de actitud leidas de la cc3d
-//act_last = act;
+actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
+act_last = act;
 
 char buff_act[512]; //TODO determinar valor
 char buf_pwm[512]; //TODO determinar valor
@@ -278,7 +282,7 @@ int err_count = 0;
       CC3D_readOK = check_read_locks(fd_CC3D);
       if (CC3D_readOK) {
          
-         retval = uavtalk_read(fd_CC3D);
+         retval = uavtalk_read(fd_CC3D, &act);
          if (retval < 0)
          {
             err_log("uavtalk_read failed");
@@ -287,14 +291,11 @@ int err_count = 0;
             err_log("objeto no era actitud");                             
             continue;
          }
- 
-      } else {
+       } else {
          err_log("UAVTalk: read NOT ok");
          continue;
          //quit(0);
       }
-
-      act = get_last_act();
 #else
       sleep_ms(15); //simulo demora en lectura // TODO determinar cuanto
 #endif
@@ -315,12 +316,28 @@ int err_count = 0;
          
       }
 
+#if !DISABLE_UAVTALK       
+      // velocidad
+      retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
+      if(retval > 0) {
+         if(dt.tv_usec > 60000) err_log("WARN: se perdieron muestras");
+         yaw_rate = 1000000*(act.yaw - act_last.yaw) / (long)(dt.tv_usec);
+         act_last = act;
+      } else {
+         err_log("WARN: Absurd timing!");
+         yaw_rate = sqrt (-1); //NaN
+         serial_flush(fd_CC3D);
+      }
+      // yaw_rate = get_yaw_speed(); //TODO
+#endif
+
 #ifndef SETANDO_CC3D
 #ifdef PRUEBA_YAW
       if(control_status == STARTED)
       {
          //Control
-         u = Kp*(yaw_d - act.yaw);
+         //u = Kp*(yaw_d - act.yaw);
+         u = control_yaw_calc_error(yaw_d, act.yaw) 
          //printf("senal de control: %lf\n", u); // dbg
          
          //Convertir velocidad en comando
@@ -342,7 +359,6 @@ int err_count = 0;
          //Convertir velocidad en comando                                                                                 
          ch_buff[2] = (uint16_t) (yaw_d*25/11 + 1500); //uso angulo pero es velocidad!
       }
-//printf("%lf  %lf  %lf\n", yaw_d, vel_neg, vel_pos); // dbg
  
 #endif //PRUEBA_YAW
 #endif //SETANDO_CC3D
@@ -354,37 +370,19 @@ int err_count = 0;
          quit_log_if(ERROR_FAIL,"Failed to send message!");
       }
 
-#if !DISABLE_UAVTALK       
-      // velocidad
-/*      retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
-      if(retval > 0) {
-         if(dt.tv_usec > 60000) err_log("WARN: se perdieron muestras");
-         yaw_rate = 1000000*(act.yaw - act_last.yaw) / (long)(dt.tv_usec);
-         act_last = act;
-      } else {
-         err_log("WARN: Absurd timing!");
-         yaw_rate = sqrt (-1); //NaN
-         serial_flush(fd_CC3D);
-      }*/
-
-      // velocidad
-      yaw_rate = get_avg_speed();
-#endif
-       // Log
-      
-      gettimeofday(&tv_aux,NULL);
-      uquad_timeval_substract(&tv_diff, tv_aux, tv_start_main);
-
+      // Log - T_s_act T_us_act roll pitch yaw yaw_dot C_roll C_pitch C_yaw T_s_main T_us_main
+      //Timestamp main
+      uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
       buff_len = uavtalk_to_str(buff_act, act);
       
-      buff_len += sprintf(buf_pwm, "%ld %ld  %lf\t%u %u %u %u\n",
-                       tv_diff.tv_sec,
-                       tv_diff.tv_usec, 
+      buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu\n",
                        yaw_rate,
                        ch_buff[0],
                        ch_buff[1],
                        ch_buff[2],
-                       ch_buff[3]);
+                       ch_buff[3],
+		       tv_diff.tv_sec,
+                       tv_diff.tv_usec);
 
       strcat(buff_act, buf_pwm);
       log_writeOK = check_write_locks(log_fd);
