@@ -88,7 +88,7 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 
 // UAVTalk
 int fd_CC3D;
-actitud_t act_last;
+//actitud_t act_last;
 double yaw_rate;
 
 // Control de yaw
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
 
 int8_t count_50 = 1; // controla timepo de ejecucion
 actitud_t act = {0,0,0,0}; //almacena variables de actitud leidas de la cc3d
-act_last = act;
+//act_last = act;
 
 char buff_act[512]; //TODO determinar valor
 char buf_pwm[512]; //TODO determinar valor
@@ -278,7 +278,7 @@ int err_count = 0;
       CC3D_readOK = check_read_locks(fd_CC3D);
       if (CC3D_readOK) {
          
-         retval = uavtalk_read(fd_CC3D, &act);
+         retval = uavtalk_read(fd_CC3D);
          if (retval < 0)
          {
             err_log("uavtalk_read failed");
@@ -293,6 +293,8 @@ int err_count = 0;
          continue;
          //quit(0);
       }
+
+      act = get_last_act();
 #else
       sleep_ms(15); //simulo demora en lectura // TODO determinar cuanto
 #endif
@@ -354,7 +356,7 @@ int err_count = 0;
 
 #if !DISABLE_UAVTALK       
       // velocidad
-      retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
+/*      retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
       if(retval > 0) {
          if(dt.tv_usec > 60000) err_log("WARN: se perdieron muestras");
          yaw_rate = 1000000*(act.yaw - act_last.yaw) / (long)(dt.tv_usec);
@@ -363,7 +365,10 @@ int err_count = 0;
          err_log("WARN: Absurd timing!");
          yaw_rate = sqrt (-1); //NaN
          serial_flush(fd_CC3D);
-      }
+      }*/
+
+      // velocidad
+      yaw_rate = get_avg_speed();
 #endif
        // Log
       
@@ -380,7 +385,7 @@ int err_count = 0;
                        ch_buff[1],
                        ch_buff[2],
                        ch_buff[3]);
-  
+
       strcat(buff_act, buf_pwm);
       log_writeOK = check_write_locks(log_fd);
       if (log_writeOK) {

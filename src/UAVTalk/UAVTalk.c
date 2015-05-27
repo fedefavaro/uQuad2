@@ -46,14 +46,14 @@
 
 //static struct timeval tv_start;
   
-static unsigned long last_gcstelemetrystats_send = 0;
-static unsigned long last_flighttelemetry_connect = 0;
+//static unsigned long last_gcstelemetrystats_send = 0;
+//static unsigned long last_flighttelemetry_connect = 0;
 static uint8_t gcstelemetrystatus = TELEMETRYSTATS_STATE_DISCONNECTED;
 
-static uint32_t gcstelemetrystats_objid = GCSTELEMETRYSTATS_OBJID_001;
-static uint8_t gcstelemetrystats_obj_len = GCSTELEMETRYSTATS_OBJ_LEN_001;
-static uint8_t gcstelemetrystats_obj_status = GCSTELEMETRYSTATS_OBJ_STATUS_001;
-static uint8_t flighttelemetrystats_obj_status = FLIGHTTELEMETRYSTATS_OBJ_STATUS_001;
+//static uint32_t gcstelemetrystats_objid = GCSTELEMETRYSTATS_OBJID_001;
+//static uint8_t gcstelemetrystats_obj_len = GCSTELEMETRYSTATS_OBJ_LEN_001;
+//static uint8_t gcstelemetrystats_obj_status = GCSTELEMETRYSTATS_OBJ_STATUS_001;
+//static uint8_t flighttelemetrystats_obj_status = FLIGHTTELEMETRYSTATS_OBJ_STATUS_001;
 
 
 // CRC lookup table
@@ -209,7 +209,7 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg, int fd)
 	switch (status) {
 		case UAVTALK_PARSE_STATE_WAIT_SYNC:
 			if (c == UAVTALK_SYNC_VAL) {
-				got_sync:;
+				//got_sync:;
                                 status = UAVTALK_PARSE_STATE_GOT_SYNC;
 				msg->Sync = c;
 				crc = crc_table[0 ^ c];
@@ -328,15 +328,66 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg, int fd)
 	}
 }
 
+/**
+ *
+ * BUFFER
+ *
+ */
+actitud_t act_buffer[NUM_PROMEDIOS];
 
-int uavtalk_read(int fd, actitud_t* act)
+
+int add_to_buff(actitud_t act)
+{
+   int i;
+   for(i=0; i < NUM_PROMEDIOS-1; i++)
+   {
+      act_buffer[NUM_PROMEDIOS-1-i] = act_buffer[NUM_PROMEDIOS-2-i];
+   }
+   act_buffer[0] = act;
+
+//   act_buffer[NUM_PROMEDIOS-1] = act_buffer[NUM_PROMEDIOS-2]
+//   act_buffer[NUM_PROMEDIOS-2] = act;
+      
+   return 0;
+}
+
+double get_avg_speed(void)
+{
+   double yaw_dot_sup = 0;
+   double yaw_dot_inf = 0;
+   double mean_time = 0.05; //TODO usar tiempo del timestamp de las muestras (act.ts)
+   int i;
+   
+   // Promedio de muestras superiores e inferiores
+   for(i=0; i < NUM_PROMEDIOS/2; i++)
+   {
+      yaw_dot_sup += act_buffer[NUM_PROMEDIOS-1-i].yaw;
+      yaw_dot_inf += act_buffer[i].yaw; 
+   }
+   //yaw_dot_sup = yaw_dot_sup/(NUM_PROMEDIOS/2);
+   //yaw_dot_inf = yaw_dot_inf/(NUM_PROMEDIOS/2);
+   
+   double yaw_dot = ( (yaw_dot_sup - yaw_dot_inf)*(2/NUM_PROMEDIOS) )/mean_time;
+
+   return yaw_dot;
+}
+
+
+actitud_t get_last_act(void)
+{
+   return act_buffer[NUM_PROMEDIOS-1];
+}
+
+
+int uavtalk_read(int fd)
 {
 	int ret = 0;  
         struct timeval tv_aux;
-	int32_t start_time = uavtalk_get_time_usec();
-        
-        static int runs_uavtalk_T = 0;
-        static int runs_uavtalk_A = 0;
+	//int32_t start_time = uavtalk_get_time_usec();
+	actitud_t act;        
+
+        //static int runs_uavtalk_T = 0;
+        //static int runs_uavtalk_A = 0;
 
 	static uavtalk_message_t msg;
 	uint8_t show_prio_info = 0;
@@ -359,17 +410,34 @@ int uavtalk_read(int fd, actitud_t* act)
 
 				case ATTITUDEACTUAL_OBJID:
 				case ATTITUDESTATE_OBJID:
-					//last_flighttelemetry_connect = uavtalk_get_time_usec();
-					show_prio_info = 1;
-        				act->roll 		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
-					act->pitch 		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
-        				act->yaw		= uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
-                                        gettimeofday(&tv_aux,NULL);
-                                        uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
-					serial_flush(fd);
-					//while(read(fd,&c,1) > 0);
-					//printf("atitude: %d\n", ++runs_uavtalk_A);
-				break;
+				   //last_flighttelemetry_connect = uavtalk_get_time_usec();
+				   show_prio_info = 1;
+        			   act.roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
+				   act.pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
+				   act.yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+                                   gettimeofday(&tv_aux,NULL);
+                                   uquad_timeval_substract(&act.ts, tv_aux, get_main_start_time());
+				   
+                                   //chequeo si muestra anterior no fue hace mucho
+                                   ret = uquad_timeval_substract(&tv_aux, act.ts, act_buffer[NUM_PROMEDIOS].ts);
+                                   if (ret < 0)
+                                   {
+					err_log("WARN: Absurd timing!");
+                                   } else {
+     					if (tv_aux.tv_usec > 80000UL) {
+					   err_log("WARN: se perdieron muestras");
+					   actitud_t act_aux = act_buffer[NUM_PROMEDIOS];
+					   /// TODO si se hace derivada con tiempo real hay que inventar un tiempo para repetir la muestrra anterior.
+					   add_to_buff(act_aux);
+					} else {
+					   add_to_buff(act);
+					}
+      				   }
+				   
+				   serial_flush(fd);
+				   //while(read(fd,&c,1) > 0);
+				   //printf("atitude: %d\n", ++runs_uavtalk_A);
+				   break;
 			}
 		}
 
@@ -377,7 +445,7 @@ int uavtalk_read(int fd, actitud_t* act)
 	
 #ifdef DEBUG
         //uavtalk_print_msg(&msg);
-        //uav_talk_print_attitude(*act);
+        //uav_talk_print_attitude(act);
 #endif
 	//printf("time: %lu\n", uavtalk_get_time_usec() - start_time);
 	//printf("Total: %d\n", ++runs_uavtalk_T); 
@@ -397,7 +465,7 @@ int uavtalk_state(void)
 int uavtalk_to_str(char* buf_str, actitud_t act)
 {
    char* buf_ptr = buf_str;
-   int ret;
+   //int ret;
    
    // Timestamp
    buf_ptr += sprintf(buf_ptr, "%04lu %06lu", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);

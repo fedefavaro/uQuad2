@@ -35,7 +35,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
 // Version number, incrementing this will erase/upload factory settings.
 // Only devs should increment this
 #define VER 75
@@ -207,6 +206,7 @@
 #define UAVTALK_TYPE_ACK				(UAVTALK_TYPE_VER | 0x03)
 #define UAVTALK_TYPE_NACK				(UAVTALK_TYPE_VER | 0x04)
 
+#define NUM_PROMEDIOS		4
 
 typedef enum {
 	UAVTALK_PARSE_STATE_WAIT_SYNC = 0,
@@ -250,9 +250,11 @@ int uav_talk_deinit(int fd);
 bool check_read_locks(int fd);
 bool check_write_locks(int fd);
 
-int uavtalk_read(int fd, actitud_t* act);
+int uavtalk_read(int fd);
 int uavtalk_state(void);
 
 int uavtalk_to_str(char* buf_str, actitud_t act);
+double get_avg_speed(void);
+actitud_t get_last_act(void);
 
 #endif /* UAVTALK_H_ */
