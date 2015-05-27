@@ -242,8 +242,7 @@ typedef struct actitud {
 	double roll;
 	double pitch;
 	double yaw;
-	uint16_t throttle;
-        struct timeval ts;
+	struct timeval ts;
 } actitud_t;
 
 int uav_talk_init(void);
