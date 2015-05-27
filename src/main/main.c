@@ -256,7 +256,8 @@ int err_count = 0;
    //limpio cc3d serial input buffer
    //ojo que cuando lea en el loop no va a haber datos!
    err_log("Clearing CC3D input buffer...");
-   while(read(fd_CC3D,tmp_buff,1) > 0);
+   //while(read(fd_CC3D,tmp_buff,1) > 0);
+   serial_flush(fd_CC3D);
 #endif 
 
    // -- -- -- -- -- -- -- -- -- 
@@ -356,6 +357,7 @@ int err_count = 0;
       } else {
          err_log("WARN: Absurd timing!");
          yaw_rate = sqrt (-1); //NaN
+         serial_flush(fd_CC3D);
       }
 #endif
        // Log

@@ -332,7 +332,7 @@ void uavtalk_send_gcstelemetrystats(int fd)
 }
 
 
-uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
+uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg, int fd)
 {
 	static uint8_t status = UAVTALK_PARSE_STATE_WAIT_SYNC;
 	static uint8_t crc = 0;
@@ -341,7 +341,8 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 	switch (status) {
 		case UAVTALK_PARSE_STATE_WAIT_SYNC:
 			if (c == UAVTALK_SYNC_VAL) {
-				status = UAVTALK_PARSE_STATE_GOT_SYNC;
+				got_sync:;
+                                status = UAVTALK_PARSE_STATE_GOT_SYNC;
 				msg->Sync = c;
 				crc = crc_table[0 ^ c];
 			}
@@ -395,14 +396,21 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 					status = UAVTALK_PARSE_STATE_GOT_OBJID;
 					cnt = 0;
 
-                                        // Agregado por mi
+/*                                        // Agregado por mi
                                         // descarto cualquier mensaje que no sea actitud
                                         if (msg->ObjID != ATTITUDEACTUAL_OBJID && 
                                             msg->ObjID != ATTITUDESTATE_OBJID)
                                         {
-                                           status = UAVTALK_PARSE_STATE_WAIT_SYNC;
+                                           while(read(fd,&c,1) > 0)
+                                           {
+					      if (c == UAVTALK_SYNC_VAL) {                                                  
+                                                 goto got_sync;
+					      }
+					   } 
+					   status = UAVTALK_PARSE_STATE_WAIT_SYNC;
                                            return -1;
                                         }
+*/
 
 				break;
 			}
@@ -473,7 +481,7 @@ int uavtalk_read(int fd, actitud_t* act)
 		}
 
 		// parse data to msg
-                ret = uavtalk_parse_char(c, &msg);
+                ret = uavtalk_parse_char(c, &msg, fd);
 		if (ret > 0) {
 			// consume msg
 			switch (msg.ObjID) {
@@ -517,8 +525,8 @@ int uavtalk_read(int fd, actitud_t* act)
                                         //if (osd_lat == 0) {
                                             //osd_heading = osd_yaw;
                                         //}
-					//serial_flush(fd);
-					while(read(fd,&c,1) > 0);
+					serial_flush(fd);
+					//while(read(fd,&c,1) > 0);
 				break;
 
 /*				case FLIGHTSTATUS_OBJID:
@@ -555,10 +563,10 @@ int uavtalk_read(int fd, actitud_t* act)
 			//if (msg.MsgType == UAVTALK_TYPE_OBJ_ACK) {
 			//	uavtalk_respond_object(fd,&msg, UAVTALK_TYPE_ACK);
 			//}
-		} else if (ret == -1) {
+		} /*else if (ret == -1) {
                    err_log("No era actitud");
                    return -1;
-                }
+                }*/
 		//usleep(190); // wait at least 1 byte
 	   	
         } //while()
