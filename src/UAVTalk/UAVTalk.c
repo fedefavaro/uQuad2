@@ -193,6 +193,12 @@ static inline int32_t uavtalk_get_int32(uavtalk_message_t *msg, int pos) {
 }
 
 
+static inline float uavtalk_get_float(uavtalk_message_t *msg, int pos) {
+	float f;
+	memcpy(&f, msg->Data+pos, sizeof(float));
+	return f;
+}
+
 
 uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg, int fd)
 {
@@ -328,6 +334,9 @@ int uavtalk_read(int fd, actitud_t* act)
 	int ret = 0;  
         struct timeval tv_aux;
 	int32_t start_time = uavtalk_get_time_usec();
+        
+        static int runs_uavtalk_T = 0;
+        static int runs_uavtalk_A = 0;
 
 	static uavtalk_message_t msg;
 	uint8_t show_prio_info = 0;
@@ -359,6 +368,7 @@ int uavtalk_read(int fd, actitud_t* act)
                                         uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
 					serial_flush(fd);
 					//while(read(fd,&c,1) > 0);
+					//printf("atitude: %d\n", ++runs_uavtalk_A);
 				break;
 			}
 		}
@@ -369,9 +379,10 @@ int uavtalk_read(int fd, actitud_t* act)
         //uavtalk_print_msg(&msg);
         //uav_talk_print_attitude(*act);
 #endif
-	printf("time: %lu\n", uavtalk_get_time_usec() - start_time);
-
-        return show_prio_info;
+	//printf("time: %lu\n", uavtalk_get_time_usec() - start_time);
+	//printf("Total: %d\n", ++runs_uavtalk_T); 
+        
+	return show_prio_info;
 }
 
 

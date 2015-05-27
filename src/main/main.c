@@ -260,6 +260,8 @@ int err_count = 0;
    serial_flush(fd_CC3D);
 #endif 
 
+//int runs_main = 0;
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
@@ -280,6 +282,9 @@ int err_count = 0;
          if (retval < 0)
          {
             err_log("uavtalk_read failed");
+            continue;
+         } else if (retval == 0) {
+            err_log("objeto no era actitud");                             
             continue;
          }
  
@@ -386,7 +391,8 @@ int err_count = 0;
   
       /// Control de tiempos del loop
       wait_loop_T_US(MAIN_LOOP_50_MS,tv_in_loop);
-
+      
+      //printf("%d\n",++runs_main);
    } // for(;;)
 
    return 0; //nunca deberia llegar aca
