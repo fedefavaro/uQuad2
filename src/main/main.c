@@ -266,6 +266,9 @@ int err_count = 0;
 
 //int runs_main = 0;
 
+   //control yaw
+   control_yaw_init_error_buff();
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 

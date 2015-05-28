@@ -45,6 +45,13 @@ typedef struct error_yaw {
 double Kp = 0.7;  // tau = 1/Kp // Probar tau = 1 y tau = 2
 double Td = 0.4;
 
+
+/*
+ * Inicializa el buffer
+ */
+int control_yaw_init_error_buff(void);
+
+
 /*
  * Agrega un elemento nuevo al buffer y elimina el ultimo.
  */

@@ -36,6 +36,25 @@
  */
 error_yaw_t error_yaw_buff[CONTROL_YAW_BUFF_SIZE];
 
+
+/*
+ * Inicializa el buffer
+ */
+int control_yaw_init_error_buff(void)
+{
+   error_yaw_t new_err;
+   new_err.error = 0;
+   int i;
+   // Desplazo un lugar todos los elementos
+   for(i=0; i < CONTROL_YAW_BUFF_SIZE; i++)
+   {
+      error_yaw_buff[i] = new_err;
+   }
+      
+   return 0;
+}
+
+
 /*
  * Agrega un elemento nuevo al buffer y elimina el ultimo.
  */
@@ -89,7 +108,11 @@ double control_yaw_calc_error(double yaw_d, double yaw_measured)
 {
    double u = 0;
    u = Kp*(yaw_d - yaw_measured);
+   
 #if CONTROL_YAW_ADD_DERIVATIVE
+   error_yaw_t new_err;
+   new_err.error = u;
+   control_yaw_add_error_buff(u);
    u += Kp*Td*control_yaw_derivate_error(0);
 #endif
 

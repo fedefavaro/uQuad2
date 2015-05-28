@@ -2,7 +2,7 @@ close all
 clear all
 clc
 
-data = importdata('log_debug_11.txt',' ');
+data = importdata('log_test_1.txt',' ');
 
 t = data(:,1)*1000 + data(:,2)/1000; %timepo en milisegundos
 
