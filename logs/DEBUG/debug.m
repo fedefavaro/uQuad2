@@ -2,7 +2,7 @@ close all
 clear all
 clc
 
-data = importdata('log_test_1.txt',' ');
+data = importdata('log_controlPD_4.txt',' ');
 
 t = data(:,1)*1000 + data(:,2)/1000; %timepo en milisegundos
 
@@ -51,3 +51,18 @@ title('Derivada del tiempo de loop')
 xlabel('numero de muestra')
 ylabel('tiempo(ms)')
 grid on
+
+figure
+plot(t-t2)
+title('Diferencia entre tiempo de loop y tiempo de muestreo')
+xlabel('numero de muestra')
+ylabel('tiempo(ms)')
+grid on
+
+figure
+plot(diff(t)-diff(t2))
+title('Diferencia entre derivadas de tiempo de loop y tiempo de muestreo')
+xlabel('numero de muestra')
+ylabel('tiempo(ms)')
+grid on
+
