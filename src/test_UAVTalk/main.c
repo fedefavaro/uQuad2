@@ -155,15 +155,17 @@ int main(int argc, char *argv[])
 	  //Para tener tiempo de entrada en cada loop
           gettimeofday(&tv_in_loop,NULL);
 	  
-	  //Pido el objeto
-	  uavtalk_request_object(fd_CC3D, ATTITUDESTATE_OBJID);
-	  
-	  //Vacio buffer Rx
-	  serial_flush(fd_CC3D); 
-	  
+	  //Vacio buffer Rx                                                      
+          //serial_flush(fd_CC3D);	 
+
+          //Pido el objeto
+	  //uavtalk_request_object(fd_CC3D, ATTITUDESTATE_OBJID);
+	 
+ 	  //sleep_ms(10);
+
 	  //Espero a recibir objeto
 	  retval = 0;
-	  while(retval <= 0) {  
+//	  while(retval <= 0) {  
          /// Leo datos de CC3D
          CC3D_readOK = check_read_locks(fd_CC3D);
          if (CC3D_readOK) {
@@ -172,18 +174,20 @@ int main(int argc, char *argv[])
             if (retval < 0)
             {
                err_log("uavtalk_read failed");
-               continue;
+               //continue;
             } else if (retval == 0) {
                err_log("objeto no era actitud");                             
-               continue;
-            }
+               //continue;
+            } else err_log("objeto actitud recibido");
          } else {
-            err_log("UAVTalk: read NOT ok");
-            continue;
+            //err_log("UAVTalk: read NOT ok");
+            //continue;
             //quit(0);
          }
-	  }
-	  
+//  }
+	  continue;
+          sleep_ms(100);
+
 	  // velocidad
       retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
       if(retval > 0) {

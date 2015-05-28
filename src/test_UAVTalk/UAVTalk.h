@@ -259,4 +259,6 @@ int uavtalk_to_str(char* buf_str, actitud_t act);
 double get_avg_speed(void);
 actitud_t get_last_act(void);
 
+void uavtalk_print_msg(uavtalk_message_t *msg);
+
 #endif /* UAVTALK_H_ */

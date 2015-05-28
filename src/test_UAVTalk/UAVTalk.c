@@ -207,7 +207,7 @@ void uavtalk_request_object(int fd, uint32_t id) {
 	msg.MsgType	= UAVTALK_TYPE_OBJ_REQ;
 	msg.Length	= REQUEST_OBJ_LEN;
 	msg.ObjID	= id;
-	
+	uavtalk_print_msg(&msg);	
 	uavtalk_send_msg(fd, &msg);
 }
 
@@ -441,6 +441,7 @@ int uavtalk_read(int fd, actitud_t* act)
 		// parse data to msg
                 ret = uavtalk_parse_char(c, &msg, fd);
 		if (ret > 0) {
+			uavtalk_print_msg(&msg);
 			// consume msg
 			switch (msg.ObjID) {
 
@@ -473,6 +474,7 @@ int uavtalk_read(int fd, actitud_t* act)
 				   serial_flush(fd);
 				   //while(read(fd,&c,1) > 0);
 				   //printf("atitude: %d\n", ++runs_uavtalk_A);
+				   
 				   break;
 			}
 		}
