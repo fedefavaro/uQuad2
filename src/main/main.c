@@ -30,6 +30,7 @@
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
 #include <serial_comm.h>
+#include <control_yaw.h>
 #include <UAVTalk.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -340,7 +341,7 @@ int err_count = 0;
       {
          //Control
          //u = Kp*(yaw_d - act.yaw);
-         u = control_yaw_calc_error(yaw_d, act.yaw) 
+         u = control_yaw_calc_error(yaw_d, act.yaw); 
          //printf("senal de control: %lf\n", u); // dbg
          
          //Convertir velocidad en comando

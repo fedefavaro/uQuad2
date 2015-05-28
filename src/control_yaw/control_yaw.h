@@ -34,7 +34,7 @@
 #define CONTROL_YAW_BUFF_SIZE		4 //usar numeros pares
 #define YAW_SAMPLE_TIME			0.05 //en segundos
 
-#define CONTROL_YAW_ADD_DERIVATIVE	1
+#define CONTROL_YAW_ADD_DERIVATIVE	0
 
 
 typedef struct error_yaw {
@@ -42,8 +42,8 @@ typedef struct error_yaw {
 	struct timeval ts;
 } error_yaw_t;
 
-double Kp = 0.7;  // tau = 1/Kp // Probar tau = 1 y tau = 2
-double Td = 0.4;
+//double Kp = 0.7;  // tau = 1/Kp // Probar tau = 1 y tau = 2
+//double Td = 0.4;
 
 
 /*

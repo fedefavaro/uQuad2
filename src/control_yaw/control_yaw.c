@@ -26,9 +26,10 @@
 #include <control_yaw.h>
 #include <stdlib.h>
 
+double Kp = 0.7;     
+double Td = 0.4;  
 
-
-/*
+/**
  * Buffer para almacenar senales de error
  * 
  * Elemento mas nuevo se almacena el lugar correspondiente
@@ -112,7 +113,7 @@ double control_yaw_calc_error(double yaw_d, double yaw_measured)
 #if CONTROL_YAW_ADD_DERIVATIVE
    error_yaw_t new_err;
    new_err.error = u;
-   control_yaw_add_error_buff(u);
+   control_yaw_add_error_buff(new_err);
    u += Kp*Td*control_yaw_derivate_error(0);
 #endif
 
