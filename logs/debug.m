@@ -35,10 +35,10 @@ grid on
 
 figure
 hold on
-plot(t,data(:,7),'-r')
-plot(t,data(:,8),'-b')
-plot(t,data(:,9),'-g')
-plot(t,data(:,10),'-k')
+plot(t,data(:,7),'*r')
+plot(t,data(:,8),'*b')
+plot(t,data(:,9),'*g')
+plot(t,data(:,10),'*k')
 title('Comandos')
 xlabel('time (ms)')
 legend('Roll','Pitch','Yaw','Throttle')
