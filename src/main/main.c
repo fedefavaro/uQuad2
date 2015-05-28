@@ -326,7 +326,7 @@ int err_count = 0;
       } else {
          err_log("WARN: Absurd timing!");
          yaw_rate = sqrt (-1); //NaN
-         serial_flush(fd_CC3D);
+         //serial_flush(fd_CC3D);
       }
       // yaw_rate = get_yaw_speed(); //TODO
 #endif
