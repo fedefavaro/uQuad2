@@ -15,12 +15,14 @@ set(CMAKE_C_FLAGS "${${PROJECT_NAME}_C_FLAGS}")
 add_library (serial_comm serial_comm)
 add_library (uquad_aux_time uquad_aux_time)
 add_library (UAVTalk UAVTalk)
+target_link_libraries(UAVTalk uquad_aux_time)
+target_link_libraries(UAVTalk serial_comm)
 
 set(main_bin test_UAVTalk)
 add_executable (${main_bin} main)
 
 # Set required libraries
-target_link_libraries(UAVTalk uquad_aux_time)
-
+target_link_libraries(${main_bin} uquad_aux_time)
 target_link_libraries(${main_bin} serial_comm)
 target_link_libraries(${main_bin} UAVTalk)
+

@@ -30,34 +30,58 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>
 */
 
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <math.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/time.h>
 
+#include "uquad_error_codes.h"
 #include "serial_comm.h"
 #include "uquad_aux_time.h"
-
-// OpenPilot UAVTalk:
 #include "UAVTalk.h"
 
-/// Defs
-#define TELEMETRY_SPEED	57600  // How fast our MAVLink telemetry is coming to Serial port
-#define DEVICE  	"/dev/ttyUSB0"
 
-/// Macros
-#define sleep_ms(ms)    usleep(1000*ms)
+#define CH_COUNT		5
+#define BUFF_SIZE		10
+
 
 /// Global vars
-int fd;
+// CC3D
+int fd_CC3D;
+actitud_t act_last;
+double yaw_rate;
 
+// LOG
+int log_fd;
+
+/** 
+ * Valores iniciales de los canales a enviar al proceso sbusd
+ *
+ * ch_buff[0]  roll
+ * ch_buff[1]  pitch
+ * ch_buff[2]  yaw
+ * ch_buff[3]  throttle
+ * ch_buff[4]  flight mode
+ * ch_buff[5]  activar/desactivar failsafe
+ *
+ * init todo en cero y flight mode en 2 
+ */
+uint16_t ch_buff[CH_COUNT]={1500,1500,1500,950,2000};
+
+/** 
+ * Buffer para enviar mensajes de kernel
+ * El casteo es necesario para enviar los mensajes de kernel
+ * (de a 1 byte en lugar de 2)
+ */
+uint8_t *buff_out=(uint8_t *)ch_buff; 
 
 void quit(void)
 {
-   int ret = close(fd);
-   if(ret < 0)
-      printf("No se pudo cerrar puerto. Ya esta cerrado?\n");
+   uav_talk_deinit(fd_CC3D);
    exit(0);
 }    
 
@@ -73,56 +97,135 @@ int main(int argc, char *argv[])
 {    
 
   int retval;
+  char* log_name;
+
+  if(argc<2)
+  {
+	err_log("USAGE: ./test_UAVTalk log_name");
+	exit(1);
+  }
+  else
+  {
+	log_name = argv[1];
+  }
 
   // Catch signals
   signal(SIGINT,  uquad_sig_handler);
   signal(SIGQUIT, uquad_sig_handler);
   
+  // Control de tiempos                                                         
+  struct timeval tv_in_loop,
+                 tv_start_main,
+                 tv_diff,
+                 dt;
+			   
   // -- -- -- -- -- -- -- -- -- 
   // Inicializacion
   // -- -- -- -- -- -- -- -- -- 
   
-  uav_talk_get_start_time();
+  /// Tiempo
+   set_main_start_time();
+   tv_start_main = get_main_start_time();
 
-  /// Puerto Serie Beagle-CC3D
-  fd = open_port(DEVICE);
-  if (fd < 0) quit();
-  printf("CC3D conectada. fd: %d\n",fd);
-  
-  retval = configure_port(fd, /*B57600*/B115200);
-  if (retval < 0) quit();
+   /// Log
+   log_fd = open(log_name, O_RDWR | O_CREAT | O_NONBLOCK );
+   if(log_fd < 0)
+   {
+      err_log_stderr("Failed to open log file!");
+      quit();
+   }
 
-   bool readOK;
-   //struct timeval tv_diff;
-   //struct timeval tv_x;
-   //struct timeval tv_y;
+   /// UAVTALK
+   fd_CC3D = uav_talk_init();
+   bool CC3D_readOK = false;
+   bool log_writeOK = false;
+
+   actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
+   act_last = act;
+   
+   char buff_act[512];
+   char buf_pwm[512];
+   int buff_len;
 
   // -- -- -- -- -- -- -- -- -- 
   // Loop
   // -- -- -- -- -- -- -- -- --
   for(;;)
   {
-     
-     
-     //gettimeofday(&tv_y,NULL);
-     readOK = check_read_locks(fd);
-     //gettimeofday(&tv_x,NULL);
-     //uquad_timeval_substract(&tv_diff, tv_x, tv_y); //diff = x - y
-     //printf("tiempo: %ld\n",tv_diff.tv_usec);
+	  //Para tener tiempo de entrada en cada loop
+          gettimeofday(&tv_in_loop,NULL);
+	  
+	  //Vacio buffer Rx                                                      
+          //serial_flush(fd_CC3D);	 
 
-     if (readOK) {
-		
-        if (uavtalk_read(fd)) {
-           // imprimo lo que leo?
-        } else {
-           //printf("uavtalk_read(fd) false!\n");
-           //sleep_ms(50);
-        }
-     }
-    // sleep_ms(50);
+          //Pido el objeto
+	  //uavtalk_request_object(fd_CC3D, ATTITUDESTATE_OBJID);
+	 
+ 	  //sleep_ms(10);
+
+	  //Espero a recibir objeto
+	  //retval = 0;
+//	  while(retval <= 0) {  
+         /// Leo datos de CC3D
+         CC3D_readOK = check_read_locks(fd_CC3D);
+         if (CC3D_readOK) {
+         
+            retval = uavtalk_read(fd_CC3D, &act);
+            if (retval < 0)
+            {
+               err_log("uavtalk_read failed");
+               //continue;
+            } else if (retval == 0) {
+               err_log("objeto no era actitud");                             
+               //continue;
+            } else err_log("objeto actitud recibido");
+         } else {
+            //err_log("UAVTalk: read NOT ok");
+            //continue;
+            //quit(0);
+         }
+//  }
+	  sleep_ms(100);
+	  continue;
+
+	  // velocidad
+      retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
+      if(retval > 0) {
+         if(dt.tv_usec > 60000) err_log("WARN: se perdieron muestras");
+         yaw_rate = 1000000*(act.yaw - act_last.yaw) / (long)(dt.tv_usec);
+         act_last = act;
+      } else {
+         err_log("WARN: Absurd timing!");
+         yaw_rate = sqrt (-1); //NaN
+         //serial_flush(fd_CC3D);
+      }
+	  
+	  
+	  // Log - T_s_act T_us_act roll pitch yaw yaw_dot C_roll C_pitch C_yaw T_s_main T_us_main
+      //Timestamp main
+      uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
+      buff_len = uavtalk_to_str(buff_act, act);
+      
+      buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu\n",
+                       yaw_rate,
+                       ch_buff[0],
+                       ch_buff[1],
+                       ch_buff[2],
+                       ch_buff[3],
+		               tv_diff.tv_sec,
+                       tv_diff.tv_usec);
+
+      strcat(buff_act, buf_pwm);
+      log_writeOK = check_write_locks(log_fd);
+      if (log_writeOK) {
+         retval = write(log_fd, buff_act, buff_len);
+         if(retval < 0)
+            err_log_stderr("Failed to write to log file!");   
+      }
+  
+      /// Control de tiempos del loop
+      wait_loop_T_US(MAIN_LOOP_50_MS,tv_in_loop);
+	  
   } //fin loop
 
 }
-
-
-

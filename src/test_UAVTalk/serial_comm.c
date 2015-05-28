@@ -24,6 +24,7 @@
  */
 
 #include "serial_comm.h"
+#include "uquad_error_codes.h"
 
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
@@ -33,10 +34,14 @@
 //#include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h>
+#include <sys/ioctl.h> 
+#include <linux/serial.h>
 #include <unistd.h>
 
 #define LOOP_T_US               14000UL
 #define MAX_ERR_CMD             20
+
+#define sleep_ms(ms)    usleep(1000*ms)
 
 /*
  * open_port(device) - Open serial port on device
@@ -47,46 +52,93 @@ int open_port(char *device)
 {
   int fd; /* File descriptor for the port */
 
-  fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+  fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);//| O_NDELAY);
   if (fd == -1)
-    printf("open_port: Unable to open: %s", device);
+  {
+    //Could not open the port.
+    err_log_str("open_port: Unable to open: ", device);
+  } else {
+     //fcntl(fd, F_SETFL, 0);
+     
+     struct serial_struct serial;
+     ioctl(fd, TIOCGSERIAL, &serial); 
+     serial.flags |= ASYNC_LOW_LATENCY; // (0x2000)
+     ioctl(fd, TIOCSSERIAL, &serial);
 
+  }
+  
   return fd;
 }
 
-int configure_port(int fd, speed_t baudrate)
+int configure_port(int fd)
 {
   struct termios options;
-  int rc;
- 
-  // get the current options for the port...
-  if((rc = tcgetattr(fd, &options)) < 0){
-     printf("Error al obtener atributos\n");
-     return -1;
-  }
   
+  // get the current options for the port...
+  tcgetattr(fd, &options);				
+
   //set options
-  cfsetispeed(&options, baudrate); 			// set the in baud rate...
-  cfsetospeed(&options, baudrate);			// set the out baud rate...
-  cfmakeraw(&options);
+  cfsetispeed(&options, B115200); 			// set the in baud rate...
+  cfsetospeed(&options, B115200);			// set the out baud rate...
   options.c_cflag |= (CLOCAL | CREAD);			// enable the receiver and set local mode...
-  /*options.c_cflag |= PARENB;				// enable parity...
+  options.c_cflag |= PARENB;				// enable parity...
   options.c_cflag &= ~PARODD;				// set even parity...
   options.c_cflag |= CSTOPB;				// two stop bits...
   options.c_cflag &= ~CSIZE;				// mask the character size bits...
   options.c_cflag |= CS8;    				// select 8 data bits...
   options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); 	// choosing raw input...
   options.c_iflag &= ~(IXON | IXOFF | IXANY); 		// disable software flow control...
-  */
+  
   // set the new options for the port...
-  if((rc = tcsetattr(fd, TCSANOW, &options)) < 0){
-     printf("Error al aplicar nuevos atributos\n");
-     return -1;
-  }
+  tcsetattr(fd, TCSANOW, &options);
 
   return 0;
 
 }
+
+int configure_port_gps(int fd, speed_t baudrate) //TODO cambiar nombre
+{
+  struct termios options;
+  int rc;
+ 
+  // get the current options for the port...
+  if((rc = tcgetattr(fd, &options)) < 0){
+     err_log_stderr("Error al obtener atributos: "); //logea strerror(errno)
+     return -1;
+  }
+
+  //set options
+  cfsetispeed(&options, baudrate); 			// set the in baud rate...
+  cfsetospeed(&options, baudrate);			// set the out baud rate...
+  cfmakeraw(&options);
+  options.c_cflag |= (CLOCAL | CREAD);			// enable the receiver and set local mode...
+  //options.c_cflag &= ~PARENB;				// No parity bit...
+  //options.c_cflag &= ~CSTOPB;				// 1 stop bits...
+  //options.c_cflag &= ~CSIZE;				// mask the character size bits...
+  //options.c_cflag |= CS8;    				// select 8 data bits...
+  //options.c_lflag &= ~(ICANON | ECHO | ECHOE | /*ISIG*/ ECHOK); 	// choosing raw input...
+  //options.c_iflag &= ~(IXON | IXOFF | IXANY); 		// disable software flow control...
+  
+  // set the new options for the port...
+  if((rc = tcsetattr(fd, TCSANOW, &options)) < 0){
+     err_log_stderr("Error al aplicar nuevos atributos: "); //logea strerror(errno)
+     return -1;
+  }
+  
+  return 0;
+
+}
+
+
+void serial_flush(int fd)
+{
+
+   tcflush(fd,TCIOFLUSH);
+   return;
+
+}
+
+
 
 
 
