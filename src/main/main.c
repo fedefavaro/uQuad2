@@ -46,7 +46,7 @@
 
 #define PRUEBA_YAW
 //#define PRUEBA_THROTTLE
-#define SETANDO_CC3D
+//#define SETANDO_CC3D
 
 /// Global vars
 
@@ -549,7 +549,7 @@ int read_from_stdin(void)
             puts("Deteniendo");
             control_status = STOPPED;
             break;
-        /* case '0':
+         case '0':
             yaw_d = 0;
             break;
          case '1':
@@ -578,8 +578,8 @@ int read_from_stdin(void)
             break;
          case '9':
             yaw_d = 90;
-            break;*/
-         case '0':                                                               
+            break;
+      /*   case '0':                                                               
             ch_buff[2] = 1500;                                                   
             break;                                                               
          case '1':                                                               
@@ -608,7 +608,7 @@ int read_from_stdin(void)
             break;                                                              
          case '9':                                                               
             ch_buff[2] = 1950;                                                   
-            break; 
+            break;*/ 
 #endif //PRUEBA_YAW
 #ifdef PRUEBA_THROTTLE
          case '0':
@@ -710,8 +710,8 @@ int read_from_stdin(void)
          } //switch(tmp_buff[0])
 
          if(negativos && retval==0)
-            ch_buff[2] = 1500 - (ch_buff[2] - 1500);
-	    //yaw_d = -yaw_d;
+            //ch_buff[2] = 1500 - (ch_buff[2] - 1500);
+	    yaw_d = -yaw_d;
 
          return retval;
 }
