@@ -79,7 +79,7 @@ double control_yaw_derivate_error(int8_t opt)
 	//double err_dot = ( (err_inf - err_sup)*(CONTROL_YAW_BUFF_SIZE/2) )/( mean_time*(CONTROL_YAW_BUFF_SIZE/2) );
         err_dot = ( err_mean_inf - err_mean_sup )/ mean_time;
    } else { //opt = 0
-	err_dot = ( error_yaw_buff[0].error - error_yaw_buff[CONTROL_YAW_BUFF_SIZE].error )/( mean_time*(CONTROL_YAW_BUFF_SIZE-1) );
+	err_dot = ( error_yaw_buff[0].error - error_yaw_buff[CONTROL_YAW_BUFF_SIZE-1].error )/( mean_time*(CONTROL_YAW_BUFF_SIZE-1) );
    }
    return err_dot;
 }
@@ -95,6 +95,12 @@ double control_yaw_calc_error(double yaw_d, double yaw_measured)
 
    return u;
 }
+
+
+
+
+
+
 
 
 
