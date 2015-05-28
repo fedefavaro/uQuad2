@@ -1,9 +1,9 @@
 /**
  ******************************************************************************
  *
- * @file       serial_comm.h
+ * @file       quadcop_config.h
  * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
- * @brief      Permite manipular manualmente un puerto serie.
+ * @brief      Opciones de configuracion para software QuadCop
  * @see        ??
  *
  *****************************************************************************/
@@ -23,29 +23,28 @@
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef SERIAL_PORT_h
-#define SERIAL_PORT_h
+#ifndef UQUAD_CONFIG_h
+#define UQUAD_CONFIG_h
+
+#define PC_TEST			0	
+
+#if PC_TEST
+   #define SBUS_LOG_TO_FILE	0  //sbus logea en un archivo en lugar de imprimir en stdout
+#endif //PC_TEST
+
+#define DISABLE_GPS		1
+#define DISABLE_UAVTALK		0
+
+#define DEBUG                   1
+
+#if DEBUG
+   #define DEBUG_TIMING_MAIN	0 //imprime en stdout la duracion del loop
+   #define DEBUG_TIMING_SBUSD	0
+#endif //DEBUG
 
 
-#include <termios.h> 
-
-/**
- * Abre el puerto serie especificado por device.
- *
- * @return file descriptor o codigo de error
- */
-int open_port(char *device);
-
-/**
- * Configura manualmente el puerto serie (modificando registros).
- *
- * @param fd file descriptor de puerto a configurar
- * @return 
- */
-int configure_port(int fd);
-
-int configure_port_gps(int fd, speed_t baudrate);
-void serial_flush(int fd);
-#endif
 
 
+
+
+#endif //UQUAD_CONFIG_h

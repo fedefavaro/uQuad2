@@ -21,6 +21,7 @@ add_executable (${main_bin} main)
 
 # Set required libraries
 target_link_libraries(UAVTalk uquad_aux_time)
-
+target_link_libraries(${main_bin} uquad_aux_time)
 target_link_libraries(${main_bin} serial_comm)
 target_link_libraries(${main_bin} UAVTalk)
+
