@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
  	  //sleep_ms(10);
 
 	  //Espero a recibir objeto
-	  retval = 0;
+	  //retval = 0;
 //	  while(retval <= 0) {  
          /// Leo datos de CC3D
          CC3D_readOK = check_read_locks(fd_CC3D);
@@ -185,8 +185,8 @@ int main(int argc, char *argv[])
             //quit(0);
          }
 //  }
+	  sleep_ms(100);
 	  continue;
-          sleep_ms(100);
 
 	  // velocidad
       retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
