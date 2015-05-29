@@ -45,7 +45,9 @@ int open_port(char *device);
 int configure_port(int fd);
 
 int configure_port_gps(int fd, speed_t baudrate);
+
 void serial_flush(int fd);
+
 #endif
 
 

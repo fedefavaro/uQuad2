@@ -1,9 +1,9 @@
 /**
  ******************************************************************************
  *
- * @file       quadcop_config.h
+ * @file       control_yaw.h
  * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
- * @brief      Opciones de configuracion para software QuadCop
+ * @brief      ??
  * @see        ??
  *
  *****************************************************************************/
@@ -21,30 +21,69 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, see <http://www.gnu.org/licenses/> or write to the 
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
  */
 
-#ifndef UQUAD_CONFIG_h
-#define UQUAD_CONFIG_h
 
-#define PC_TEST			0	
+#ifndef CONTROL_YAW_H
+#define CONTROL_YAW_H
 
-#if PC_TEST
-   #define SBUS_LOG_TO_FILE	1  //sbus logea en un archivo en lugar de imprimir en stdout
-#endif //PC_TEST
-
-#define DISABLE_GPS		0
-#define DISABLE_UAVTALK		0
-
-#define DEBUG                   1
-
-#if DEBUG
-   #define DEBUG_TIMING_MAIN	1 //imprime en stdout la duracion del loop
-   #define DEBUG_TIMING_SBUSD	0
-#endif //DEBUG
+#include <stdlib.h>
 
 
+#define CONTROL_YAW_BUFF_SIZE		4 //usar numeros pares
+#define YAW_SAMPLE_TIME			0.05 //en segundos
+
+#define CONTROL_YAW_ADD_DERIVATIVE	0
+
+
+typedef struct error_yaw {
+	double error;
+	struct timeval ts;
+} error_yaw_t;
+
+//double Kp = 0.7;  // tau = 1/Kp // Probar tau = 1 y tau = 2
+//double Td = 0.4;
+
+
+/*
+ * Inicializa el buffer
+ */
+int control_yaw_init_error_buff(void);
+
+
+/*
+ * Agrega un elemento nuevo al buffer y elimina el ultimo.
+ */
+int control_yaw_add_error_buff(error_yaw_t new_err);
+
+
+/*
+ * Calcula la derivada discreta del error.
+ *
+ * Puede hacer promedio opt=1 o saltear muestras opt=0
+ */
+double control_yaw_derivate_error(int8_t opt);
+
+
+/*
+ * Calcula la senal de error.
+ *
+ * Control proporcional o PD segun definido por usuario
+ */
+double control_yaw_calc_error(double yaw_d, double yaw_measured);
+
+
+#endif // CONTROL_YAW_H
 
 
 
 
-#endif //UQUAD_CONFIG_h
+
+
+
+
+
+
+
+

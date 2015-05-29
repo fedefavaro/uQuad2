@@ -21,8 +21,8 @@
 #include <sys/msg.h>
 
 #define CH_COUNT		5
-#define LOOP_T_US               14000UL
-#define MAX_ERR_SBUSD           50
+#define LOOP_T_US		14000UL
+#define MAX_ERR_SBUSD		20
 
 #define HOW_TO    		"./sbus_daemon <device>"
 
@@ -72,7 +72,6 @@ int main(int argc, char *argv[])
    int ret = ERROR_OK;
    int err_count = 0;
    int rcv_err_count = 0;
-   int loop_count = 0;
    bool msg_received = false;
    char* device;
    /* Para parsear el los mensajes se recorre el arreglo con un puntero
@@ -116,6 +115,7 @@ int main(int argc, char *argv[])
        err_log_stderr("custom_baud() failed!");
        return ret;
    }
+/************************************************************************************/
 #else
    fp = fopen(device, "w");
    if(fp == NULL)
@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
 	return -1;
    }
 #endif // !PC_TEST
+/************************************************************************************/
 
    /**
     * Inherit priority from main.c for correct IPC.
@@ -145,48 +146,77 @@ int main(int argc, char *argv[])
 #endif //PC_TEST
 
    // Lleva a cero todos los canales y el mensaje sbus
-   futaba_sbus_reset_channels();
-   futaba_sbus_reset_msg();
-
+   futaba_sbus_set_channel(1, 1500); //init roll en cero
+   futaba_sbus_set_channel(2, 1500); //init pitch en cero
+   futaba_sbus_set_channel(3, 1500); //init yaw en cero
+   futaba_sbus_set_channel(6, 950); //init throttle en minimo
+   futaba_sbus_set_channel(7, 1500); //inint flight mode 2
+   futaba_sbus_update_msg();
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-   
    for(;;)
    {
-      gettimeofday(&tv_in,NULL);
+	gettimeofday(&tv_in,NULL);
 
-      if((err_count > MAX_ERR_SBUSD) || (rcv_err_count > MAX_ERR_SBUSD))
-      {
-         err_log("error count exceded");
-         quit();
-      }
+	if (err_count > MAX_ERR_SBUSD)
+	{
+	   err_log("error count exceded");
+	   quit();
+	}
 
-      if(msg_received)
-      {
-         futaba_sbus_set_channel(1, ch_buff[0]);
-         futaba_sbus_set_channel(2, ch_buff[1]);
-         //futaba_sbus_set_channel(3, ch_buff[2]);
-         //futaba_sbus_set_channel(4, ch_buff[3]);
-         //futaba_sbus_set_channel(5, ch_buff[4]);
- //------------------------------------------------------------ 
-         if ( (ch_buff[4] == 50) && 
-            (futaba_sbus_get_failsafe() == SBUS_SIGNAL_OK) )
-            futaba_sbus_set_failsafe(SBUS_SIGNAL_FAILSAFE);
- //------------------------------------------------------------ 
-         if ( (ch_buff[4] == 100) && 
-            (futaba_sbus_get_failsafe() == SBUS_SIGNAL_FAILSAFE) )
-            futaba_sbus_set_failsafe(SBUS_SIGNAL_OK);
- //------------------------------------------------------------  
-         futaba_sbus_update_msg();
-         msg_received = false;
-      }
+	ret = uquad_read(&rbuf);
+	if(ret == ERROR_OK)
+	{
+ 	   msg_received = true;
+	   // Parse message. 2 bytes per channel.
+	   ch_buff = (int16_t *)rbuf.mtext;
+	   // send ack
+	   ret = uquad_send_ack();
+	   if(ret != ERROR_OK)
+	   {
+		err_log("Failed to send ack!");
+	   }
+	   if (rcv_err_count > 0)
+		rcv_err_count--;
+
+	} else {
+	   err_log("Failed to read msg!");
+	   msg_received = false;
+	   rcv_err_count++;
+	   if (rcv_err_count > 5) {
+		err_count++;
+		rcv_err_count = 0;
+	   }
+	}
+
+	if(msg_received)
+	{
+	   futaba_sbus_set_channel(1, ch_buff[0]);
+	   futaba_sbus_set_channel(2, ch_buff[1]);
+	   futaba_sbus_set_channel(3, ch_buff[2]);
+	   futaba_sbus_set_channel(6, ch_buff[3]);
+	   //futaba_sbus_set_channel(7, ch_buff[4]); // flight mode no se modifica
+
+	   // Comando para activar failsafe
+	   if ( (ch_buff[5] == 50) && 
+	   (futaba_sbus_get_failsafe() == SBUS_SIGNAL_OK) )
+		futaba_sbus_set_failsafe(SBUS_SIGNAL_FAILSAFE);
+
+	   // Comando para desactivar failsafe
+ 	   if ( (ch_buff[5] == 100) && 
+	   (futaba_sbus_get_failsafe() == SBUS_SIGNAL_FAILSAFE) )
+		futaba_sbus_set_failsafe(SBUS_SIGNAL_OK);
+ 
+	   futaba_sbus_update_msg();
+	   msg_received = false;
+	}
 
 #if !PC_TEST
         ret = futaba_sbus_write_msg(fd);
         if (ret < 0)
         {
-           err_count++;
+           err_count++;  // si fallo al enviar el mensaje se apagan los motores!!
 	}
 	else
 	{
@@ -195,6 +225,7 @@ int main(int argc, char *argv[])
 	      err_count--;
 	}
 #else
+/************************************************************************************/
 	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
 	convert_sbus_data(str);
 #if SBUS_LOG_TO_FILE
@@ -213,73 +244,29 @@ int main(int argc, char *argv[])
 	if(err_count > 0)
 	   err_count--;
 #endif // !PC_TEST
-		
-      // si pasaron mas de ~100ms es hora de leer el mensaje
-      if (loop_count > 6) //14ms * 6 = 98ms
-      {  
+/************************************************************************************/
 
+	/// Control de tiempo
+	gettimeofday(&tv_end,NULL);
+	ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+	if(ret > 0)
+	{
+	   if(tv_diff.tv_usec < LOOP_T_US)
+		usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
 #if DEBUG_TIMING_SBUSD
-         gettimeofday(&tv_end,NULL);
-         ret = uquad_timeval_substract(&tv_diff, tv_end, tv_last);
-         printf("duracion loop sbusd (98ms): %lu\n",(unsigned long)tv_diff.tv_usec);
-         tv_last = tv_end;
-#endif //DEBUG_TIMING_SBUSD
-
-         ret = uquad_read(&rbuf);
-         if(ret == ERROR_OK)
-         {
-               msg_received = true;
-               if(rcv_err_count > 0)
-                   rcv_err_count--;
-               // Parse message. 2 bytes per channel.
-               ch_buff = (int16_t *)rbuf.mtext;
-               /// send ack
-               ret = uquad_send_ack();
-               if(ret != ERROR_OK)
-               {
-                     err_log("Failed to send ack!");
-               }
-         }
-         else
-         {
-#if DEBUG
-               // este error va a estar siempre porque el main y el sbusd no estan perfectamente sincronizados, pero no hay que darle importancia a menos que aparezca muy seguido
-               err_log("Failed to read msg!"); 
-#endif //DEBUG
-               msg_received = false;
-               rcv_err_count++;
-         }
-      
-         loop_count = 0;
-      }
-
-      /// Control de tiempo del loop corto (14ms)
-      gettimeofday(&tv_end,NULL);
-      ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      if(ret > 0)
-      {
-         if(tv_diff.tv_usec < LOOP_T_US)
-            usleep(LOOP_T_US - (unsigned long)tv_diff.tv_usec);
-      }
-      else
-      {
-         err_log("WARN: Absurd timing!");
-         err_count++;
-      }
-        
-      loop_count++;
-
-#if DEBUG_TIMING_SBUSD
-      gettimeofday(&tv_end,NULL);
-      ret = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      printf("duracion loop sbusd (14ms): %lu\n",(unsigned long)tv_diff.tv_usec);
+           gettimeofday(&tv_end,NULL);
+           uquad_timeval_substract(&tv_diff, tv_end, tv_in);
+           printf("duracion loop sbusd (14ms): %lu\n",(unsigned long)tv_diff.tv_usec);
 #endif
-      
+	} else {
+	   err_log("WARN: Absurd timing!");
+	   err_count++; // si no cumplo el tiempo de loop falla la comunicacion sbus
+	}
+
    } //for(;;)  
 
    return 0; //never gets here
 
 }
-
 
 

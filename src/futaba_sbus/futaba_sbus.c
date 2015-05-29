@@ -110,7 +110,7 @@ void futaba_sbus_update_msg(void)
       }
    }
 
-   // Failsafe TODO probar
+   // Failsafe
    if (failsafe_status == SBUS_SIGNAL_LOST)
       sbusData[23] |= (1<<2);
    if (failsafe_status == SBUS_SIGNAL_FAILSAFE)

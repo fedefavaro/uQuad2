@@ -29,8 +29,10 @@
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
 #include <futaba_sbus.h>
+#include <serial_comm.h>
 #include <gps_comm.h>
 #include <UAVTalk.h>
+#include <control_yaw.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -49,6 +51,9 @@
 pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
 
+// Para prueba yaw
+uint16_t throttle_inicial = 0;
+
 // GPS
 gps_t gps;
 
@@ -62,24 +67,50 @@ unsigned char tmp_buff[2] = {0,0};  // Para leer entrada de usuario
 
 // KMQ
 uquad_kmsgq_t *kmsgq 	= NULL;
-// Valores iniciales de los canales a enviar a sbusd
-//ch_buff[0]  roll
-//ch_buff[1]  pitch
-//ch_buff[2]  yaw
-//ch_buff[3]  throttle
-//ch_buff[4]  flight mode?
-uint16_t ch_buff[CH_COUNT]={1500,1500,1500,1500,1500}; 
-uint8_t *buff_out=(uint8_t *)ch_buff; // buffer para enviar mensajes de kernel
-                                      // El casteo es necesario para enviar los mensajes de kernel (de a 1 byte en lugar de 2)
+
+/** 
+ * Valores iniciales de los canales a enviar al proceso sbusd
+ *
+ * ch_buff[0]  roll
+ * ch_buff[1]  pitch
+ * ch_buff[2]  yaw
+ * ch_buff[3]  throttle
+ * ch_buff[4]  flight mode
+ * ch_buff[5]  activar/desactivar failsafe
+ *
+ * init todo en cero y flight mode en 2 
+ */
+uint16_t ch_buff[CH_COUNT]={1500,1500,1500,950,2000};
+
+/** 
+ * Buffer para enviar mensajes de kernel
+ * El casteo es necesario para enviar los mensajes de kernel
+ * (de a 1 byte en lugar de 2)
+ */
+uint8_t *buff_out=(uint8_t *)ch_buff;
 
 // UAVTalk
 int fd_CC3D;
+actitud_t act_last;
+double yaw_rate;
+
+// Control de yaw
+double u = 0; //senal de control (setpoint de velocidad angular)
+double yaw_d = 0;
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
 void uquad_sig_handler(int signal_num);
 void set_signals(void);
 void read_from_stdin(void);
+
+// Control activado/desactivado //Mover a contorl_yaw
+typedef enum {
+	STOPPED = 0,
+	STARTED,
+        OPEN
+} estado_control_t;
+estado_control_t control_status = STOPPED;
 
 
 /*********************************************/
@@ -88,8 +119,21 @@ void read_from_stdin(void);
 int main(int argc, char *argv[])
 {  
    int retval;
-   
-//---------------------------------------------
+   char* log_name;
+
+   if(argc<3)
+   {
+	err_log("USAGE: ./auto_pilot log_name throttle_inicial");
+	exit(1);
+   }
+   else
+   {
+	log_name = argv[1];
+	throttle_inicial = atoi(argv[2]);
+	printf("Throttle inicial: %u\n", throttle_inicial);
+    }
+
+    // Configurar pin de uart1 tx
 #if !PC_TEST
    retval = system("echo 2 > /sys/kernel/debug/omap_mux/dss_data6");
    if (retval < 0)
@@ -98,30 +142,47 @@ int main(int argc, char *argv[])
       exit(0);
    }
 #endif
-//---------------------------------------------
 
-//setea senales y mascara                                                     
-   set_signals();                                                                
-                                                                                 
-   // Control de tiempos                                                         
-   struct timeval tv_in;  
+   //setea senales y mascara
+   set_signals();
 
-   // -- -- -- -- -- -- -- -- -- 
+   // Control de tiempos
+   struct timeval tv_in_loop,
+                  tv_start_main,
+                  tv_diff,
+                  dt;
+
+   // -- -- -- -- -- -- -- -- --
    // Inicializacion
-   // -- -- -- -- -- -- -- -- -- 
+   // -- -- -- -- -- -- -- -- --
+
+   /// Tiempo
+   set_main_start_time();
+   tv_start_main = get_main_start_time(); //uquad_aux_time.h
+
+   ///control yaw
+   control_yaw_init_error_buff();
+
+   ///TODO init path planner && path following
+
+   /// Log
+   log_fd = open(log_name, O_RDWR | O_CREAT | O_NONBLOCK );
+   if(log_fd < 0)
+   {
+      err_log_stderr("Failed to open log file!");
+      quit(1);
+   }
 
    ///GPS config - Envia comandos al gps a traves del puerto serie - //
-
-#if !DISABLE_GPS
+#if !SIMULATE_GPS
    retval = preconfigure_gps();
-   if(retval < 0)                                                 
-   {                                                                        
+   if(retval < 0) 
+   {
       err_log("Failed to preconfigure gps!");
-      quit(0);                                                              
+      quit(0);  
    } 
-   sleep_ms(1000);  //necesario? TODO verificar
+   //sleep_ms(1000);  //TODO verificar si es necesario y cuanto
   
-
    /// Ejecuta GPS daemon - proceso independiente
    gpsd_child_pid = init_gps();
    if(gpsd_child_pid == -1)
@@ -129,34 +190,15 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to init gps!");
       quit(0);
    }
-#endif //!DISABLE_GPS
-
-/// Log
-//-------------------------------------------------------
-   log_fd = open("log_attitude",O_RDWR | O_CREAT | O_NONBLOCK );
-   if(log_fd < 0)
-   {
-      err_log_stderr("Failed to open log file!");
-      quit(1);
-   }
-
-/*   FILE * fp;
-   fp = fopen("log_attitude", "w");
-   if(fp == NULL)
-   {
-	err_log_stderr("Failed to open log file!");
-	quit(1);
-   }*/
-//-------------------------------------------------------
+#endif //!SIMULATE_GPS
 
    /// Ejecuta Demonio S-BUS - proceso independiente
-   sbusd_child_pid = futaba_sbus_start_daemon();                            
-   if(sbusd_child_pid == -1)                                                
-   {                                                                        
-      err_log_stderr("Failed to start child process (sbusd)!");             
-      quit(1);                                                              
+   sbusd_child_pid = futaba_sbus_start_daemon(); 
+   if(sbusd_child_pid == -1)
+   {
+      err_log_stderr("Failed to start child process (sbusd)!"); 
+      quit(1);  
    }
-
 
    /// inicializa kernel messages queues - para comunicacion con sbusd
    kmsgq = uquad_kmsgq_init(SERVER_KEY, DRIVER_KEY);
@@ -166,7 +208,7 @@ int main(int argc, char *argv[])
    }
 
    //Doy tiempo a que inicien bien los procesos...
-   sleep_ms(500);   
+   sleep_ms(500); //TODO verificar si es necesario y cuanto
 
    /// inicializa IO manager
    io = io_init();
@@ -179,112 +221,179 @@ int main(int argc, char *argv[])
 
 
    /// inicializa UAVTalk
-//------------------------------------------------------------------------
+#if !DISABLE_UAVTALK
    fd_CC3D = uav_talk_init();
    bool CC3D_readOK;
-//------------------------------------------------------------------------
    bool log_writeOK;
+#endif
 
    /// mensajitos al usuario...
 #if PC_TEST
    err_log("WARNING: Comenzando en modo 'PC test' - Ver common/quadcop_config.h");
 #endif
 
-#if DISABLE_GPS
-   err_log("WARNING: GPS disabled!");
+#if SIMULATE_GPS
+   err_log("WARNING: GPS simulated");
+#endif
+#if DISABLE_UAVTALK
+   err_log("WARNING: UAVTALK disabled!");
 #endif
 
 int8_t count_50 = 1; // controla timepo de ejecucion
-actitud_t act = {0,0,0,0}; //almacena variables de actitud leidas de la cc3d
+actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
+act_last = act;
 
 char buff_act[512]; //TODO determinar valor
+char buf_pwm[512]; //TODO determinar valor
 int buff_len;
+
+// TODO Espero a tener comunicacion estable con cc3d
+#if !DISABLE_UAVTALK  
+   err_log("Clearing CC3D input buffer...");
+   //while(read(fd_CC3D,tmp_buff,1) > 0);
+   serial_flush(fd_CC3D);
+#endif 
 
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
    for(;;)
    {
-      gettimeofday(&tv_in,NULL); //para tener tiempo de entrada en cada loop
+	//para tener tiempo de entrada en cada loop
+	gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
 
-      // loop 50 ms
-      CC3D_readOK = check_read_locks(fd_CC3D);
-      if (CC3D_readOK) {
-         if (uavtalk_read(fd_CC3D, &act)) {
-            
-            buff_len = uavtalk_to_str(buff_act, &act);
-/// Log
-//-------------------------------------------------------
-	    log_writeOK =check_write_locks(log_fd);
-            if (log_writeOK) {
-               retval = write(log_fd, buff_act, buff_len);
-               if(retval < 0)
-               {
-                  err_log_stderr("Failed to write to log file!");
-               }
-            }
+	//TODO control de errores
 
-      /*    retval = fprintf(fp, "%s", str_act);
-	    if(retval < 0)
-	    {
-	       err_log("Failed to write to log file!");
-	    }*/
-//-------------------------------------------------------
-
-         } else {
-            err_log("uavtalk_read failed");
-         }     
-      } else err_log("UAVTalk: read NOT ok");
-
-      ++count_50;
-      
-      // loop 100 ms
-      if(count_50 > 1) { 
-
-         //sleep_ms(5); //era 105000 us ??
-
-         /// Polling de dispositivos IO
-         retval = io_poll(io);
-         quit_log_if(retval,"io_poll() error");      
-      
-         /// Check stdin
-         retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
-         log_n_continue(retval, "Failed to check stdin for input!");
-         if(read_ok)
-         {
-            read_from_stdin();
-         }
-
-#if !DISABLE_GPS
-         /// Obener datos del GPS
-         retval = get_gps_data(&gps);
-         if (retval < 0 )
-         {  
-            //que hago si NO hay datos!?
-            err_log("No hay datos de gps");
-         } else {
-            //que hago si SI hay datos!?
-            printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
-                   gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
-         }
+	/** loop 50 ms **/
+#if !DISABLE_UAVTALK
+	/// Leo datos de CC3D
+	CC3D_readOK = check_read_locks(fd_CC3D);
+	if (CC3D_readOK) {
+	   retval = uavtalk_read(fd_CC3D, &act);
+	   if (retval < 0)
+	   {
+		err_log("uavtalk_read failed");
+		continue;
+	   } else if (retval == 0) {
+		err_log("objeto no era actitud");  
+		continue;
+	   }
+	} else {
+	   err_log("UAVTalk: read NOT ok");
+	   continue;
+	   //quit(0);
+	}
+#else
+	sleep_ms(15); //simulo demora en lectura TODO determinar cuanto
 #endif
 
-         // Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
-         retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
-         if(retval != ERROR_OK)
-         {
-            quit_log_if(ERROR_FAIL,"Failed to send message!");
-         }
+	++count_50; // ??
 
-         count_50 = 0;
-      } // if(count_50 > 1)
+	/// Polling de dispositivos IO
+	retval = io_poll(io);
+	quit_log_if(retval,"io_poll() error");
 
-      /// Control de tiempos del loop
-      wait_loop_T_US(MAIN_LOOP_50_MS,tv_in);
+	/// Check stdin
+	retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
+	if(retval < 0)
+	{
+	   err_log("Failed to check stdin for input!");
+	}
+	if(read_ok)
+	{
+	   read_from_stdin();
+	}
+
+	/** loop 100 ms **/
+	if(count_50 > 1)
+	{ 
+
+	   //sleep_ms(5); //era 105000 us ??
+
+#if !SIMULATE_GPS
+	   /// Obener datos del GPS
+	   retval = get_gps_data(&gps);
+	   if (retval < 0 )
+	   {  
+		//que hago si NO hay datos!?
+		err_log("No hay datos de gps");
+	   } else {
+		//que hago si SI hay datos!?
+		printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
+			gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
+	   }
+#else
+	   // TODO Datos del gps simulado
+#endif
+
+	   count_50 = 0;
+
+	} // if(count_50 > 1)
+
+	// TODO PATH FOLLOWER
+
+	/// Control TODO mejorar esto
+	if(control_status == STARTED)
+	{
+	   u = control_yaw_calc_error(yaw_d, act.yaw); 
+	   //printf("senal de control: %lf\n", u); // dbg
+
+	   //Convertir velocidad en comando
+	   ch_buff[2] = (uint16_t) (u*25/11 + 1500);
+	   //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+	}
+
+	// Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
+	retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
+	if(retval != ERROR_OK)
+	{
+	   quit_log_if(ERROR_FAIL,"Failed to send message!");
+	}
+
+#if DEBUG 
+#if !DISABLE_UAVTALK       
+	// checkeo de tiempos al muestrear - debuggin
+	retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
+	if(retval > 0) {
+	   if(dt.tv_usec > 60000) {
+		err_log("WARN: se perdieron muestras");
+           }
+	act_last = act;
+	} else {
+	   err_log("WARN: Absurd timing!");
+	   //serial_flush(fd_CC3D);
+	}
+#endif // !DISABLE_UAVTALK
+#endif // DEBUG
+
+	// Log - T_s_act T_us_act roll pitch yaw yaw_dot C_roll C_pitch C_yaw T_s_main T_us_main
+	//Timestamp main
+	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
+	buff_len = uavtalk_to_str(buff_act, act);
+
+	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu\n",
+				yaw_rate,
+				ch_buff[0],
+				ch_buff[1],
+				ch_buff[2],
+				ch_buff[3],
+				tv_diff.tv_sec,
+				tv_diff.tv_usec);
+
+	strcat(buff_act, buf_pwm);
+	log_writeOK = check_write_locks(log_fd);
+	if (log_writeOK) {
+	   retval = write(log_fd, buff_act, buff_len);
+	   if(retval < 0)
+		err_log_stderr("Failed to write to log file!");
+	}
+
+	/// Control de tiempos del loop
+	wait_loop_T_US(MAIN_LOOP_50_MS,tv_in_loop);
 
    } // for(;;)
 
-   return 0; //nunca deberia llegar aca
+   return 0; //nunca llego aca
 
 } //FIN MAIN
 
@@ -334,26 +443,26 @@ void quit(int Q)
    /// Kernel Messeges Queue
    uquad_kmsgq_deinit(kmsgq);
 
-//-----------------------------------
+   /// Log
    close(log_fd);
-//-----------------------------------
    
-#if !DISABLE_GPS
+#if !SIMULATE_GPS
    if(Q != 2) {
       /// cerrar conexiones con GPSD y terminarlo
       retval = deinit_gps();
       if(retval != ERROR_OK)
          err_log("Could not close gps correctly!");
    }
-#endif //DISABLE_GPS
+#endif // !SIMULATE_GPS
 
+#if !DISABLE_UAVTALK
    /// cerrar UAVTalk
    retval = uav_talk_deinit(fd_CC3D);
    if(retval != ERROR_OK)
       err_log("Could not close UAVTalk correctly!");
-      
+#endif // !DISABLE_UAVTALK
+     
    exit(0);
-
 }
 
 
@@ -377,9 +486,11 @@ void uquad_sig_handler(int signal_num)
       {
          err_log_num("WARN: sbusd died! sig num:", signal_num);
          quit(1); //exit sin cerrar sbusd
+#if !SIMULATE_GPS
       } else if(p == gpsd_child_pid) {
          err_log_num("WARN: gpsd died! sig num:", signal_num);
          quit(0); //exit sin cerrar gpsd
+#endif //!SIMULATE_GPS
       } else {
          err_log_num("SIGCHLD desconocido, return:", signal_num);
          //quit(0);
@@ -415,7 +526,6 @@ void set_signals(void)
 /*********************************************/
 /************* Leer de stdin *****************/
 /*********************************************/
-
 void read_from_stdin(void)
 {
          int retval = fread(tmp_buff,sizeof(unsigned char),1,stdin); //TODO corregir que queda algo por leer en el buffer?
@@ -425,36 +535,77 @@ void read_from_stdin(void)
             err_log_num("No user input detected!",ERROR_READ);
             return;
          }
+         
+	 //retval = 0;
          switch(tmp_buff[0])
          {
-         case '0':
-            ch_buff[0] = 1500;
+         case 'S':
+            ch_buff[3] = throttle_inicial; //valor pasado como parametro
+            puts("Comenzando lazo cerrado");
+            control_status = STARTED;
             break;
-         case '1':
-            ch_buff[0] = 1550;
-            break;
-         case '2':
-            ch_buff[0] = 1600;
-            break;
-         case '3':
-            ch_buff[0] = 1650;
+         case 'P':
+            ch_buff[3] = 1000;
+            puts("Deteniendo");
+            control_status = STOPPED;
             break;
          case 'F':
-            err_log("Failsafe set");
-            ch_buff[4] = 50;
+            puts("WARN: Failsafe set");
+            ch_buff[5] = 50;
             break;
          case 'f':
-            err_log("Failsafe clear");
-            ch_buff[4] = 100;
+            puts("WARN: Failsafe clear");
+            ch_buff[5] = 100;
             break;
+         case 'b':
+            ch_buff[0] = 1500;
+            ch_buff[1] = 1500;
+            ch_buff[2] = 1500;
+            ch_buff[3] = 1000;  // neutral throttle
+            ch_buff[4] = 1500;
+            puts("Seteando valor neutro");
+            break;
+         case 'A':
+            ch_buff[0] = 1500; //roll
+            ch_buff[1] = 1500; //pitch
+            ch_buff[2] = 1000; //yaw
+            ch_buff[3] = 950;  //throttle  
+            puts("Armando..."); 
+            break;
+         case 'D':
+            ch_buff[0] = 1500; //roll
+            ch_buff[1] = 1500; //pitch
+            ch_buff[2] = 2000; //yaw
+            ch_buff[3] = 950;  //throttle
+            puts("Desarmando...");
+            break;
+#ifdef SETANDO_CC3D
+	// Para setear maximos y minimos en CC3D
+         case 'M':
+            ch_buff[0] = 2000; //roll
+            ch_buff[1] = 2000; //pitch
+            ch_buff[2] = 2000; //yaw
+            ch_buff[3] = 2000; //throttle
+            ch_buff[4] = 2000; //flight mode
+            puts("Seteando maximo valor"); 
+            break;
+         case 'm':
+            ch_buff[0] = 1000;
+            ch_buff[1] = 1000;
+            ch_buff[2] = 1000;
+            ch_buff[3] = 950; //min throttle
+            ch_buff[4] = 1000;
+            puts("Seteando minimo valor");
+            break;
+#endif
          default:
-            err_log("Velocidad invalida. Ingrese 0,1,2,3 para 0%,10%,20%,30%");
+            puts("comando invalido");
+            //retval = -1;
             break;
          } //switch(tmp_buff[0])
+
+         return;
 }
-
-
-
 
 
 
