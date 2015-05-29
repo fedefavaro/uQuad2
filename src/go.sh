@@ -22,8 +22,24 @@ cp build/sbus_daemon/sbusd build/main/
 #    exit
 #}
 
+if [ $1 ];
+then
+    log_name=$1
+else
+    echo No se especifico archivo de logeo, cerrando...
+    exit
+fi
+
+if [ $2 ];
+then
+    throttle_inicial=$2
+else
+    echo No se especifico throttle inicial, cerrando...
+    exit
+fi
+
 cd build/main
-./path_follower
+./path_follower ${log_name} ${throttle_inicial}
 cd ../..
 
 

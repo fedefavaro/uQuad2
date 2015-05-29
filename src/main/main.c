@@ -172,6 +172,7 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to open log file!");
       quit(1);
    }
+   bool log_writeOK;
 
    ///GPS config - Envia comandos al gps a traves del puerto serie - //
 #if !SIMULATE_GPS
@@ -224,9 +225,8 @@ int main(int argc, char *argv[])
 #if !DISABLE_UAVTALK
    fd_CC3D = uav_talk_init();
    bool CC3D_readOK;
-   bool log_writeOK;
 #endif
-
+   
    /// mensajitos al usuario...
 #if PC_TEST
    err_log("WARNING: Comenzando en modo 'PC test' - Ver common/quadcop_config.h");
@@ -254,6 +254,7 @@ int buff_len;
    serial_flush(fd_CC3D);
 #endif 
 
+   printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 

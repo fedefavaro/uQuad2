@@ -78,7 +78,9 @@ int main(int argc, char *argv[])
     *  a enteros de dos bytes.
     */
    int16_t *ch_buff;
-	
+   
+   //char str[128];	- dbg
+
    // check input arguments
    if(argc<2)
    {
@@ -86,14 +88,6 @@ int main(int argc, char *argv[])
       return -1;
    }
    else device = argv[1];
-
-#if SBUS_LOG_TO_FILE
-   printf("Logging to %s\n", device);
-#endif
-
-#if PC_TEST
-   char str[128];
-#endif //PC_TEST
 
    struct timeval tv_in;
    struct timeval tv_end;
@@ -115,16 +109,7 @@ int main(int argc, char *argv[])
        err_log_stderr("custom_baud() failed!");
        return ret;
    }
-/************************************************************************************/
-#else
-   fp = fopen(device, "w");
-   if(fp == NULL)
-   {
-	err_log_stderr("Failed to open log file!");
-	return -1;
-   }
-#endif // !PC_TEST
-/************************************************************************************/
+#endif
 
    /**
     * Inherit priority from main.c for correct IPC.
@@ -152,6 +137,8 @@ int main(int argc, char *argv[])
    futaba_sbus_set_channel(6, 950); //init throttle en minimo
    futaba_sbus_set_channel(7, 1500); //inint flight mode 2
    futaba_sbus_update_msg();
+
+   sleep_ms(500); //Para ponerme a tiro con main
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -168,6 +155,7 @@ int main(int argc, char *argv[])
 	ret = uquad_read(&rbuf);
 	if(ret == ERROR_OK)
 	{
+           //err_log("read ok!");
  	   msg_received = true;
 	   // Parse message. 2 bytes per channel.
 	   ch_buff = (int16_t *)rbuf.mtext;
@@ -178,13 +166,13 @@ int main(int argc, char *argv[])
 		err_log("Failed to send ack!");
 	   }
 	   if (rcv_err_count > 0)
-		rcv_err_count--;
-
+		rcv_err_count = 0;
+           
 	} else {
-	   err_log("Failed to read msg!");
+	   //err_log("Failed to read msg!");
 	   msg_received = false;
 	   rcv_err_count++;
-	   if (rcv_err_count > 5) {
+	   if (rcv_err_count > 3) {
 		err_count++;
 		rcv_err_count = 0;
 	   }
@@ -216,7 +204,7 @@ int main(int argc, char *argv[])
         ret = futaba_sbus_write_msg(fd);
         if (ret < 0)
         {
-           err_count++;  // si fallo al enviar el mensaje se apagan los motores!!
+	   err_count++;  // si fallo al enviar el mensaje se apagan los motores!!
 	}
 	else
 	{
@@ -224,27 +212,13 @@ int main(int argc, char *argv[])
 	   if(err_count > 0)
 	      err_count--;
 	}
+	sleep_ms(5);  //TODO revisar si hay que hacerlo siempre!!
 #else
-/************************************************************************************/
-	// En modo PC test se escribe el mensaje a un archivo de texto o a stdout
-	convert_sbus_data(str);
-#if SBUS_LOG_TO_FILE
-	/* Escribe en un arhivo */
-	ret = fprintf(fp, "%s", str);
-	if(ret < 0)
-	{
-	    err_log("Failed to write to log file!");
-	    err_count++;
-	}
-#else
-	/* Escribe en stdout */
-	printf("%s",str);
-#endif // SBUS_LOG_TO_FILE
-	/// This loop was fine
-	if(err_count > 0)
-	   err_count--;
-#endif // !PC_TEST
-/************************************************************************************/
+	sleep_ms(5);  //TODO revisar si hay que hacerlo siempre!!
+#endif
+	// Escribe el mensaje a stdout - dbg
+	//convert_sbus_data(str);
+	//printf("%s",str);
 
 	/// Control de tiempo
 	gettimeofday(&tv_end,NULL);
@@ -262,6 +236,9 @@ int main(int argc, char *argv[])
 	   err_log("WARN: Absurd timing!");
 	   err_count++; // si no cumplo el tiempo de loop falla la comunicacion sbus
 	}
+
+      //printf("rcv_err_count: %d\n", rcv_err_count);
+      //printf("err_count: %d\n", err_count);
 
    } //for(;;)  
 
