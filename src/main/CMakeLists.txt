@@ -1,4 +1,4 @@
-set(main_bin path_follower)
+set(main_bin auto_pilot)
 add_executable (${main_bin} main)
 
 # Set required libraries
@@ -10,3 +10,5 @@ target_link_libraries(${main_bin} serial_comm)
 target_link_libraries(${main_bin} gps_comm)
 target_link_libraries(${main_bin} UAVTalk)
 target_link_libraries(${main_bin} control_yaw)
+target_link_libraries(${main_bin} path_planning)
+target_link_libraries(${main_bin} path_following)

@@ -28,6 +28,8 @@
 #include <quadcop_config.h>
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
+#include <path_planning.h>
+#include <path_following.h>
 #include <futaba_sbus.h>
 #include <serial_comm.h>
 #include <gps_comm.h>
@@ -54,8 +56,14 @@ pid_t gpsd_child_pid = 0;
 // Para prueba yaw
 uint16_t throttle_inicial = 0;
 
+// Path planning
+Lista_path* lista_path;
+Lista_wp* lista_way_point;
+way_point_t wp = {0,0,0,0};
+
 // GPS
 gps_t gps;
+bool gps_updated = false;
 
 // LOG
 int log_fd;
@@ -93,18 +101,13 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 int fd_CC3D;
 actitud_t act_last;
 double yaw_rate;
+bool uavtalk_updated = false;
 
 // Control de yaw
 double u = 0; //senal de control (setpoint de velocidad angular)
 double yaw_d = 0;
 
-/// Declaracion de funciones auxiliares
-void quit(int Q);
-void uquad_sig_handler(int signal_num);
-void set_signals(void);
-void read_from_stdin(void);
-
-// Control activado/desactivado //Mover a contorl_yaw
+// Control activado/desactivado // TODO Mover a contorl_yaw
 typedef enum {
 	STOPPED = 0,
 	STARTED,
@@ -112,6 +115,32 @@ typedef enum {
 } estado_control_t;
 estado_control_t control_status = STOPPED;
 
+// Almacena posicion actual del quad // TODO sacar aca
+typedef struct posicion {
+   double x;
+   double y;
+   double z;
+   struct timeval ts;
+} posicion_t;
+posicion_t posicion = {0,0,0,{0,0}};
+
+// Almacena velovidad actual del quad // TODO sacar aca
+typedef struct velocidad {
+   double module;
+   double angle;
+   struct timeval ts;
+} velocidad_t;
+velocidad_t velocidad = {0,0,{0,0}};
+
+/// Declaracion de funciones auxiliares
+void quit(int Q);
+void uquad_sig_handler(int signal_num);
+void set_signals(void);
+void read_from_stdin(void);
+// Convierte angulo de yaw a senal de pwm para enviar a la cc3d // TODO scar de aca
+uint16_t convert_yaw2pwm(double yaw);
+// SIMULACION GPS TODO SACAR DE ACA
+void simulate_gps(posicion_t* pos, double yaw, double yaw_d, double velocidad);
 
 /*********************************************/
 /**************** Main ***********************/
@@ -120,6 +149,7 @@ int main(int argc, char *argv[])
 {  
    int retval;
    char* log_name;
+   int err_count_no_data = 0; //si no tengo datos nuevos varias veces es peligroso
 
    if(argc<3)
    {
@@ -160,10 +190,30 @@ int main(int argc, char *argv[])
    set_main_start_time();
    tv_start_main = get_main_start_time(); //uquad_aux_time.h
 
-   ///control yaw
+
+   /// Path planning & Following
+   // init lista path
+   lista_path = (Lista_path *)malloc(sizeof(struct ListaIdentificar_path));
+   inicializacion_path(lista_path);
+
+   // init lista wp
+   lista_way_point = (Lista_wp *)malloc(sizeof(struct ListaIdentificar_wp));
+   inicializacion_wp(lista_way_point);
+   way_points_input(lista_way_point); //carga waypoints en la lista desde un archivo de texto
+
+   // Generacion de trayectoria
+   path_planning(lista_way_point, lista_path);
+
+   //visualizacion_path(lista_path);
+
+   /// Control yaw
    control_yaw_init_error_buff();
 
-   ///TODO init path planner && path following
+   /// Control velocidad
+   // TODO
+
+   /// Control altura
+   // TODO
 
    /// Log
    log_fd = open(log_name, O_RDWR | O_CREAT | O_NONBLOCK );
@@ -191,6 +241,8 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to init gps!");
       quit(0);
    }
+#else
+   // TODO init fake gps
 #endif //!SIMULATE_GPS
 
    /// Ejecuta Demonio S-BUS - proceso independiente
@@ -239,7 +291,7 @@ int main(int argc, char *argv[])
    err_log("WARNING: UAVTALK disabled!");
 #endif
 
-int8_t count_50 = 1; // controla timepo de ejecucion
+int8_t count_50 = 1; // controla tiempo de loop 100ms
 actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
 act_last = act;
 
@@ -263,7 +315,13 @@ int buff_len;
 	//para tener tiempo de entrada en cada loop
 	gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
 
-	//TODO control de errores
+	//TODO Mejorar control de errores
+	if(err_count_no_data > 10)
+	{
+	   err_log("mas de 10 errores en recepcion de datos!");
+	   // TODO que hago? me quedo en hovering hasta obtener datos?
+	   err_count_no_data = 0; //por ahora...
+	}
 
 	/** loop 50 ms **/
 #if !DISABLE_UAVTALK
@@ -325,23 +383,59 @@ int buff_len;
 	   }
 #else
 	   // TODO Datos del gps simulado
+	   gps_updated = true;
+	  /*
+	   * La posicion entra la actual y sale la siguiente (simulada)
+	   * act_last guarda el angulo medido en el loop anterior
+	   * yaw_d deberia ser el del loop anterior, cambia mas adelante con carrot chase
+	   * velocidad esta seteada por el usuario
+	   */
+	   simulate_gps(&posicion, act_last.yaw, yaw_d, velocidad.module);
 #endif
-
 	   count_50 = 0;
 
 	} // if(count_50 > 1)
 
-	// TODO PATH FOLLOWER
 
-	/// Control TODO mejorar esto
 	if(control_status == STARTED)
-	{
-	   u = control_yaw_calc_error(yaw_d, act.yaw); 
-	   //printf("senal de control: %lf\n", u); // dbg
+        {
+	
+           /// Path Follower & yaw control
+	   // si hay datos de gps y de yaw hago carrot chase //TODO cuando tenga gps esto tiene que cambiar
+	   if(gps_updated && uavtalk_updated)
+	   {
+#if !SIMULATE_GPS
+	     /* guardo en waypoint p los valores de x, y hallados mediante el gps.
+	      * primero deberia hacer convert_gps2utm(&utm, gps) y restarle la utm inicial
+	      */
+	      convert_gps2waypoint(&wp, gps);
+#else
+	      wp.x = posicion.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
+	      wp.y = posicion.y;
+	      wp.z = posicion.z;
+#endif //!SIMULATE_GPS
+	      wp.angulo = act.yaw;
 
-	   //Convertir velocidad en comando
-	   ch_buff[2] = (uint16_t) (u*25/11 + 1500);
-	   //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+	      //carrot chase
+	      retval = path_following(p, lista_path, &yaw_d)
+	      if (err_count_no_data > 0)
+	         err_count_no_data--;
+	      gps_updated = false;
+	      uavtalk_updated = false;
+
+	      /// Control TODO mejorar esto
+	      u = control_yaw_calc_error(yaw_d, act.yaw); 
+	      //printf("senal de control: %lf\n", u); // dbg
+
+	      //Convertir velocidad en comando
+	      ch_buff[2] = (uint16_t) (u*25/11 + 1500);
+	      //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+         
+	   } else {
+	      err_log("No tengo datos para seguimiento de trayectorias");
+	      err_count_no_data++;
+	   }
+
 	}
 
 	// Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
@@ -542,6 +636,9 @@ void read_from_stdin(void)
          {
          case 'S':
             ch_buff[3] = throttle_inicial; //valor pasado como parametro
+#if !SIMULATE_GPS
+	    velocidad.module = 4;
+#endif //!SIMULATE_GPS
             puts("Comenzando lazo cerrado");
             control_status = STARTED;
             break;
@@ -608,5 +705,7 @@ void read_from_stdin(void)
          return;
 }
 
-
-
+// SIMULACION GPS TODO SACAR DE ACA
+void simulate_gps(posicion_t* pos, double yaw, double yaw_d, double velocidad) {
+   return;
+}

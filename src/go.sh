@@ -39,7 +39,7 @@ else
 fi
 
 cd build/main
-./path_follower ${log_name} ${throttle_inicial}
+./auto_pilot ${log_name} ${throttle_inicial}
 cd ../..
 
 
