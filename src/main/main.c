@@ -326,6 +326,8 @@ int buff_len;
    serial_flush(fd_CC3D);
 #endif 
 
+uavtalk_updated = true;
+
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
    // Loop
