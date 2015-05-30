@@ -327,7 +327,7 @@ int buff_len;
 #endif 
 
 uavtalk_updated = true;
-
+gps_updated = true;
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -405,14 +405,15 @@ uavtalk_updated = true;
 	   }
 #else
 	   // TODO Datos del gps simulado
-	   gps_updated = true;
+	   //gps_updated = true;
 	  /*
 	   * La posicion entra la actual y sale la siguiente (simulada)
 	   * act_last guarda el angulo medido en el loop anterior
 	   * yaw_d deberia ser el del loop anterior, cambia mas adelante con carrot chase
 	   * velocidad esta seteada por el usuario
 	   */
-	   simulate_gps(&posicion, &velocidad, act_last.yaw, yaw_d);
+	   if(control_status == STARTED)
+              simulate_gps(&posicion, &velocidad, act_last.yaw, yaw_d);
 #endif
 	   count_50 = 0;
 
@@ -432,18 +433,18 @@ uavtalk_updated = true;
 	      */
 	      convert_gps2waypoint(&wp, gps);
 #else
-	      wp.x = posicion.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
+              wp.x = posicion.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
 	      wp.y = posicion.y;
 	      wp.z = posicion.z;
 #endif //!SIMULATE_GPS
 	      wp.angulo = act.yaw;
 
 	      //carrot chase
-	      retval = path_following(p, lista_path, &yaw_d);
+	      retval = path_following(wp, lista_path, &yaw_d);
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
-	      gps_updated = false;
-	      uavtalk_updated = false;
+	      //gps_updated = false;
+	      //uavtalk_updated = false;
 
 	      /// Control TODO mejorar esto
 	      u = control_yaw_calc_error(yaw_d, act.yaw); 
@@ -735,7 +736,8 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured, double
 {
    /*********************************/
    static last_yaw_measured = 0;
-   yaw_measured = last_yaw_measured + 0.012*(yaw_d - last_yaw_measured);
+   yaw_measured = last_yaw_measured + 0.12*(yaw_d - last_yaw_measured);
+   last_yaw_measured = yaw_measured;
    /*********************************/
 
    yaw_measured = yaw_measured*PI/180;
