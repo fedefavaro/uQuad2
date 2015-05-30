@@ -731,6 +731,11 @@ void read_from_stdin(void)
 // SIMULACION GPS TODO SACAR DE ACA
 void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured, double yaw_d)
 {
+   /*********************************/
+   static last_yaw_measured = 0;
+   yaw_measured = last_yaw_measured + 0.012*(yaw_d - last_yaw_measured);
+   /*********************************/
+
    yaw_measured = yaw_measured*PI/180;
    //yaw_d = yaw_d*PI/180;
    double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
