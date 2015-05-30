@@ -163,7 +163,7 @@ double mod2pi(double angulo);
  * Carga lista de way points desde
  * archivo de texto dado por el usuario
  */
-void way_points_input(Lista_wp *wp_lista);
+int way_points_input(Lista_wp *wp_lista);
 
 /**
  * Convierte los way point al sistema de

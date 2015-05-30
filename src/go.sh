@@ -14,6 +14,7 @@ cd ../..
 echo Done!
 
 cp build/sbus_daemon/sbusd build/main/
+cp way_points_in.txt build/main/way_points_in.txt
 
 #trap ctrl_c INT
 #function ctrl_c() {

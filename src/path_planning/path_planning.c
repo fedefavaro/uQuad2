@@ -3,6 +3,7 @@
 #include <math.h>
 #include <complex.h>
 #include "path_planning.h"
+#include <uquad_error_codes.h>
 
 double conversion_grados2rad(double grados)
 {
@@ -20,7 +21,7 @@ double mod2pi(double angulo)
     return retval;
 }
 
-void way_points_input(Lista_wp *wp_lista)
+int way_points_input(Lista_wp *wp_lista)
 {
     int retval;
     way_point_t wp;
@@ -28,7 +29,8 @@ void way_points_input(Lista_wp *wp_lista)
     FILE *file;
     file = fopen(WAYPOINTS_FILE, "r");
     if (file == NULL) {
-        printf("No se pudo abrir el archivo\n");
+        err_log("No se pudo abrir el archivo");
+	return -1;
     }
 
     while(1) {
@@ -41,7 +43,7 @@ void way_points_input(Lista_wp *wp_lista)
 
     fclose(file);
 
-    return;
+    return 0;
 }
 
 void conversion_eje_coordenadas(way_point_t *p_inicial_src, way_point_t *p_final_src, way_point_t *p_inicial_dest, way_point_t *p_final_dest)
@@ -774,7 +776,7 @@ int InsercionEnLista_path(Lista_path *lista, trayectoria_t dato)
 int BorrarEnLista_path(Lista_path *lista)
 {
     if (lista->tamano < 1)
-        printf("Error: Imposible eliminar elemento de la lista. La misma se encuentra vacía");
+        printf("Error: Imposible eliminar elemento de la lista. La misma se encuentra vacia");
 
     free(lista->inicio->dato);
     if (lista->tamano == 1)

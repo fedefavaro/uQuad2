@@ -1,5 +1,8 @@
 #include "path_following.h"
 
+#include <stdlib.h>
+#include <math.h>
+
 static estado_t estado = CFA_i;
 
 double carrotChase_Line(way_point_t wp_i, way_point_t wp_f, way_point_t p)
@@ -57,7 +60,7 @@ int path_following(way_point_t p, Lista_path *lista_path, double *yaw_d)
     way_point_t centro, pi, pf;
     trayectoria_t path;
 
-    inicioPathFollowing: printf("   ");    // TODO: Hacer que esto ande sin el printf()
+    inicioPathFollowing:;// printf("   ");    // TODO: Hacer que esto ande sin el printf()
 
     if (lista_path->tamano == 0)
         return -1;

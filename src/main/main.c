@@ -29,7 +29,7 @@
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
 #include <path_planning.h>
-#include <path_following.h>
+//#include <path_following.h>
 #include <futaba_sbus.h>
 #include <serial_comm.h>
 #include <gps_comm.h>
@@ -124,6 +124,7 @@ typedef struct posicion {
 } posicion_t;
 posicion_t posicion = {0,0,0,{0,0}};
 
+#if !SIMULATE_GPS
 // Almacena velovidad actual del quad // TODO sacar aca
 typedef struct velocidad {
    double module;
@@ -131,6 +132,24 @@ typedef struct velocidad {
    struct timeval ts;
 } velocidad_t;
 velocidad_t velocidad = {0,0,{0,0}};
+#else
+// Almacena velovidad actual del quad // TODO sacar aca
+typedef struct velocidad {
+   double x;
+   double y;
+   double z;
+   struct timeval ts;
+} velocidad_t;
+velocidad_t velocidad = {0,0,0,{0,0}};
+#endif
+
+// Almacena masa del quad // TODO sacar aca
+double masa = 1.85; // kg
+double g = 9.81; // m/s*s
+double B = 1; // coef friccion
+#define PITCH_DESIRED		8 //grados
+#include <math.h>
+double pitch = PITCH_DESIRED*PI/180; // angulo de pitch en radianes
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -140,7 +159,7 @@ void read_from_stdin(void);
 // Convierte angulo de yaw a senal de pwm para enviar a la cc3d // TODO scar de aca
 uint16_t convert_yaw2pwm(double yaw);
 // SIMULACION GPS TODO SACAR DE ACA
-void simulate_gps(posicion_t* pos, double yaw, double yaw_d, double velocidad);
+void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured, double yaw_d);
 
 /*********************************************/
 /**************** Main ***********************/
@@ -199,12 +218,13 @@ int main(int argc, char *argv[])
    // init lista wp
    lista_way_point = (Lista_wp *)malloc(sizeof(struct ListaIdentificar_wp));
    inicializacion_wp(lista_way_point);
-   way_points_input(lista_way_point); //carga waypoints en la lista desde un archivo de texto
+   retval = way_points_input(lista_way_point); //carga waypoints en la lista desde un archivo de texto
+   if (retval < 0) exit(0);
 
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   //visualizacion_path(lista_path);
+   //visualizacion_path(lista_path); // dbg
 
    /// Control yaw
    control_yaw_init_error_buff();
@@ -390,7 +410,7 @@ int buff_len;
 	   * yaw_d deberia ser el del loop anterior, cambia mas adelante con carrot chase
 	   * velocidad esta seteada por el usuario
 	   */
-	   simulate_gps(&posicion, act_last.yaw, yaw_d, velocidad.module);
+	   simulate_gps(&posicion, &velocidad, act_last.yaw, yaw_d);
 #endif
 	   count_50 = 0;
 
@@ -417,7 +437,7 @@ int buff_len;
 	      wp.angulo = act.yaw;
 
 	      //carrot chase
-	      retval = path_following(p, lista_path, &yaw_d)
+	      retval = path_following(p, lista_path, &yaw_d);
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
 	      gps_updated = false;
@@ -466,14 +486,17 @@ int buff_len;
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu\n",
+	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf\n",
 				yaw_rate,
 				ch_buff[0],
 				ch_buff[1],
 				ch_buff[2],
 				ch_buff[3],
 				tv_diff.tv_sec,
-				tv_diff.tv_usec);
+				tv_diff.tv_usec,
+				posicion.x,
+				posicion.y,
+				posicion.z);
 
 	strcat(buff_act, buf_pwm);
 	log_writeOK = check_write_locks(log_fd);
@@ -637,7 +660,7 @@ void read_from_stdin(void)
          case 'S':
             ch_buff[3] = throttle_inicial; //valor pasado como parametro
 #if !SIMULATE_GPS
-	    velocidad.module = 4;
+	    velocidad.module = 4; //TODO esto??
 #endif //!SIMULATE_GPS
             puts("Comenzando lazo cerrado");
             control_status = STARTED;
@@ -706,6 +729,33 @@ void read_from_stdin(void)
 }
 
 // SIMULACION GPS TODO SACAR DE ACA
-void simulate_gps(posicion_t* pos, double yaw, double yaw_d, double velocidad) {
+void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured, double yaw_d)
+{
+   yaw_measured = yaw_measured*PI/180;
+   //yaw_d = yaw_d*PI/180;
+   double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
+   double F_y = masa*g*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
+
+   // Fuerza de rozamiento
+   double r_x = -B*vel->x;
+   double r_y = -B*vel->y;
+
+   // Aceleracion
+   double a_x = (r_x + F_x)/masa;
+   double a_y = (r_y + F_y)/masa;
+
+   // Velocidad
+   vel->x = vel->x + a_x*YAW_SAMPLE_TIME;
+   vel->y = vel->y + a_y*YAW_SAMPLE_TIME;
+
+   // Posicion
+   pos->x = pos->x + vel->x*YAW_SAMPLE_TIME;
+   pos->y = pos->y + vel->y*YAW_SAMPLE_TIME;
+
    return;
 }
+
+
+
+
+
