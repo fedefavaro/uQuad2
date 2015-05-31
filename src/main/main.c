@@ -329,8 +329,9 @@ int buff_len;
    serial_flush(fd_CC3D);
 #endif 
 
-uavtalk_updated = true;
+uavtalk_updated = false;
 gps_updated = true;
+
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -365,6 +366,7 @@ gps_updated = true;
 		err_log("objeto no era actitud");  
 		continue;
 	   }
+	   uavtalk_updated = true; //readOK (retval > 0)
 	} else {
 	   err_log("UAVTalk: read NOT ok");
 	   continue;
@@ -459,8 +461,6 @@ gps_updated = true;
 	      }
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
-	      //gps_updated = false;
-	      //uavtalk_updated = false;
 
 	      /// Control TODO mejorar esto
 	      u = control_yaw_calc_error(yaw_d, act.yaw);  // TODO PASAR A RADIANES
@@ -470,6 +470,9 @@ gps_updated = true;
 	      ch_buff[2] = (uint16_t) (u*25/11 + 1500);
 	      //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
          
+      	      //gps_updated = false;
+	      uavtalk_updated = false;
+
 	   } else {
 	      err_log("No tengo datos para seguimiento de trayectorias");
 	      err_count_no_data++;
@@ -759,6 +762,7 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 #else
    yaw_measured = yaw_measured*PI/180;
 #endif
+
    double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
    double F_y = masa*g*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
 

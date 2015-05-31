@@ -34,7 +34,7 @@
 
 #define SIMULATE_GPS		1
 #define DISABLE_UAVTALK		1
-#define FAKE_YAW		1
+#define FAKE_YAW		0
 
 #define DEBUG                   1
 
