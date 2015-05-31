@@ -146,10 +146,11 @@ velocidad_t velocidad = {0,0,0,{0,0}};
 // Almacena masa del quad // TODO sacar aca
 double masa = 1.85; // kg
 double g = 9.81; // m/s*s
-double B = 1; // coef friccion
+double B = 0.5; // coef friccion
 #define PITCH_DESIRED		8 //grados
 #include <math.h>
 double pitch = PITCH_DESIRED*PI/180; // angulo de pitch en radianes
+double last_yaw_measured = 0;
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -159,7 +160,7 @@ void read_from_stdin(void);
 // Convierte angulo de yaw a senal de pwm para enviar a la cc3d // TODO scar de aca
 uint16_t convert_yaw2pwm(double yaw);
 // SIMULACION GPS TODO SACAR DE ACA
-void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured, double yaw_d);
+void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
 
 /*********************************************/
 /**************** Main ***********************/
@@ -169,6 +170,8 @@ int main(int argc, char *argv[])
    int retval;
    char* log_name;
    int err_count_no_data = 0; //si no tengo datos nuevos varias veces es peligroso
+
+   printf("%lf\n",PI);
 
    if(argc<3)
    {
@@ -409,11 +412,10 @@ gps_updated = true;
 	  /*
 	   * La posicion entra la actual y sale la siguiente (simulada)
 	   * act_last guarda el angulo medido en el loop anterior
-	   * yaw_d deberia ser el del loop anterior, cambia mas adelante con carrot chase
 	   * velocidad esta seteada por el usuario
 	   */
 	   if(control_status == STARTED)
-              simulate_gps(&posicion, &velocidad, act_last.yaw, yaw_d);
+              simulate_gps(&posicion, &velocidad, act_last.yaw);
 #endif
 	   count_50 = 0;
 
@@ -432,13 +434,18 @@ gps_updated = true;
 	      * primero deberia hacer convert_gps2utm(&utm, gps) y restarle la utm inicial
 	      */
 	      convert_gps2waypoint(&wp, gps);
+	      wp.angulo = act.yaw;
 #else
               wp.x = posicion.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
 	      wp.y = posicion.y;
 	      wp.z = posicion.z;
-#endif //!SIMULATE_GPS
+	#if FAKE_YAW
+	      wp.angulo = last_yaw_measured;
+	#else
 	      wp.angulo = act.yaw;
-
+	#endif // FAKE_YAW
+#endif //!SIMULATE_GPS
+	      
 	      //carrot chase
 	      retval = path_following(wp, lista_path, &yaw_d);
 	      if (err_count_no_data > 0)
@@ -484,16 +491,17 @@ gps_updated = true;
 #endif // !DISABLE_UAVTALK
 #endif // DEBUG
 
-	// Log - T_s_act T_us_act roll pitch yaw yaw_dot C_roll C_pitch C_yaw T_s_main T_us_main
+	// Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw T_s_main T_us_main
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf\n",
+	buff_len += sprintf(buf_pwm, "%lf %u %u %lf %u %lu %lu %lf %lf %lf\n",
 				yaw_rate,
 				ch_buff[0],
 				ch_buff[1],
-				ch_buff[2],
+				//ch_buff[2],
+				yaw_d,
 				ch_buff[3],
 				tv_diff.tv_sec,
 				tv_diff.tv_usec,
@@ -732,16 +740,16 @@ void read_from_stdin(void)
 }
 
 // SIMULACION GPS TODO SACAR DE ACA
-void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured, double yaw_d)
+void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 {
-   /*********************************/
-   static last_yaw_measured = 0;
-   yaw_measured = last_yaw_measured + 0.12*(yaw_d - last_yaw_measured);
+#if FAKE_YAW
+   /*********   FAKE YAW   **********/
+   yaw_measured = last_yaw_measured + 0.5*(yaw_d*PI/180 - last_yaw_measured);
    last_yaw_measured = yaw_measured;
    /*********************************/
-
+#else
    yaw_measured = yaw_measured*PI/180;
-   //yaw_d = yaw_d*PI/180;
+#endif
    double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
    double F_y = masa*g*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
 
