@@ -42,8 +42,8 @@
 #include <fcntl.h>
 #include <stdlib.h>
 
-#define CH_COUNT		5
-#define BUFF_SIZE		10
+#define CH_COUNT		6
+#define BUFF_SIZE		12
 
 #define KILL_SBUS		"killall sbusd"
 
@@ -669,7 +669,7 @@ void set_signals(void)
 /*********************************************/
 void read_from_stdin(void)
 {
-         int retval = fread(tmp_buff,sizeof(unsigned char),1,stdin); //TODO corregir que queda algo por leer en el buffer?
+         int retval = fread(tmp_buff,sizeof(unsigned char),2,stdin); //TODO corregir que queda algo por leer en el buffer?
          if(retval <= 0)
          {
 	    //log_n_jump(ERROR_READ, end_stdin,"No user input detected!");
