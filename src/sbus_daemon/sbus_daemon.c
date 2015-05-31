@@ -20,7 +20,7 @@
 #include <sys/ipc.h> // for IPC_NOWAIT
 #include <sys/msg.h>
 
-#define CH_COUNT		5
+#define CH_COUNT		6
 #define LOOP_T_US		14000UL
 #define MAX_ERR_SBUSD		20
 

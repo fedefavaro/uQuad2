@@ -88,7 +88,7 @@ uquad_kmsgq_t *kmsgq 	= NULL;
  *
  * init todo en cero y flight mode en 2 
  */
-uint16_t ch_buff[CH_COUNT]={1500,1500,1500,950,2000};
+uint16_t ch_buff[CH_COUNT]={1500,1500,1500,950,2000,0};
 
 /** 
  * Buffer para enviar mensajes de kernel
