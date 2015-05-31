@@ -2,11 +2,11 @@ close all
 clear all
 clc
 
-data = importdata('log_controlPD_4.txt',' ');
+data = importdata('log_roll_1500_t_1200.txt',' ');
 
 t = data(:,1)*1000 + data(:,2)/1000; %timepo en milisegundos
 
-t2 = data(:,11)*1000 + data(:,12)/1000; %timepo en milisegundos
+t2 = data(:,10)*1000 + data(:,11)/1000; %timepo en milisegundos
 
 figure
 hold on
@@ -20,10 +20,13 @@ grid on
 hold off
 
 figure
-plot(t,data(:,6),'*r')
-title('Yaw punto')
+hold on
+plot(t,data(:,3),'r')
+title('Angulo de roll')
 xlabel('time (ms)')
+ylabel('Roll (deg)')
 grid on
+hold off
 
 figure
 plot(diff(t))
@@ -35,10 +38,10 @@ grid on
 
 figure
 hold on
-plot(t,data(:,7),'*r')
-plot(t,data(:,8),'*b')
-plot(t,data(:,9),'*g')
-plot(t,data(:,10),'*k')
+plot(t,data(:,6),'*r')
+plot(t,data(:,7),'*b')
+plot(t,data(:,8),'*g')
+plot(t,data(:,9),'*k')
 title('Comandos')
 xlabel('time (ms)')
 legend('Roll','Pitch','Yaw','Throttle')
@@ -52,17 +55,17 @@ xlabel('numero de muestra')
 ylabel('tiempo(ms)')
 grid on
 
-figure
-plot(t-t2)
-title('Diferencia entre tiempo de loop y tiempo de muestreo')
-xlabel('numero de muestra')
-ylabel('tiempo(ms)')
-grid on
-
-figure
-plot(diff(t)-diff(t2))
-title('Diferencia entre derivadas de tiempo de loop y tiempo de muestreo')
-xlabel('numero de muestra')
-ylabel('tiempo(ms)')
-grid on
+% figure
+% plot(t-t2)
+% title('Diferencia entre tiempo de loop y tiempo de muestreo')
+% xlabel('numero de muestra')
+% ylabel('tiempo(ms)')
+% grid on
+% 
+% figure
+% plot(diff(t)-diff(t2))
+% title('Diferencia entre derivadas de tiempo de loop y tiempo de muestreo')
+% xlabel('numero de muestra')
+% ylabel('tiempo(ms)')
+% grid on
 
