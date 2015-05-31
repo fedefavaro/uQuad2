@@ -4,8 +4,8 @@
 #include <path_planning.h>
 
 #define DELTA               5        // Parametro seguimiento rectas [m]
-#define LAMBDA              0.9      // Parametro seguimiento circunferencias [rad]
-#define ERROR_ACEPTABLE     5        // Distancia minima para determinar si se logro el objetivo [m]
+#define LAMBDA              0.5      // Parametro seguimiento circunferencias [rad]
+#define ERROR_ACEPTABLE     4        // Distancia minima para determinar si se logro el objetivo [m]
 
 typedef enum estado {
     CFA_i,

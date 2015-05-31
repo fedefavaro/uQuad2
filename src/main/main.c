@@ -111,7 +111,7 @@ double yaw_d = 0;
 typedef enum {
 	STOPPED = 0,
 	STARTED,
-        OPEN
+        FINISHED
 } estado_control_t;
 estado_control_t control_status = STOPPED;
 
@@ -146,7 +146,7 @@ velocidad_t velocidad = {0,0,0,{0,0}};
 // Almacena masa del quad // TODO sacar aca
 double masa = 1.85; // kg
 double g = 9.81; // m/s*s
-double B = 0.5; // coef friccion
+double B = 0.8; // coef friccion
 #define PITCH_DESIRED		8 //grados
 #include <math.h>
 double pitch = PITCH_DESIRED*PI/180; // angulo de pitch en radianes
@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   //visualizacion_path(lista_path); // dbg
+   visualizacion_path(lista_path); // dbg
 
    /// Control yaw
    control_yaw_init_error_buff();
@@ -339,6 +339,9 @@ gps_updated = true;
    {
 	//para tener tiempo de entrada en cada loop
 	gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
+	
+	//trayectoria finalizada
+	if (control_status == FINISHED) quit(0);
 
 	//TODO Mejorar control de errores
 	if(err_count_no_data > 10)
@@ -406,21 +409,23 @@ gps_updated = true;
 		printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
 			gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
 	   }
-#else
-	   // TODO Datos del gps simulado
-	   //gps_updated = true;
-	  /*
-	   * La posicion entra la actual y sale la siguiente (simulada)
-	   * act_last guarda el angulo medido en el loop anterior
-	   * velocidad esta seteada por el usuario
-	   */
-	   if(control_status == STARTED)
-              simulate_gps(&posicion, &velocidad, act_last.yaw);
-#endif
-	   count_50 = 0;
+#endif //!SIMULATE_GPS
 
+	   count_50 = 0;
 	} // if(count_50 > 1)
 
+#if SIMULATE_GPS
+	// TODO Datos del gps simulado
+	//gps_updated = true;
+	/*
+	 * La posicion entra la actual y sale la siguiente (simulada)
+	 * act_last guarda el angulo medido en el loop anterior
+	 * velocidad esta seteada por el usuario
+	 */
+	 if(control_status == STARTED)
+	   simulate_gps(&posicion, &velocidad, act_last.yaw);
+#endif //SIMULATE_GPS
+	   
 
 	if(control_status == STARTED)
         {
@@ -442,19 +447,23 @@ gps_updated = true;
 	#if FAKE_YAW
 	      wp.angulo = last_yaw_measured;
 	#else
-	      wp.angulo = act.yaw;
+	      wp.angulo = act.yaw*PI/180; 
 	#endif // FAKE_YAW
 #endif //!SIMULATE_GPS
 	      
 	      //carrot chase
 	      retval = path_following(wp, lista_path, &yaw_d);
+	      if (retval == -1) {
+		  control_status = FINISHED;
+		  puts("trayectoria finalizada"); // dbg
+	      }
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
 	      //gps_updated = false;
 	      //uavtalk_updated = false;
 
 	      /// Control TODO mejorar esto
-	      u = control_yaw_calc_error(yaw_d, act.yaw); 
+	      u = control_yaw_calc_error(yaw_d, act.yaw);  // TODO PASAR A RADIANES
 	      //printf("senal de control: %lf\n", u); // dbg
 
 	      //Convertir velocidad en comando
@@ -744,7 +753,7 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 {
 #if FAKE_YAW
    /*********   FAKE YAW   **********/
-   yaw_measured = last_yaw_measured + 0.5*(yaw_d*PI/180 - last_yaw_measured);
+   yaw_measured = last_yaw_measured + 0.1*(yaw_d - last_yaw_measured);
    last_yaw_measured = yaw_measured;
    /*********************************/
 #else
