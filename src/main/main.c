@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   visualizacion_path(lista_path); // dbg
+   //visualizacion_path(lista_path); // dbg
 
    /// Control yaw
    control_yaw_init_error_buff();
