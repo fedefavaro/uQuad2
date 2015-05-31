@@ -508,12 +508,12 @@ gps_updated = true;
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%lf %u %u %lf %u %lu %lu %lf %lf %lf\n",
+	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf\n",
 				yaw_rate,
 				ch_buff[0],
 				ch_buff[1],
-				//ch_buff[2],
-				yaw_d,
+				ch_buff[2],
+				//yaw_d,
 				ch_buff[3],
 				tv_diff.tv_sec,
 				tv_diff.tv_usec,
