@@ -535,6 +535,7 @@ int read_from_stdin(void)
             break;
          case 'b':                                            
             ch_buff[0] = 1500;
+	    ang_d = 1500;
             ch_buff[1] = 1500;
             ch_buff[2] = 1500;
             ch_buff[3] = 1000;  // neutral throttle
