@@ -23,7 +23,7 @@ double carrotChase_Line(way_point_t wp_i, way_point_t wp_f, way_point_t p)
     double y = wp_i.y + (R+DELTA)*sin(theta);
 
     // Paso 6
-    double yaw_d = atan2(y - p.y, x - p.x);
+    double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
 
     return yaw_d;
 }
@@ -48,7 +48,7 @@ double carrotChase_Circle(way_point_t wp_c, int r, way_point_t p, char sentido)
     }
 
     // Paso 5
-    double yaw_d = atan2(y - p.y, x - p.x);
+    double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
 
     return yaw_d;
 }
@@ -131,7 +131,7 @@ int path_following(way_point_t p, Lista_path *lista_path, double *yaw_d)
 
     }
 
-    printf("\n %i   %i\n",a,b);
+//    printf("\n %i   %i\n",a,b);
     return 0;
 
 }

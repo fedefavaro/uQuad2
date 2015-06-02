@@ -150,7 +150,7 @@ double B = 0.8; // coef friccion
 #define PITCH_DESIRED		8 //grados
 #include <math.h>
 double pitch = PITCH_DESIRED*PI/180; // angulo de pitch en radianes
-double last_yaw_measured = 0;
+double last_yaw_measured = -1.9;
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -162,11 +162,54 @@ uint16_t convert_yaw2pwm(double yaw);
 // SIMULACION GPS TODO SACAR DE ACA
 void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
 
+//-----------------------------------------------------------
+#if SOCKET_TEST
+   #include <sys/socket.h>
+   #include <arpa/inet.h>
+   #include <netinet/in.h>
+
+   #define MAXPENDING 	5    /* Max connection requests */
+   #define BUFFSIZE 	32
+   #define PORT_DEF 	1234
+
+   void Die(char *mess) { perror(mess); exit(1); }
+#endif
+//-----------------------------------------------------------
+
 /*********************************************/
 /**************** Main ***********************/
 /*********************************************/
 int main(int argc, char *argv[])
-{  
+{
+
+//-----------------------------------------------------------
+#if SOCKET_TEST
+  int serversock, clientsock;
+  struct sockaddr_in echoserver, echoclient;
+
+  /* Create the TCP socket */
+  if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+     Die("Failed to create socket");
+  }
+  /* Construct the server sockaddr_in structure */
+  memset(&echoserver, 0, sizeof(echoserver));       /* Clear struct */
+  echoserver.sin_family = AF_INET;                  /* Internet/IP */
+  echoserver.sin_addr.s_addr = htonl(INADDR_ANY);   /* Incoming addr */
+  echoserver.sin_port = htons(PORT_DEF);       /* server port */
+  
+  /* Bind the server socket */
+  if (bind(serversock, (struct sockaddr *) &echoserver,
+           sizeof(echoserver)) < 0) {
+      Die("Failed to bind the server socket");
+  }
+  /* Listen on the server socket */
+  if (listen(serversock, MAXPENDING) < 0) {
+      Die("Failed to listen on server socket");
+  }
+
+#endif
+//-----------------------------------------------------------
+
    int retval;
    char* log_name;
    int err_count_no_data = 0; //si no tengo datos nuevos varias veces es peligroso
@@ -228,6 +271,24 @@ int main(int argc, char *argv[])
    path_planning(lista_way_point, lista_path);
 
    //visualizacion_path(lista_path); // dbg
+
+#if SOCKET_TEST
+  int sock_cont = 0;
+  #define BUFF_SIZE	2
+  double buffer[BUFF_SIZE] = {0, 0};
+  int buffer_len = sizeof(buffer);
+  unsigned int clientlen = sizeof(echoclient);
+  
+  printf("----------------------\n  Esperando Cliente  \n----------------------\n");
+  /* Wait for client connection */
+  if ((clientsock =
+       accept(serversock, (struct sockaddr *) &echoclient,
+       &clientlen)) < 0) {
+          Die("Failed to accept client connection");
+  }
+  fprintf(stdout, "Client connected: %s\n",
+                              inet_ntoa(echoclient.sin_addr));  
+#endif
 
    /// Control yaw
    control_yaw_init_error_buff();
@@ -329,7 +390,11 @@ int buff_len;
    serial_flush(fd_CC3D);
 #endif 
 
+#if DISABLE_UAVTALK 
+uavtalk_updated = true;
+#else
 uavtalk_updated = false;
+#endif
 gps_updated = true;
 
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
@@ -471,8 +536,9 @@ gps_updated = true;
 	      //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
          
       	      //gps_updated = false;
+#if !DISABLE_UAVTALK
 	      uavtalk_updated = false;
-
+#endif
 	   } else {
 	      err_log("No tengo datos para seguimiento de trayectorias");
 	      err_count_no_data++;
@@ -503,23 +569,31 @@ gps_updated = true;
 #endif // !DISABLE_UAVTALK
 #endif // DEBUG
 
+#if SOCKET_TEST
+       buffer[0] = posicion.x;
+       buffer[1] = posicion.y;
+       /* Send back received data */
+       if (send(clientsock, &buffer, buffer_len, 0) != buffer_len)
+           Die("Failed to send bytes to client");
+#endif
+
 	// Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw T_s_main T_us_main
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf\n",
+	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf %lf\n",
 				yaw_rate,
 				ch_buff[0],
 				ch_buff[1],
 				ch_buff[2],
-				//yaw_d,
 				ch_buff[3],
 				tv_diff.tv_sec,
 				tv_diff.tv_usec,
 				posicion.x,
 				posicion.y,
-				posicion.z);
+				posicion.z,
+				yaw_d);
 
 	strcat(buff_act, buf_pwm);
 	log_writeOK = check_write_locks(log_fd);
@@ -756,7 +830,7 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 {
 #if FAKE_YAW
    /*********   FAKE YAW   **********/
-   yaw_measured = last_yaw_measured + 0.1*(yaw_d - last_yaw_measured);
+   yaw_measured = last_yaw_measured + 0.06*(yaw_d - last_yaw_measured);
    last_yaw_measured = yaw_measured;
    /*********************************/
 #else
@@ -766,6 +840,8 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
    double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
    double F_y = masa*g*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
 
+   int i = 0;
+   for(i=0;i<5;i++) {
    // Fuerza de rozamiento
    double r_x = -B*vel->x;
    double r_y = -B*vel->y;
@@ -775,12 +851,13 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
    double a_y = (r_y + F_y)/masa;
 
    // Velocidad
-   vel->x = vel->x + a_x*YAW_SAMPLE_TIME;
-   vel->y = vel->y + a_y*YAW_SAMPLE_TIME;
+   vel->x = vel->x + a_x*YAW_SAMPLE_TIME/5;
+   vel->y = vel->y + a_y*YAW_SAMPLE_TIME/5;
 
    // Posicion
-   pos->x = pos->x + vel->x*YAW_SAMPLE_TIME;
-   pos->y = pos->y + vel->y*YAW_SAMPLE_TIME;
+   pos->x = pos->x + vel->x*YAW_SAMPLE_TIME/5;
+   pos->y = pos->y + vel->y*YAW_SAMPLE_TIME/5;
+   }
 
    return;
 }
