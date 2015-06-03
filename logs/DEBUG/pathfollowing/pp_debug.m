@@ -2,7 +2,7 @@ close all
 clear all
 clc
 
-data = importdata('log_test_3');
+data = importdata('log_debug_4');
 
 figure
 plot(data(:,13),data(:,14),'*r');
@@ -14,4 +14,8 @@ figure
 plot(t,data(:,5),'*r');
 
 figure
-plot(t,data(:,16),'*r');
+hold on
+plot(t,data(:,16),'r');
+plot(t,data(:,17),'b');
+legend('yaw deseado','yaw simulado')
+grid on

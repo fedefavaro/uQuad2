@@ -555,44 +555,47 @@ int log_trayectoria(Lista_path *lista)
     }
 
     fprintf(output_file, "%i \n", RADIO);
-    fprintf(output_file, "%lf \n", elemento->dato->xi);
-    fprintf(output_file, "%lf \n", elemento->dato->yi);
-    fprintf(output_file, "%lf \n", elemento->dato->zi);
-    fprintf(output_file, "%lf \n", elemento->dato->anguloi);
-    fprintf(output_file, "%lf \n", elemento->dato->xf);
+    fprintf(output_file, "%lf \n", elemento->dato->xi);		// x waypoint inicial
+    fprintf(output_file, "%lf \n", elemento->dato->yi);		// y inicial
+    fprintf(output_file, "%lf \n", elemento->dato->anguloi);	// angulo YAW inicial
+    fprintf(output_file, "%lf \n", elemento->dato->xf);		// x final
     fprintf(output_file, "%lf \n", elemento->dato->yf);
-    fprintf(output_file, "%lf \n", elemento->dato->zf);
-    fprintf(output_file, "%lf \n", elemento->dato->anguloi);
-    fprintf(output_file, "%lf \n", elemento->dato->tipo);
+    fprintf(output_file, "%lf \n", elemento->dato->angulof);
+    fprintf(output_file, "%d \n", elemento->dato->tipo);
     fprintf(output_file, "%lf \n", elemento->dato->xci);
     fprintf(output_file, "%lf \n", elemento->dato->yci);
+    fprintf(output_file, "%lf \n", elemento->dato->xri);	// x inicio recta
+    fprintf(output_file, "%lf \n", elemento->dato->yri);	// y inicio recta
+    fprintf(output_file, "%lf \n", elemento->dato->xrf);	// x final recta
+    fprintf(output_file, "%lf \n", elemento->dato->yrf);	// y final recta
     fprintf(output_file, "%lf \n", elemento->dato->xcf);
     fprintf(output_file, "%lf \n", elemento->dato->ycf);
     fprintf(output_file, "%lf \n", elemento->dato->Ci);
     fprintf(output_file, "%lf \n", elemento->dato->S);
-    fprintf(output_file, "%lf \n\n", elemento->dato->Cf);
+    fprintf(output_file, "%lf \n", elemento->dato->Cf);
 
     // Guardo resultados en log file
      while (elemento->siguiente != NULL) {
-
-        elemento = elemento->siguiente;
-        fprintf(output_file, "%i \n", RADIO);
-        fprintf(output_file, "%lf \n", elemento->dato->xi);
-        fprintf(output_file, "%lf \n", elemento->dato->yi);
-        fprintf(output_file, "%lf \n", elemento->dato->zi);
-        fprintf(output_file, "%lf \n", elemento->dato->anguloi);
-        fprintf(output_file, "%lf \n", elemento->dato->xf);
-        fprintf(output_file, "%lf \n", elemento->dato->yf);
-        fprintf(output_file, "%lf \n", elemento->dato->zf);
-        fprintf(output_file, "%lf \n", elemento->dato->anguloi);
-        fprintf(output_file, "%lf \n", elemento->dato->tipo);
-        fprintf(output_file, "%lf \n", elemento->dato->xci);
-        fprintf(output_file, "%lf \n", elemento->dato->yci);
-        fprintf(output_file, "%lf \n", elemento->dato->xcf);
-        fprintf(output_file, "%lf \n", elemento->dato->ycf);
-        fprintf(output_file, "%lf \n", elemento->dato->Ci);
-        fprintf(output_file, "%lf \n", elemento->dato->S);
-        fprintf(output_file, "%lf \n\n", elemento->dato->Cf);
+	elemento = elemento->siguiente;
+	fprintf(output_file, "%i \n", RADIO);
+	fprintf(output_file, "%lf \n", elemento->dato->xi);
+	fprintf(output_file, "%lf \n", elemento->dato->yi);
+	fprintf(output_file, "%lf \n", elemento->dato->anguloi);
+	fprintf(output_file, "%lf \n", elemento->dato->xf);
+	fprintf(output_file, "%lf \n", elemento->dato->yf);
+	fprintf(output_file, "%lf \n", elemento->dato->angulof);
+	fprintf(output_file, "%d \n", elemento->dato->tipo);
+	fprintf(output_file, "%lf \n", elemento->dato->xci);
+	fprintf(output_file, "%lf \n", elemento->dato->yci);
+	fprintf(output_file, "%lf \n", elemento->dato->xri); // x inicio recta
+	fprintf(output_file, "%lf \n", elemento->dato->yri); // y inicio recta
+	fprintf(output_file, "%lf \n", elemento->dato->xrf); // x final recta
+	fprintf(output_file, "%lf \n", elemento->dato->yrf); // y final recta
+	fprintf(output_file, "%lf \n", elemento->dato->xcf);
+	fprintf(output_file, "%lf \n", elemento->dato->ycf);
+	fprintf(output_file, "%lf \n", elemento->dato->Ci);
+	fprintf(output_file, "%lf \n", elemento->dato->S);
+	fprintf(output_file, "%lf \n", elemento->dato->Cf);
     }
 
     // Cierro archivo de log file
@@ -627,6 +630,8 @@ int path_planning(Lista_wp *wp, Lista_path *lista_path)
         // Defino el tipo de trayectoria
         tipo_trayectoria_t *path_type = (tipo_trayectoria_t *)malloc(sizeof(enum tipo_trayectoria));
         eleccion_curva_dubins(cuad, p_inicial_conv, p_final_conv, path_type);
+
+printf("%lf\n",(double)*path_type);
 
         // Hallo la trayectoria
         trayectoria_t *path = (trayectoria_t *)malloc(sizeof(struct trayectoria));
@@ -800,26 +805,26 @@ void visualizacion_path(Lista_path *lista)
     actual = lista->inicio;
     while(actual != NULL) {
 
-        printf("\n xi = %lf",actual->dato->xi);
-        printf("\n yi = %lf",actual->dato->yi);
-        printf("\n zi = %lf",actual->dato->zi);
-        printf("\n angulo inicial = %lf",actual->dato->anguloi);
-        printf("\n xf = %lf",actual->dato->xf);
-        printf("\n yf = %lf",actual->dato->yf);
-        printf("\n zf = %lf",actual->dato->zf);
-        printf("\n angulo final = %lf",actual->dato->angulof);
-        printf("\n tipo curva = %lf",actual->dato->tipo);
-        printf("\n x inicial recta = %lf",actual->dato->xri);
-        printf("\n y inicial recta = %lf",actual->dato->yri);
-        printf("\n x final recta = %lf",actual->dato->xrf);
-        printf("\n y final recta = %lf",actual->dato->yrf);
-        printf("\n xci = %lf",actual->dato->xci);
-        printf("\n yci = %lf",actual->dato->yci);
-        printf("\n xcf = %lf",actual->dato->xcf);
-        printf("\n ycf = %lf",actual->dato->ycf);
-        printf("\n largo cfa inicial = %lf",actual->dato->Ci);
-        printf("\n largo recta = %lf",actual->dato->S);
-        printf("\n largo cfa final = %lf",actual->dato->Cf);
+        printf("xi = %lf\n",actual->dato->xi);
+        printf("yi = %lf\n",actual->dato->yi);
+        printf("zi = %lf\n",actual->dato->zi);
+        printf("angulo inicial = %lf\n",actual->dato->anguloi);
+        printf("xf = %lf\n",actual->dato->xf);
+        printf("yf = %lf\n",actual->dato->yf);
+        printf("zf = %lf\n",actual->dato->zf);
+        printf("angulo final = %lf\n",actual->dato->angulof);
+        printf("tipo curva = %d\n",actual->dato->tipo);
+        printf("x inicial recta = %lf\n",actual->dato->xri);
+        printf("y inicial recta = %lf\n",actual->dato->yri);
+        printf("x final recta = %lf\n",actual->dato->xrf);
+        printf("y final recta = %lf\n",actual->dato->yrf);
+        printf("xci = %lf\n",actual->dato->xci);
+        printf("yci = %lf\n",actual->dato->yci);
+        printf("xcf = %lf\n",actual->dato->xcf);
+        printf("ycf = %lf\n",actual->dato->ycf);
+        printf("largo cfa inicial = %lf\n",actual->dato->Ci);
+        printf("largo recta = %lf\n",actual->dato->S);
+        printf("largo cfa final = %lf\n",actual->dato->Cf);
 
         actual = actual->siguiente;
     }

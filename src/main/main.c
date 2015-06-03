@@ -39,6 +39,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <math.h>
 #include <fcntl.h>
 #include <stdlib.h>
 
@@ -101,6 +102,7 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 int fd_CC3D;
 actitud_t act_last;
 double yaw_rate;
+double yaw_zero = 0;
 bool uavtalk_updated = false;
 
 // Control de yaw
@@ -147,10 +149,10 @@ velocidad_t velocidad = {0,0,0,{0,0}};
 double masa = 1.85; // kg
 double g = 9.81; // m/s*s
 double B = 0.8; // coef friccion
-#define PITCH_DESIRED		8 //grados
+#define PITCH_DESIRED		10 //grados
 #include <math.h>
-double pitch = PITCH_DESIRED*PI/180; // angulo de pitch en radianes
-double last_yaw_measured = -1.9;
+double pitch = PITCH_DESIRED*M_PI/180; // angulo de pitch en radianes
+double last_yaw_measured = M_PI/6;
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -170,9 +172,9 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
 
    #define MAXPENDING 	5    /* Max connection requests */
    #define BUFFSIZE 	32
-   #define PORT_DEF 	1234
+   #define PORT_DEF 	12345
 
-   void Die(char *mess) { perror(mess); exit(1); }
+   void Die(char *mess) { perror(mess); quit(1); }
 #endif
 //-----------------------------------------------------------
 
@@ -188,9 +190,13 @@ int main(int argc, char *argv[])
   struct sockaddr_in echoserver, echoclient;
 
   /* Create the TCP socket */
-  if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+  if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
      Die("Failed to create socket");
-  }
+
+  int verdadero = 1;
+  if (setsockopt(serversock,SOL_SOCKET,SO_REUSEADDR,&verdadero,sizeof(int)) == -1)
+     Die("Failed to set socket options");
+  
   /* Construct the server sockaddr_in structure */
   memset(&echoserver, 0, sizeof(echoserver));       /* Clear struct */
   echoserver.sin_family = AF_INET;                  /* Internet/IP */
@@ -207,6 +213,9 @@ int main(int argc, char *argv[])
       Die("Failed to listen on server socket");
   }
 
+
+
+
 #endif
 //-----------------------------------------------------------
 
@@ -214,7 +223,7 @@ int main(int argc, char *argv[])
    char* log_name;
    int err_count_no_data = 0; //si no tengo datos nuevos varias veces es peligroso
 
-   printf("%lf\n",PI);
+   printf("%lf\n",M_PI);
 
    if(argc<3)
    {
@@ -270,6 +279,7 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
+   log_trayectoria(lista_path); //dbg
    //visualizacion_path(lista_path); // dbg
 
 #if SOCKET_TEST
@@ -397,6 +407,8 @@ uavtalk_updated = false;
 #endif
 gps_updated = true;
 
+bool first_time = true;
+
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
    // Loop
@@ -489,14 +501,21 @@ gps_updated = true;
 	 * act_last guarda el angulo medido en el loop anterior
 	 * velocidad esta seteada por el usuario
 	 */
-	 if(control_status == STARTED)
+	 if(control_status == STARTED && !first_time)
 	   simulate_gps(&posicion, &velocidad, act_last.yaw);
 #endif //SIMULATE_GPS
 	   
 
 	if(control_status == STARTED)
         {
-	
+	   if (first_time)	
+		first_time = false;
+	   // Calcula diferencia respecto a cero
+#if !FAKE_YAW
+	   act.yaw = act.yaw - yaw_zero;
+#else
+	   last_yaw_measured = last_yaw_measured - yaw_zero;
+#endif
            /// Path Follower & yaw control
 	   // si hay datos de gps y de yaw hago carrot chase //TODO cuando tenga gps esto tiene que cambiar
 	   if(gps_updated && uavtalk_updated)
@@ -514,7 +533,7 @@ gps_updated = true;
 	#if FAKE_YAW
 	      wp.angulo = last_yaw_measured;
 	#else
-	      wp.angulo = act.yaw*PI/180; 
+	      wp.angulo = act.yaw; 
 	#endif // FAKE_YAW
 #endif //!SIMULATE_GPS
 	      
@@ -524,6 +543,7 @@ gps_updated = true;
 		  control_status = FINISHED;
 		  puts("trayectoria finalizada"); // dbg
 	      }
+	      
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
 
@@ -543,8 +563,7 @@ gps_updated = true;
 	      err_log("No tengo datos para seguimiento de trayectorias");
 	      err_count_no_data++;
 	   }
-
-	}
+	} 
 
 	// Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
 	retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);
@@ -554,7 +573,7 @@ gps_updated = true;
 	}
 
 #if DEBUG 
-#if !DISABLE_UAVTALK       
+	#if !DISABLE_UAVTALK       
 	// checkeo de tiempos al muestrear - debuggin
 	retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
 	if(retval > 0) {
@@ -566,7 +585,7 @@ gps_updated = true;
 	   err_log("WARN: Absurd timing!");
 	   //serial_flush(fd_CC3D);
 	}
-#endif // !DISABLE_UAVTALK
+	#endif // !DISABLE_UAVTALK
 #endif // DEBUG
 
 #if SOCKET_TEST
@@ -582,7 +601,7 @@ gps_updated = true;
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf %lf\n",
+	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf %lf %lf\n",
 				yaw_rate,
 				ch_buff[0],
 				ch_buff[1],
@@ -593,7 +612,8 @@ gps_updated = true;
 				posicion.x,
 				posicion.y,
 				posicion.z,
-				yaw_d);
+				yaw_d,
+				last_yaw_measured);
 
 	strcat(buff_act, buf_pwm);
 	log_writeOK = check_write_locks(log_fd);
@@ -784,6 +804,11 @@ void read_from_stdin(void)
             puts("Seteando valor neutro");
             break;
          case 'A':
+#if FAKE_YAW
+	    yaw_zero = last_yaw_measured;
+#else
+	    yaw_zero = act.yaw;
+#endif
             ch_buff[0] = 1500; //roll
             ch_buff[1] = 1500; //pitch
             ch_buff[2] = 1000; //yaw
@@ -830,11 +855,12 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 {
 #if FAKE_YAW
    /*********   FAKE YAW   **********/
-   yaw_measured = last_yaw_measured + 0.06*(yaw_d - last_yaw_measured);
-   last_yaw_measured = yaw_measured;
+   //el yaw_d se actualiza despues de sumulate_gps, por lo tanto este yaw_d es el del loop anterior
+   yaw_measured = last_yaw_measured + 0.1*(yaw_d - last_yaw_measured);
+   last_yaw_measured = yaw_measured + yaw_zero;
    /*********************************/
 #else
-   yaw_measured = yaw_measured*PI/180;
+   yaw_measured = yaw_measured;
 #endif
 
    double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
@@ -842,21 +868,22 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 
    int i = 0;
    for(i=0;i<5;i++) {
-   // Fuerza de rozamiento
-   double r_x = -B*vel->x;
-   double r_y = -B*vel->y;
+  
+	// Fuerza de rozamiento
+	double r_x = -B*vel->x;
+	double r_y = -B*vel->y;
 
-   // Aceleracion
-   double a_x = (r_x + F_x)/masa;
-   double a_y = (r_y + F_y)/masa;
+	// Aceleracion
+	double a_x = (r_x + F_x)/masa;
+	double a_y = (r_y + F_y)/masa;
 
-   // Velocidad
-   vel->x = vel->x + a_x*YAW_SAMPLE_TIME/5;
-   vel->y = vel->y + a_y*YAW_SAMPLE_TIME/5;
+	// Velocidad
+	vel->x = vel->x + a_x*YAW_SAMPLE_TIME/5;
+	vel->y = vel->y + a_y*YAW_SAMPLE_TIME/5;
 
-   // Posicion
-   pos->x = pos->x + vel->x*YAW_SAMPLE_TIME/5;
-   pos->y = pos->y + vel->y*YAW_SAMPLE_TIME/5;
+	// Posicion
+	pos->x = pos->x + vel->x*YAW_SAMPLE_TIME/5;
+	pos->y = pos->y + vel->y*YAW_SAMPLE_TIME/5;
    }
 
    return;

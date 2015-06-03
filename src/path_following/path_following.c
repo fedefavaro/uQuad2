@@ -3,10 +3,14 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define fix(a)                    ((a>0)?floor(a):ceil(a))
+#define sign(a)                   ((a < 0.0)?-1.0:1.0)
+
 static estado_t estado = CFA_i;
 
 double carrotChase_Line(way_point_t wp_i, way_point_t wp_f, way_point_t p)
 {
+    static double last_yaw_d = 0; //TODO primer caso me preocupa, como inicializo esta variable
     // Paso 2
     double Ru = sqrt(pow(wp_i.x - p.x, 2) + pow(wp_i.y - p.y, 2));
     double theta = atan2(wp_f.y - wp_i.y, wp_f.x - wp_i.x);
@@ -23,13 +27,21 @@ double carrotChase_Line(way_point_t wp_i, way_point_t wp_f, way_point_t p)
     double y = wp_i.y + (R+DELTA)*sin(theta);
 
     // Paso 6
-    double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
+    //double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
+    double yaw_d = atan2(y - p.y, x - p.x);
+    
+    //Correccion de discontinuidad de atan2
+    double dyaw_d = yaw_d - last_yaw_d;
+    if (abs(dyaw_d) >= M_PI)
+	yaw_d -= 2.0*M_PI*fix((dyaw_d+M_PI*sign(dyaw_d))/(2.0*M_PI));
+    last_yaw_d = yaw_d;
 
     return yaw_d;
 }
 
 double carrotChase_Circle(way_point_t wp_c, int r, way_point_t p, char sentido)
 {
+    static double last_yaw_d = 0;
     // Paso 2
     double d = sqrt(pow(wp_c.x - p.x, 2) + pow(wp_c.y - p.y, 2)) - r;
 
@@ -48,7 +60,14 @@ double carrotChase_Circle(way_point_t wp_c, int r, way_point_t p, char sentido)
     }
 
     // Paso 5
-    double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
+    //double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
+    double yaw_d = atan2(y - p.y, x - p.x);
+    
+    //Correccion de discontinuidad de atan2
+    double dyaw_d = yaw_d - last_yaw_d;
+    if (abs(dyaw_d) >= M_PI)
+	yaw_d -= 2.0*M_PI*fix((dyaw_d+M_PI*sign(dyaw_d))/(2.0*M_PI));
+    last_yaw_d = yaw_d;
 
     return yaw_d;
 }

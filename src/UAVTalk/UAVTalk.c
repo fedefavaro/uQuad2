@@ -35,6 +35,7 @@
 #include <serial_comm.h>
 
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -362,9 +363,9 @@ int uavtalk_read(int fd, actitud_t* act)
 				case ATTITUDEACTUAL_OBJID:
 				case ATTITUDESTATE_OBJID:
 				   show_prio_info = 1;
-        			   act->roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
-				   act->pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
-				   act->yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+        			   act->roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL)*M_PI/180;
+				   act->pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH)*M_PI/180;
+				   act->yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW)*M_PI/180;
                                    // Timestamp
 				   gettimeofday(&tv_aux,NULL);
                                    uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
