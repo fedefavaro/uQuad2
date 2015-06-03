@@ -2,7 +2,7 @@ close all
 clear all
 clc
 
-data = importdata('log_debug_4');
+data = importdata('log_debug_8');
 
 figure
 plot(data(:,13),data(:,14),'*r');

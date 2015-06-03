@@ -100,6 +100,7 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 
 // UAVTalk
 int fd_CC3D;
+actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
 actitud_t act_last;
 double yaw_rate;
 double yaw_zero = 0;
@@ -148,8 +149,8 @@ velocidad_t velocidad = {0,0,0,{0,0}};
 // Almacena masa del quad // TODO sacar aca
 double masa = 1.85; // kg
 double g = 9.81; // m/s*s
-double B = 0.8; // coef friccion
-#define PITCH_DESIRED		10 //grados
+double B = 1; // coef friccion
+#define PITCH_DESIRED		9 //grados
 #include <math.h>
 double pitch = PITCH_DESIRED*M_PI/180; // angulo de pitch en radianes
 double last_yaw_measured = M_PI/6;
@@ -283,9 +284,8 @@ int main(int argc, char *argv[])
    //visualizacion_path(lista_path); // dbg
 
 #if SOCKET_TEST
-  int sock_cont = 0;
-  #define BUFF_SIZE	2
-  double buffer[BUFF_SIZE] = {0, 0};
+  #define SOCKET_BUFF_SIZE	2
+  double buffer[SOCKET_BUFF_SIZE] = {0, 0};
   int buffer_len = sizeof(buffer);
   unsigned int clientlen = sizeof(echoclient);
   
@@ -386,7 +386,6 @@ int main(int argc, char *argv[])
 #endif
 
 int8_t count_50 = 1; // controla tiempo de loop 100ms
-actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
 act_last = act;
 
 char buff_act[512]; //TODO determinar valor
@@ -850,17 +849,16 @@ void read_from_stdin(void)
          return;
 }
 
+#define VELOCITY		3.0 // m/s
 // SIMULACION GPS TODO SACAR DE ACA
 void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 {
 #if FAKE_YAW
    /*********   FAKE YAW   **********/
    //el yaw_d se actualiza despues de sumulate_gps, por lo tanto este yaw_d es el del loop anterior
-   yaw_measured = last_yaw_measured + 0.1*(yaw_d - last_yaw_measured);
+   yaw_measured = last_yaw_measured + 0.06*(yaw_d - last_yaw_measured);
    last_yaw_measured = yaw_measured + yaw_zero;
    /*********************************/
-#else
-   yaw_measured = yaw_measured;
 #endif
 
    double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
@@ -886,6 +884,18 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 	pos->y = pos->y + vel->y*YAW_SAMPLE_TIME/5;
    }
 
+
+/*   //vel->x = vel->x + YAW_SAMPLE_TIME*B*(pow(VELOCITY,2)-pow(vel->x,2)-tan(yaw_measured)*vel->x*sqrt(pow(VELOCITY,2)-pow(vel->x,2)))/(tan(yaw_measured)*sqrt(pow(VELOCITY,2)-pow(vel->x,2))+vel->x)/masa;
+   vel->x = vel->x + YAW_SAMPLE_TIME*B/masa*sqrt(pow(VELOCITY,2)-pow(vel->x,2))*(sqrt(pow(VELOCITY,2)-pow(vel->x,2))-vel->x*tan(yaw_measured))/(tan(yaw_measured)*sqrt(pow(VELOCITY,2)-pow(vel->x,2))+vel->x);
+   vel->y = sqrt(pow(VELOCITY,2) - pow(vel->x,2));
+
+	printf("velocidad x:  %lf  ",vel->x);
+	printf("velocidad y:  %lf  ",vel->y);
+	printf("Modulo:  %lf\n", sqrt( pow(vel->x,2) + pow(vel->y,2) ));
+
+   pos->x = pos->x + vel->x*YAW_SAMPLE_TIME;
+   pos->y = pos->y + vel->y*YAW_SAMPLE_TIME;
+*/
    return;
 }
 

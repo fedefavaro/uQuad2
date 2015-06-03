@@ -25,6 +25,7 @@
 
 #include <control_yaw.h>
 #include <stdlib.h>
+#include <math.h>
 
 double Kp = 0.7;     
 double Td = 0.4;  
@@ -105,10 +106,13 @@ double control_yaw_derivate_error(int8_t opt)
 }
 
 
+/*
+ * Los parametros de entrada son en radianes pero el control es en grados
+ */
 double control_yaw_calc_error(double yaw_d, double yaw_measured) 
 {
    double u = 0;
-   u = Kp*(yaw_d - yaw_measured);
+   u = 180/M_PI*Kp*(yaw_d - yaw_measured);
    
 #if CONTROL_YAW_ADD_DERIVATIVE
    error_yaw_t new_err;
