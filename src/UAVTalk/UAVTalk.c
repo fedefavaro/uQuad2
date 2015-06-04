@@ -35,9 +35,12 @@
 #include <serial_comm.h>
 
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
 #include <inttypes.h>
+
+#include <math.h>
+#define fix(a)                    ((a>0)?floor(a):ceil(a))
+#define sign(a)                   ((a < 0.0)?-1.0:1.0)
 
 //#define CC3D_DEVICE	"/dev/ttyUSB0" //TODO que onda cuando tenga 2 ftdi?
 #define CC3D_DEVICE	"/dev/ttyO1"
@@ -335,6 +338,7 @@ int uavtalk_read(int fd, actitud_t* act)
 {
 	int ret = 0;  
         struct timeval tv_aux;
+	static double last_yaw = 0; //Para fix TODO primer caso me preocupa, como inicializo esta variable
 	//int32_t start_time = uavtalk_get_time_usec();
 	//actitud_t act;        
 
@@ -366,7 +370,14 @@ int uavtalk_read(int fd, actitud_t* act)
         			   act->roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL)*M_PI/180;
 				   act->pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH)*M_PI/180;
 				   act->yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW)*M_PI/180;
-                                   // Timestamp
+				   
+				   //Correccion de discontinuidad de atan2
+				   double dyaw = act->yaw - last_yaw;
+				   if (abs(dyaw) >= M_PI)
+					act->yaw -= 2.0*M_PI*fix((dyaw+M_PI*sign(dyaw))/(2.0*M_PI));
+				   last_yaw = act->yaw;
+                                   
+				   // Timestamp
 				   gettimeofday(&tv_aux,NULL);
                                    uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
 				   
