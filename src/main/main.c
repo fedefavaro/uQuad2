@@ -150,9 +150,11 @@ velocidad_t velocidad = {0,0,0,{0,0}};
 double masa = 1.85; // kg
 double g = 9.81; // m/s*s
 double B = 1; // coef friccion
-#define PITCH_DESIRED		9 //grados
+//#define PITCH_DESIRED		9 //grados
+#define VEL_DESIRED		3.0 //m/s
 #include <math.h>
-double pitch = PITCH_DESIRED*M_PI/180; // angulo de pitch en radianes
+//double pitch = PITCH_DESIRED*M_PI/180; // angulo de pitch en radianes
+double pitch = 0; // angulo de pitch en radianes
 double last_yaw_measured = M_PI/6;
 
 /// Declaracion de funciones auxiliares
@@ -317,6 +319,7 @@ int main(int argc, char *argv[])
 
    /// Control velocidad
    // TODO
+   pitch = atan(B*VEL_DESIRED/masa/g);
 
    /// Control altura
    // TODO
@@ -848,7 +851,6 @@ void read_from_stdin(void)
          return;
 }
 
-#define VELOCITY		3.0 // m/s
 // SIMULACION GPS TODO SACAR DE ACA
 void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 {
@@ -883,18 +885,6 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 	pos->y = pos->y + vel->y*YAW_SAMPLE_TIME/5;
    }
 
-
-/*   //vel->x = vel->x + YAW_SAMPLE_TIME*B*(pow(VELOCITY,2)-pow(vel->x,2)-tan(yaw_measured)*vel->x*sqrt(pow(VELOCITY,2)-pow(vel->x,2)))/(tan(yaw_measured)*sqrt(pow(VELOCITY,2)-pow(vel->x,2))+vel->x)/masa;
-   vel->x = vel->x + YAW_SAMPLE_TIME*B/masa*sqrt(pow(VELOCITY,2)-pow(vel->x,2))*(sqrt(pow(VELOCITY,2)-pow(vel->x,2))-vel->x*tan(yaw_measured))/(tan(yaw_measured)*sqrt(pow(VELOCITY,2)-pow(vel->x,2))+vel->x);
-   vel->y = sqrt(pow(VELOCITY,2) - pow(vel->x,2));
-
-	printf("velocidad x:  %lf  ",vel->x);
-	printf("velocidad y:  %lf  ",vel->y);
-	printf("Modulo:  %lf\n", sqrt( pow(vel->x,2) + pow(vel->y,2) ));
-
-   pos->x = pos->x + vel->x*YAW_SAMPLE_TIME;
-   pos->y = pos->y + vel->y*YAW_SAMPLE_TIME;
-*/
    return;
 }
 

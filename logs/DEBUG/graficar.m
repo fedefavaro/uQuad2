@@ -83,7 +83,7 @@ end
 
 
 %% Grafica datos obtenidos
-data = importdata('log_pf_5',' ');
+data = importdata('log_test_2',' ');
 
 %posicion -xy
 plot(data(:,13),data(:,14),'b')
