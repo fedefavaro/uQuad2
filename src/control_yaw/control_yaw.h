@@ -36,14 +36,14 @@
 
 #define CONTROL_YAW_ADD_DERIVATIVE	0
 
+#define PORCENTAGE_UPDATE_YAW		0.06
+#define INITIAL_YAW			M_PI/6
+
 
 typedef struct error_yaw {
 	double error;
 	struct timeval ts;
 } error_yaw_t;
-
-//double Kp = 0.7;  // tau = 1/Kp // Probar tau = 1 y tau = 2
-//double Td = 0.4;
 
 
 /*
@@ -73,17 +73,13 @@ double control_yaw_derivate_error(int8_t opt);
  */
 double control_yaw_calc_error(double yaw_d, double yaw_measured);
 
+double simulate_yaw(double yaw_measured);
+
+static double yaw_zero;
+void set_yaw_zero(double yaw_measured);
+double get_yaw_zero(void);
 
 #endif // CONTROL_YAW_H
-
-
-
-
-
-
-
-
-
 
 
 

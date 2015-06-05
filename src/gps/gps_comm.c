@@ -278,4 +278,36 @@ int gps_send_command(int fd, const char *command)
 }
 
 
+/**
+ * Simula movimiento del quad en base a modelo fisico
+ */
+void gps_simulate_position(posicion_t* pos, velocidad_t* vel, double yaw_measured)
+{
+
+   double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
+   double F_y = masa*g*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
+
+   int i = 0;
+   for(i=0;i<5;i++) {
+  
+	// Fuerza de rozamiento
+	double r_x = -B*vel->x;
+	double r_y = -B*vel->y;
+
+	// Aceleracion
+	double a_x = (r_x + F_x)/masa;
+	double a_y = (r_y + F_y)/masa;
+
+	// Velocidad
+	vel->x = vel->x + a_x*YAW_SAMPLE_TIME/5;
+	vel->y = vel->y + a_y*YAW_SAMPLE_TIME/5;
+
+	// Posicion
+	pos->x = pos->x + vel->x*YAW_SAMPLE_TIME/5;
+	pos->y = pos->y + vel->y*YAW_SAMPLE_TIME/5;
+   }
+
+   return;
+}
+
 

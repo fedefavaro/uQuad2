@@ -23,6 +23,7 @@
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <quadcop_types.h>
 #include <uquad_kernel_msgq.h>
 #include <uquad_error_codes.h>
 #include <quadcop_config.h>
@@ -101,14 +102,15 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 // UAVTalk
 int fd_CC3D;
 actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
-actitud_t act_last;
-double yaw_rate;
+actitud_t act_last = {0,0,0,{0,0}};
+//double yaw_rate = 0;
 double yaw_zero = 0;
 bool uavtalk_updated = false;
 
 // Control de yaw
 double u = 0; //senal de control (setpoint de velocidad angular)
 double yaw_d = 0;
+//double last_yaw_measured = M_PI/6;
 
 // Control activado/desactivado // TODO Mover a contorl_yaw
 typedef enum {
@@ -119,43 +121,42 @@ typedef enum {
 estado_control_t control_status = STOPPED;
 
 // Almacena posicion actual del quad // TODO sacar aca
-typedef struct posicion {
+/*typedef struct posicion {
    double x;
    double y;
    double z;
    struct timeval ts;
-} posicion_t;
+} posicion_t;*/
 posicion_t posicion = {0,0,0,{0,0}};
 
 #if !SIMULATE_GPS
 // Almacena velovidad actual del quad // TODO sacar aca
-typedef struct velocidad {
+/*typedef struct velocidad {
    double module;
    double angle;
    struct timeval ts;
-} velocidad_t;
+} velocidad_t;*/
 velocidad_t velocidad = {0,0,{0,0}};
 #else
 // Almacena velovidad actual del quad // TODO sacar aca
-typedef struct velocidad {
+/*typedef struct velocidad {
    double x;
    double y;
    double z;
    struct timeval ts;
-} velocidad_t;
+} velocidad_t;*/
 velocidad_t velocidad = {0,0,0,{0,0}};
 #endif
 
 // Almacena masa del quad // TODO sacar aca
-double masa = 1.85; // kg
-double g = 9.81; // m/s*s
-double B = 1; // coef friccion
+//double masa = 1.85; // kg
+//double g = 9.81; // m/s*s
+//double B = 1; // coef friccion
 //#define PITCH_DESIRED		9 //grados
-#define VEL_DESIRED		3.0 //m/s
-#include <math.h>
+//#define VEL_DESIRED		3.0 //m/s
 //double pitch = PITCH_DESIRED*M_PI/180; // angulo de pitch en radianes
+// Control de velocidad
 double pitch = 0; // angulo de pitch en radianes
-double last_yaw_measured = M_PI/6;
 
 /// Declaracion de funciones auxiliares
 void quit(int Q);
@@ -165,7 +166,7 @@ void read_from_stdin(void);
 // Convierte angulo de yaw a senal de pwm para enviar a la cc3d // TODO scar de aca
 uint16_t convert_yaw2pwm(double yaw);
 // SIMULACION GPS TODO SACAR DE ACA
-void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
+//void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
 int sock_send_trayectoria(Lista_path *lista, int clientsock);
 
 //-----------------------------------------------------------
@@ -389,7 +390,7 @@ int main(int argc, char *argv[])
 #endif
    
 int8_t count_50 = 1; // controla tiempo de loop 100ms
-act_last = act;
+//act_last = act;
 
 char buff_act[512]; //TODO determinar valor
 char buf_pwm[512]; //TODO determinar valor
@@ -455,6 +456,11 @@ bool first_time = true;
 	sleep_ms(15); //simulo demora en lectura TODO determinar cuanto
 #endif
 
+#if FAKE_YAW
+	if(control_status == STARTED && !first_time)
+	   act.yaw = simulate_yaw(yaw_d);  //yaw_d es el del loop anterior
+#endif
+
 	++count_50; // ??
 
 	/// Polling de dispositivos IO
@@ -504,19 +510,21 @@ bool first_time = true;
 	 * velocidad esta seteada por el usuario
 	 */
 	 if(control_status == STARTED && !first_time)
-	   simulate_gps(&posicion, &velocidad, act_last.yaw);
+	   simulate_gps(&posicion, &velocidad, act.yaw);
 #endif //SIMULATE_GPS
-	   
 
 	if(control_status == STARTED)
         {
 	   if (first_time)	
 		first_time = false;
+
 	   // Calcula diferencia respecto a cero
 #if !FAKE_YAW
-	   act.yaw = act.yaw - yaw_zero;
-#else
-	   last_yaw_measured = last_yaw_measured - yaw_zero;
+	   //act.yaw = act.yaw - yaw_zero;
+	   act.yaw = act.yaw - get_yaw_zero();
+//#else
+	   //last_yaw_measured = last_yaw_measured - yaw_zero;
+	   //last_yaw_measured = last_yaw_measured - get_yaw_zero();
 #endif
            /// Path Follower & yaw control
 	   // si hay datos de gps y de yaw hago carrot chase //TODO cuando tenga gps esto tiene que cambiar
@@ -526,17 +534,17 @@ bool first_time = true;
 	     /* guardo en waypoint p los valores de x, y hallados mediante el gps.
 	      * primero deberia hacer convert_gps2utm(&utm, gps) y restarle la utm inicial
 	      */
-	      convert_gps2waypoint(&wp, gps);
+	      convert_gps2waypoint(&wp, gps); // TODO no implementado!!
 	      wp.angulo = act.yaw;
 #else
               wp.x = posicion.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
 	      wp.y = posicion.y;
 	      wp.z = posicion.z;
-	#if FAKE_YAW
-	      wp.angulo = last_yaw_measured;
-	#else
+	//#if FAKE_YAW
+	      //wp.angulo = last_yaw_measured;
+	//#else
 	      wp.angulo = act.yaw; 
-	#endif // FAKE_YAW
+	//#endif // FAKE_YAW
 #endif //!SIMULATE_GPS
 	      
 	      //carrot chase
@@ -806,9 +814,8 @@ void read_from_stdin(void)
             break;
          case 'A':
 #if FAKE_YAW
-	    yaw_zero = last_yaw_measured;
-#else
-	    yaw_zero = act.yaw;
+	    //yaw_zero = act.yaw;
+	    set_yaw_zero(act.yaw);
 #endif
             ch_buff[0] = 1500; //roll
             ch_buff[1] = 1500; //pitch
@@ -852,14 +859,14 @@ void read_from_stdin(void)
 }
 
 // SIMULACION GPS TODO SACAR DE ACA
-void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
+/*void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 {
 #if FAKE_YAW
-   /*********   FAKE YAW   **********/
+   //------------ FAKE YAW -------------//
    //el yaw_d se actualiza despues de sumulate_gps, por lo tanto este yaw_d es el del loop anterior
    yaw_measured = last_yaw_measured + 0.06*(yaw_d - last_yaw_measured);
    last_yaw_measured = yaw_measured + yaw_zero;
-   /*********************************/
+   //------------ FAKE YAW -------------//
 #endif
 
    double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
@@ -886,7 +893,7 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
    }
 
    return;
-}
+}*/
 
 
 #if SOCKET_TEST

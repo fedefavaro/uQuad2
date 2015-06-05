@@ -125,7 +125,33 @@ double control_yaw_calc_error(double yaw_d, double yaw_measured)
 }
 
 
+#if FAKE_YAW
+/**
+ * Simula cambio de yaw en base a yaw deseado
+ *
+ * devuelve yaw simulado
+ */
+double simulate_yaw(double yaw_d)
+{
+   static last_yaw_measured = INITIAL_YAW;
 
+   yaw_simulated = last_yaw_measured + PORCENTAGE_UPDATE_YAW*(yaw_d - last_yaw_measured);
+   last_yaw_measured = yaw_measured;
+
+   return;
+}
+#endif
+
+static double yaw_zero;
+void set_yaw_zero(double yaw_measured)
+{
+   yaw_zero = yaw_measured;
+   return;
+}
+double get_yaw_zero(void)
+{
+   return yaw_zero;
+}
 
 
 

@@ -62,5 +62,6 @@ int get_gps_data(gps_t* gps);
 int gps_connect(const char *device, int baud);
 int gps_disconnect(int fd);
 int gps_send_command(int fd, const char *command);
+void gps_simulate_position(posicion_t* pos, velocidad_t* vel, double yaw_measured);
 
 #endif
