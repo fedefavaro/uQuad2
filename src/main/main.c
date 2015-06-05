@@ -164,6 +164,7 @@ void read_from_stdin(void);
 uint16_t convert_yaw2pwm(double yaw);
 // SIMULACION GPS TODO SACAR DE ACA
 void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
+int sock_send_trayectoria(Lista_path *lista, int clientsock);
 
 //-----------------------------------------------------------
 #if SOCKET_TEST
@@ -184,6 +185,20 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
 /*********************************************/
 int main(int argc, char *argv[])
 {
+   /// mensajitos al usuario...
+#if PC_TEST
+   printf("----------------------\n  WARN: Modo 'PC test' - Ver common/quadcop_config.h  \n----------------------\n");
+   sleep_ms(500);
+#endif
+
+#if SIMULATE_GPS
+   printf("----------------------\n  WARN: GPS simulado - Ver common/quadcop_config.h  \n----------------------\n");
+   sleep_ms(500);
+#endif
+#if DISABLE_UAVTALK
+   printf("----------------------\n  WARN: UAVTalk desabilitado - Ver common/quadcop_config.h  \n----------------------\n");
+   sleep_ms(500);
+#endif
 
 //-----------------------------------------------------------
 #if SOCKET_TEST
@@ -213,18 +228,12 @@ int main(int argc, char *argv[])
   if (listen(serversock, MAXPENDING) < 0) {
       Die("Failed to listen on server socket");
   }
-
-
-
-
 #endif
 //-----------------------------------------------------------
 
    int retval;
    char* log_name;
    int err_count_no_data = 0; //si no tengo datos nuevos varias veces es peligroso
-
-   printf("%lf\n",M_PI);
 
    if(argc<3)
    {
@@ -265,6 +274,22 @@ int main(int argc, char *argv[])
    set_main_start_time();
    tv_start_main = get_main_start_time(); //uquad_aux_time.h
 
+#if SOCKET_TEST
+  #define SOCKET_BUFF_SIZE	2
+  double buffer_sock[SOCKET_BUFF_SIZE] = {0, 0};
+  int buffer_len = sizeof(buffer_sock);
+  unsigned int clientlen = sizeof(echoclient);
+  
+  printf("----------------------\n  Esperando Cliente  \n----------------------\n");
+  /* Wait for client connection */
+  if ((clientsock =
+       accept(serversock, (struct sockaddr *) &echoclient,
+       &clientlen)) < 0) {
+          Die("Failed to accept client connection");
+  }
+  fprintf(stdout, "Client connected: %s\n",
+                              inet_ntoa(echoclient.sin_addr));
+#endif
 
    /// Path planning & Following
    // init lista path
@@ -280,24 +305,11 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   log_trayectoria(lista_path); //dbg
+   //log_trayectoria(lista_path); //dbg
    //visualizacion_path(lista_path); // dbg
 
 #if SOCKET_TEST
-  #define SOCKET_BUFF_SIZE	2
-  double buffer[SOCKET_BUFF_SIZE] = {0, 0};
-  int buffer_len = sizeof(buffer);
-  unsigned int clientlen = sizeof(echoclient);
-  
-  printf("----------------------\n  Esperando Cliente  \n----------------------\n");
-  /* Wait for client connection */
-  if ((clientsock =
-       accept(serversock, (struct sockaddr *) &echoclient,
-       &clientlen)) < 0) {
-          Die("Failed to accept client connection");
-  }
-  fprintf(stdout, "Client connected: %s\n",
-                              inet_ntoa(echoclient.sin_addr));  
+   sock_send_trayectoria(lista_path,clientsock);
 #endif
 
    /// Control yaw
@@ -373,18 +385,6 @@ int main(int argc, char *argv[])
    bool CC3D_readOK;
 #endif
    
-   /// mensajitos al usuario...
-#if PC_TEST
-   err_log("WARNING: Comenzando en modo 'PC test' - Ver common/quadcop_config.h");
-#endif
-
-#if SIMULATE_GPS
-   err_log("WARNING: GPS simulated");
-#endif
-#if DISABLE_UAVTALK
-   err_log("WARNING: UAVTALK disabled!");
-#endif
-
 int8_t count_50 = 1; // controla tiempo de loop 100ms
 act_last = act;
 
@@ -588,20 +588,19 @@ bool first_time = true;
 #endif // DEBUG
 
 #if SOCKET_TEST
-       buffer[0] = posicion.x;
-       buffer[1] = posicion.y;
+       buffer_sock[0] = posicion.x;
+       buffer_sock[1] = posicion.y;
        /* Send back received data */
-       if (send(clientsock, &buffer, buffer_len, 0) != buffer_len)
+       if (send(clientsock, &buffer_sock, buffer_len, 0) != buffer_len)
            Die("Failed to send bytes to client");
 #endif
 
-	// Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw T_s_main T_us_main
+	// Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw C_throttle T_s_main T_us_main
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%lf %u %u %u %u %lu %lu %lf %lf %lf %lf %lf\n",
-				yaw_rate,
+	buff_len += sprintf(buf_pwm, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf\n",
 				ch_buff[0],
 				ch_buff[1],
 				ch_buff[2],
@@ -900,6 +899,54 @@ void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
 }
 
 
+#if SOCKET_TEST
+int sock_send_trayectoria(Lista_path *lista, int clientsock)
+{
+   Elemento_path *elemento = lista->inicio;
 
+   int lista_tamano = lista->tamano;
+
+   double buffer_sock_double[19*lista_tamano+1];
+   int buffer_sock_double_len = sizeof(buffer_sock_double);
+
+   buffer_sock_double[0] = (double)lista->tamano;
+ 
+   int i = 0;
+   while (elemento != NULL) {
+	buffer_sock_double[1+i*19] = RADIO;
+	buffer_sock_double[2+i*19] = elemento->dato->xi;
+	buffer_sock_double[3+i*19] = elemento->dato->yi;
+	buffer_sock_double[4+i*19] = elemento->dato->anguloi;
+	buffer_sock_double[5+i*19] = elemento->dato->xf;
+	buffer_sock_double[6+i*19] = elemento->dato->yf;
+	buffer_sock_double[7+i*19] = elemento->dato->angulof;
+	buffer_sock_double[8+i*19] = (double)elemento->dato->tipo;
+	buffer_sock_double[9+i*19] = elemento->dato->xci;
+	buffer_sock_double[10+i*19] = elemento->dato->yci;
+	buffer_sock_double[11+i*19] = elemento->dato->xri;
+	buffer_sock_double[12+i*19] = elemento->dato->yri;
+	buffer_sock_double[13+i*19] = elemento->dato->xrf;
+	buffer_sock_double[14+i*19] = elemento->dato->yrf;
+	buffer_sock_double[15+i*19] = elemento->dato->xcf;
+	buffer_sock_double[16+i*19] = elemento->dato->ycf;
+	buffer_sock_double[17+i*19] = elemento->dato->Ci;
+	buffer_sock_double[18+i*19] = elemento->dato->S;
+	buffer_sock_double[19+i*19] = elemento->dato->Cf;
+	elemento = elemento->siguiente;
+        i++;
+   }
+
+//int j = 0;
+//for(j=0;j<19*lista_tamano+1;j++) {
+//   printf("%lf\n",buffer_sock_double[j]);
+//}
+
+   /* Send back received data */
+   if (send(clientsock, buffer_sock_double, buffer_sock_double_len, 0) != buffer_sock_double_len)
+        Die("Failed to send bytes to client");
+
+   return 0;
+}
+#endif
 
 

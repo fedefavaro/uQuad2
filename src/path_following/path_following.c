@@ -7,10 +7,10 @@
 #define sign(a)                   ((a < 0.0)?-1.0:1.0)
 
 static estado_t estado = CFA_i;
+static double last_yaw_d = 0; //TODO primer caso me preocupa, como inicializo esta variable
 
 double carrotChase_Line(way_point_t wp_i, way_point_t wp_f, way_point_t p)
 {
-    static double last_yaw_d = 0; //TODO primer caso me preocupa, como inicializo esta variable
     // Paso 2
     double Ru = sqrt(pow(wp_i.x - p.x, 2) + pow(wp_i.y - p.y, 2));
     double theta = atan2(wp_f.y - wp_i.y, wp_f.x - wp_i.x);
@@ -41,7 +41,6 @@ double carrotChase_Line(way_point_t wp_i, way_point_t wp_f, way_point_t p)
 
 double carrotChase_Circle(way_point_t wp_c, int r, way_point_t p, char sentido)
 {
-    static double last_yaw_d = 0;
     // Paso 2
     double d = sqrt(pow(wp_c.x - p.x, 2) + pow(wp_c.y - p.y, 2)) - r;
 

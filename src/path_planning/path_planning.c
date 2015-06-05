@@ -542,6 +542,7 @@ void find_path(tipo_trayectoria_t tipo, way_point_t *p_inicial, way_point_t *p_f
 //    return 0;
 //}
 
+
 int log_trayectoria(Lista_path *lista)
 {
     Elemento_path *elemento = lista->inicio;
@@ -554,14 +555,16 @@ int log_trayectoria(Lista_path *lista)
         return -1;
     }
 
-    fprintf(output_file, "%i \n", RADIO);
+    fprintf(output_file, "%i \n",  lista->tamano);
+
+    fprintf(output_file, "%i \n",  RADIO);
     fprintf(output_file, "%lf \n", elemento->dato->xi);		// x waypoint inicial
     fprintf(output_file, "%lf \n", elemento->dato->yi);		// y inicial
     fprintf(output_file, "%lf \n", elemento->dato->anguloi);	// angulo YAW inicial
     fprintf(output_file, "%lf \n", elemento->dato->xf);		// x final
     fprintf(output_file, "%lf \n", elemento->dato->yf);
     fprintf(output_file, "%lf \n", elemento->dato->angulof);
-    fprintf(output_file, "%d \n", elemento->dato->tipo);
+    fprintf(output_file, "%d \n",  elemento->dato->tipo);
     fprintf(output_file, "%lf \n", elemento->dato->xci);
     fprintf(output_file, "%lf \n", elemento->dato->yci);
     fprintf(output_file, "%lf \n", elemento->dato->xri);	// x inicio recta
@@ -577,14 +580,14 @@ int log_trayectoria(Lista_path *lista)
     // Guardo resultados en log file
      while (elemento->siguiente != NULL) {
 	elemento = elemento->siguiente;
-	fprintf(output_file, "%i \n", RADIO);
+	fprintf(output_file, "%i \n",  RADIO);
 	fprintf(output_file, "%lf \n", elemento->dato->xi);
 	fprintf(output_file, "%lf \n", elemento->dato->yi);
 	fprintf(output_file, "%lf \n", elemento->dato->anguloi);
 	fprintf(output_file, "%lf \n", elemento->dato->xf);
 	fprintf(output_file, "%lf \n", elemento->dato->yf);
 	fprintf(output_file, "%lf \n", elemento->dato->angulof);
-	fprintf(output_file, "%d \n", elemento->dato->tipo);
+	fprintf(output_file, "%d \n",  elemento->dato->tipo);
 	fprintf(output_file, "%lf \n", elemento->dato->xci);
 	fprintf(output_file, "%lf \n", elemento->dato->yci);
 	fprintf(output_file, "%lf \n", elemento->dato->xri); // x inicio recta
@@ -603,6 +606,7 @@ int log_trayectoria(Lista_path *lista)
 
     return 0;
 }
+
 
 int path_planning(Lista_wp *wp, Lista_path *lista_path)
 {
@@ -803,29 +807,31 @@ void visualizacion_path(Lista_path *lista)
     }
     Elemento_path *actual;
     actual = lista->inicio;
+
+    printf("Tamano = %lf\n", (double)lista->tamano);
     while(actual != NULL) {
 
+        printf("Radio = %lf\n", RADIO);
         printf("xi = %lf\n",actual->dato->xi);
         printf("yi = %lf\n",actual->dato->yi);
-        printf("zi = %lf\n",actual->dato->zi);
+        //printf("zi = %lf\n",actual->dato->zi);
         printf("angulo inicial = %lf\n",actual->dato->anguloi);
         printf("xf = %lf\n",actual->dato->xf);
         printf("yf = %lf\n",actual->dato->yf);
-        printf("zf = %lf\n",actual->dato->zf);
+        //printf("zf = %lf\n",actual->dato->zf);
         printf("angulo final = %lf\n",actual->dato->angulof);
-        printf("tipo curva = %d\n",actual->dato->tipo);
+        printf("tipo curva = %lf\n",(double)actual->dato->tipo);
+        printf("xci = %lf\n",actual->dato->xci);
+        printf("yci = %lf\n",actual->dato->yci);
         printf("x inicial recta = %lf\n",actual->dato->xri);
         printf("y inicial recta = %lf\n",actual->dato->yri);
         printf("x final recta = %lf\n",actual->dato->xrf);
         printf("y final recta = %lf\n",actual->dato->yrf);
-        printf("xci = %lf\n",actual->dato->xci);
-        printf("yci = %lf\n",actual->dato->yci);
         printf("xcf = %lf\n",actual->dato->xcf);
         printf("ycf = %lf\n",actual->dato->ycf);
         printf("largo cfa inicial = %lf\n",actual->dato->Ci);
         printf("largo recta = %lf\n",actual->dato->S);
         printf("largo cfa final = %lf\n",actual->dato->Cf);
-
         actual = actual->siguiente;
     }
 

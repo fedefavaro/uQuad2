@@ -4,7 +4,7 @@
 #define WAYPOINTS_FILE	"way_points_in.txt"
 
 #define pii 3.141592653589793238462643
-#define RADIO 10                 // Radio minimo de curvatura
+#define RADIO 10.0                // Radio minimo de curvatura
 //#define DISTANCIA_WP 0.5        // Distancia entre dos way points de la trayectoria
 
 /** --------------------- */
