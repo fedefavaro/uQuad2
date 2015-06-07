@@ -29,7 +29,8 @@
 #include <quadcop_config.h>
 #include <uquad_aux_time.h>
 #include <uquad_aux_io.h>
-#include <path_planning.h>
+#include <socket_comm.h>
+//#include <path_planning.h>
 //#include <path_following.h>
 #include <futaba_sbus.h>
 #include <serial_comm.h>
@@ -55,6 +56,9 @@
 pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
 
+// Para log en matlab a traves de red ip
+//int clientsock;
+
 // Para prueba yaw
 uint16_t throttle_inicial = 0;
 
@@ -72,7 +76,7 @@ int log_fd;
 
 // IO
 static io_t *io  	= NULL;
-uquad_bool_t read_ok	= false; //flag para determinar si se puede leer de un dispositivo
+uquad_bool_t read_ok	= false;    //flag para determinar si se puede leer de un dispositivo
 unsigned char tmp_buff[2] = {0,0};  // Para leer entrada de usuario
 
 // KMQ
@@ -103,16 +107,13 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 int fd_CC3D;
 actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
 actitud_t act_last = {0,0,0,{0,0}};
-//double yaw_rate = 0;
-double yaw_zero = 0;
 bool uavtalk_updated = false;
 
 // Control de yaw
 double u = 0; //senal de control (setpoint de velocidad angular)
 double yaw_d = 0;
-//double last_yaw_measured = M_PI/6;
 
-// Control activado/desactivado // TODO Mover a contorl_yaw
+// Control activado/desactivado // TODO Mover
 typedef enum {
 	STOPPED = 0,
 	STARTED,
@@ -120,42 +121,14 @@ typedef enum {
 } estado_control_t;
 estado_control_t control_status = STOPPED;
 
-// Almacena posicion actual del quad // TODO sacar aca
-/*typedef struct posicion {
-   double x;
-   double y;
-   double z;
-   struct timeval ts;
-} posicion_t;*/
-posicion_t posicion = {0,0,0,{0,0}};
+position_t position = {0,0,0,{0,0}};
 
 #if !SIMULATE_GPS
-// Almacena velovidad actual del quad // TODO sacar aca
-/*typedef struct velocidad {
-   double module;
-   double angle;
-   struct timeval ts;
-} velocidad_t;*/
-velocidad_t velocidad = {0,0,{0,0}};
+velocity_t velocity = {0,0,{0,0}};
 #else
-// Almacena velovidad actual del quad // TODO sacar aca
-/*typedef struct velocidad {
-   double x;
-   double y;
-   double z;
-   struct timeval ts;
-} velocidad_t;*/
-velocidad_t velocidad = {0,0,0,{0,0}};
+velocity_t velocity = {0,0,0,{0,0}};
 #endif
 
-// Almacena masa del quad // TODO sacar aca
-//double masa = 1.85; // kg
-//double g = 9.81; // m/s*s
-//double B = 1; // coef friccion
-//#define PITCH_DESIRED		9 //grados
-//#define VEL_DESIRED		3.0 //m/s
-//double pitch = PITCH_DESIRED*M_PI/180; // angulo de pitch en radianes
-// Control de velocidad
 double pitch = 0; // angulo de pitch en radianes
 
 /// Declaracion de funciones auxiliares
@@ -163,25 +136,8 @@ void quit(int Q);
 void uquad_sig_handler(int signal_num);
 void set_signals(void);
 void read_from_stdin(void);
-// Convierte angulo de yaw a senal de pwm para enviar a la cc3d // TODO scar de aca
-uint16_t convert_yaw2pwm(double yaw);
-// SIMULACION GPS TODO SACAR DE ACA
-//void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured);
-int sock_send_trayectoria(Lista_path *lista, int clientsock);
 
-//-----------------------------------------------------------
-#if SOCKET_TEST
-   #include <sys/socket.h>
-   #include <arpa/inet.h>
-   #include <netinet/in.h>
-
-   #define MAXPENDING 	5    /* Max connection requests */
-   #define BUFFSIZE 	32
-   #define PORT_DEF 	12345
-
-   void Die(char *mess) { perror(mess); quit(1); }
-#endif
-//-----------------------------------------------------------
+uint16_t convert_yaw2pwm(double yaw); // Convierte angulo de yaw a senal de pwm para enviar a la cc3d // TODO no implementado
 
 /*********************************************/
 /**************** Main ***********************/
@@ -203,36 +159,10 @@ int main(int argc, char *argv[])
    sleep_ms(500);
 #endif
 
-//-----------------------------------------------------------
+   /// Init socket comm
 #if SOCKET_TEST
-  int serversock, clientsock;
-  struct sockaddr_in echoserver, echoclient;
-
-  /* Create the TCP socket */
-  if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-     Die("Failed to create socket");
-
-  int verdadero = 1;
-  if (setsockopt(serversock,SOL_SOCKET,SO_REUSEADDR,&verdadero,sizeof(int)) == -1)
-     Die("Failed to set socket options");
-  
-  /* Construct the server sockaddr_in structure */
-  memset(&echoserver, 0, sizeof(echoserver));       /* Clear struct */
-  echoserver.sin_family = AF_INET;                  /* Internet/IP */
-  echoserver.sin_addr.s_addr = htonl(INADDR_ANY);   /* Incoming addr */
-  echoserver.sin_port = htons(PORT_DEF);       /* server port */
-  
-  /* Bind the server socket */
-  if (bind(serversock, (struct sockaddr *) &echoserver,
-           sizeof(echoserver)) < 0) {
-      Die("Failed to bind the server socket");
-  }
-  /* Listen on the server socket */
-  if (listen(serversock, MAXPENDING) < 0) {
-      Die("Failed to listen on server socket");
-  }
+   socket_comm_init();
 #endif
-//-----------------------------------------------------------
 
    int retval;
    char* log_name;
@@ -266,8 +196,10 @@ int main(int argc, char *argv[])
    // Control de tiempos
    struct timeval tv_in_loop,
                   tv_start_main,
-                  tv_diff,
-                  dt;
+                  tv_diff;
+#if DEBUG
+   struct timeval dt;
+#endif
 
    // -- -- -- -- -- -- -- -- --
    // Inicializacion
@@ -278,20 +210,8 @@ int main(int argc, char *argv[])
    tv_start_main = get_main_start_time(); //uquad_aux_time.h
 
 #if SOCKET_TEST
-  #define SOCKET_BUFF_SIZE	2
-  double buffer_sock[SOCKET_BUFF_SIZE] = {0, 0};
-  int buffer_len = sizeof(buffer_sock);
-  unsigned int clientlen = sizeof(echoclient);
-  
-  printf("----------------------\n  Esperando Cliente  \n----------------------\n");
-  /* Wait for client connection */
-  if ((clientsock =
-       accept(serversock, (struct sockaddr *) &echoclient,
-       &clientlen)) < 0) {
-          Die("Failed to accept client connection");
-  }
-  fprintf(stdout, "Client connected: %s\n",
-                              inet_ntoa(echoclient.sin_addr));
+   if (socket_comm_wait_client() == -1)
+	quit(1);
 #endif
 
    /// Path planning & Following
@@ -308,11 +228,12 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   //log_trayectoria(lista_path); //dbg
+   //log_trayectoria(lista_path);    //dbg
    //visualizacion_path(lista_path); // dbg
 
 #if SOCKET_TEST
-   sock_send_trayectoria(lista_path,clientsock);
+   if (socket_comm_send_path(lista_path) == -1)
+	quit(1);
 #endif
 
    /// Control yaw
@@ -320,7 +241,7 @@ int main(int argc, char *argv[])
 
    /// Control velocidad
    // TODO
-   pitch = atan(B*VEL_DESIRED/masa/g);
+   pitch = atan(B*VEL_DESIRED/MASA/G);
 
    /// Control altura
    // TODO
@@ -421,9 +342,6 @@ bool first_time = true;
 	//para tener tiempo de entrada en cada loop
 	gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
 	
-	//trayectoria finalizada
-	if (control_status == FINISHED) quit(0);
-
 	//TODO Mejorar control de errores
 	if(err_count_no_data > 10)
 	{
@@ -440,10 +358,14 @@ bool first_time = true;
 	   retval = uavtalk_read(fd_CC3D, &act);
 	   if (retval < 0)
 	   {
+	#if DEBUG
 		err_log("uavtalk_read failed");
+	#endif
 		continue;
 	   } else if (retval == 0) {
+	#if DEBUG
 		err_log("objeto no era actitud");  
+	#endif
 		continue;
 	   }
 	   uavtalk_updated = true; //readOK (retval > 0)
@@ -453,12 +375,11 @@ bool first_time = true;
 	   //quit(0);
 	}
 #else
-	sleep_ms(15); //simulo demora en lectura TODO determinar cuanto
-#endif
-
-#if FAKE_YAW
+   #if FAKE_YAW
 	if(control_status == STARTED && !first_time)
 	   act.yaw = simulate_yaw(yaw_d);  //yaw_d es el del loop anterior
+   #endif	
+	sleep_ms(15); //simulo demora en lectura TODO determinar cuanto
 #endif
 
 	++count_50; // ??
@@ -502,15 +423,13 @@ bool first_time = true;
 	} // if(count_50 > 1)
 
 #if SIMULATE_GPS
-	// TODO Datos del gps simulado
-	//gps_updated = true;
 	/*
-	 * La posicion entra la actual y sale la siguiente (simulada)
+	 * En esta funcion entra la posicion actual y sale la siguiente (simulada)
 	 * act_last guarda el angulo medido en el loop anterior
-	 * velocidad esta seteada por el usuario
+	 * pitch calculado en abse a velocidad (esta es seteada por el usuario)
 	 */
 	 if(control_status == STARTED && !first_time)
-	   simulate_gps(&posicion, &velocidad, act.yaw);
+	   gps_simulate_position(&position, &velocity, act.yaw, pitch);
 #endif //SIMULATE_GPS
 
 	if(control_status == STARTED)
@@ -518,40 +437,34 @@ bool first_time = true;
 	   if (first_time)	
 		first_time = false;
 
-	   // Calcula diferencia respecto a cero
 #if !FAKE_YAW
-	   //act.yaw = act.yaw - yaw_zero;
+	   // Calcula diferencia respecto a cero
 	   act.yaw = act.yaw - get_yaw_zero();
-//#else
-	   //last_yaw_measured = last_yaw_measured - yaw_zero;
-	   //last_yaw_measured = last_yaw_measured - get_yaw_zero();
 #endif
            /// Path Follower & yaw control
-	   // si hay datos de gps y de yaw hago carrot chase //TODO cuando tenga gps esto tiene que cambiar
+	   // si hay datos de gps y de yaw hago carrot chase //TODO cuando tenga gps esto tiene que cambiar porque no tienen la misma cadencia que actitud
 	   if(gps_updated && uavtalk_updated)
 	   {
 #if !SIMULATE_GPS
 	     /* guardo en waypoint p los valores de x, y hallados mediante el gps.
 	      * primero deberia hacer convert_gps2utm(&utm, gps) y restarle la utm inicial
 	      */
-	      convert_gps2waypoint(&wp, gps); // TODO no implementado!!
+	      //convert_gps2waypoint(&wp, gps); // TODO no implementado!!
 	      wp.angulo = act.yaw;
 #else
-              wp.x = posicion.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
-	      wp.y = posicion.y;
-	      wp.z = posicion.z;
-	//#if FAKE_YAW
-	      //wp.angulo = last_yaw_measured;
-	//#else
-	      wp.angulo = act.yaw; 
-	//#endif // FAKE_YAW
+              wp.x = position.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
+	      wp.y = position.y;
+	      wp.z = position.z;
+	      wp.angulo = act.yaw;
 #endif //!SIMULATE_GPS
 	      
 	      //carrot chase
 	      retval = path_following(wp, lista_path, &yaw_d);
 	      if (retval == -1) {
 		  control_status = FINISHED;
-		  puts("trayectoria finalizada"); // dbg
+		  puts("¡¡ Trayectoria finalizada !!");
+		  ch_buff[3] = 1000; // detengo los motores
+		  continue;
 	      }
 	      
 	      if (err_count_no_data > 0)
@@ -599,30 +512,26 @@ bool first_time = true;
 #endif // DEBUG
 
 #if SOCKET_TEST
-       buffer_sock[0] = posicion.x;
-       buffer_sock[1] = posicion.y;
-       /* Send back received data */
-       if (send(clientsock, &buffer_sock, buffer_len, 0) != buffer_len)
-           Die("Failed to send bytes to client");
+       if (socket_comm_update_position(position) == -1)
+	  quit(1);
 #endif
 
-	// Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw C_throttle T_s_main T_us_main
+	// Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw C_throttle T_s_main T_us_main pos.x pos.y pos.z yaw_d
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf\n",
+	buff_len += sprintf(buf_pwm, "%u %u %u %u %lu %lu %lf %lf %lf %lf\n",
 				ch_buff[0],
 				ch_buff[1],
 				ch_buff[2],
 				ch_buff[3],
 				tv_diff.tv_sec,
 				tv_diff.tv_usec,
-				posicion.x,
-				posicion.y,
-				posicion.z,
-				yaw_d,
-				last_yaw_measured);
+				position.x,
+				position.y,
+				position.z,
+				yaw_d);
 
 	strcat(buff_act, buf_pwm);
 	log_writeOK = check_write_locks(log_fd);
@@ -763,7 +672,6 @@ void set_signals(void)
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
    signal(SIGCHLD, uquad_sig_handler);
-
 }
 
 
@@ -772,8 +680,8 @@ void set_signals(void)
 /*********************************************/
 void read_from_stdin(void)
 {
-         int retval = fread(tmp_buff,sizeof(unsigned char),2,stdin); //TODO corregir que queda algo por leer en el buffer?
-         if(retval <= 0)
+         int retval = fread(tmp_buff,sizeof(unsigned char),1,stdin); //TODO corregir que queda algo por leer en el buffer?
+         if(retval < 0)
          {
 	    //log_n_jump(ERROR_READ, end_stdin,"No user input detected!");
             err_log_num("No user input detected!",ERROR_READ);
@@ -786,7 +694,7 @@ void read_from_stdin(void)
          case 'S':
             ch_buff[3] = throttle_inicial; //valor pasado como parametro
 #if !SIMULATE_GPS
-	    velocidad.module = 4; //TODO esto??
+	    velocity.module = 4; //TODO esto??
 #endif //!SIMULATE_GPS
             puts("Comenzando lazo cerrado");
             control_status = STARTED;
@@ -821,7 +729,7 @@ void read_from_stdin(void)
             ch_buff[1] = 1500; //pitch
             ch_buff[2] = 1000; //yaw
             ch_buff[3] = 950;  //throttle  
-            puts("Armando..."); 
+            puts("Armando...");
             break;
          case 'D':
             ch_buff[0] = 1500; //roll
@@ -850,100 +758,16 @@ void read_from_stdin(void)
             break;
 #endif
          default:
+#if DEBUG
             puts("comando invalido");
-            //retval = -1;
+#endif
             break;
          } //switch(tmp_buff[0])
+
+	 fflush( stdin );
 
          return;
 }
 
-// SIMULACION GPS TODO SACAR DE ACA
-/*void simulate_gps(posicion_t* pos, velocidad_t* vel, double yaw_measured)
-{
-#if FAKE_YAW
-   //------------ FAKE YAW -------------//
-   //el yaw_d se actualiza despues de sumulate_gps, por lo tanto este yaw_d es el del loop anterior
-   yaw_measured = last_yaw_measured + 0.06*(yaw_d - last_yaw_measured);
-   last_yaw_measured = yaw_measured + yaw_zero;
-   //------------ FAKE YAW -------------//
-#endif
-
-   double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
-   double F_y = masa*g*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
-
-   int i = 0;
-   for(i=0;i<5;i++) {
-  
-	// Fuerza de rozamiento
-	double r_x = -B*vel->x;
-	double r_y = -B*vel->y;
-
-	// Aceleracion
-	double a_x = (r_x + F_x)/masa;
-	double a_y = (r_y + F_y)/masa;
-
-	// Velocidad
-	vel->x = vel->x + a_x*YAW_SAMPLE_TIME/5;
-	vel->y = vel->y + a_y*YAW_SAMPLE_TIME/5;
-
-	// Posicion
-	pos->x = pos->x + vel->x*YAW_SAMPLE_TIME/5;
-	pos->y = pos->y + vel->y*YAW_SAMPLE_TIME/5;
-   }
-
-   return;
-}*/
-
-
-#if SOCKET_TEST
-int sock_send_trayectoria(Lista_path *lista, int clientsock)
-{
-   Elemento_path *elemento = lista->inicio;
-
-   int lista_tamano = lista->tamano;
-
-   double buffer_sock_double[19*lista_tamano+1];
-   int buffer_sock_double_len = sizeof(buffer_sock_double);
-
-   buffer_sock_double[0] = (double)lista->tamano;
- 
-   int i = 0;
-   while (elemento != NULL) {
-	buffer_sock_double[1+i*19] = RADIO;
-	buffer_sock_double[2+i*19] = elemento->dato->xi;
-	buffer_sock_double[3+i*19] = elemento->dato->yi;
-	buffer_sock_double[4+i*19] = elemento->dato->anguloi;
-	buffer_sock_double[5+i*19] = elemento->dato->xf;
-	buffer_sock_double[6+i*19] = elemento->dato->yf;
-	buffer_sock_double[7+i*19] = elemento->dato->angulof;
-	buffer_sock_double[8+i*19] = (double)elemento->dato->tipo;
-	buffer_sock_double[9+i*19] = elemento->dato->xci;
-	buffer_sock_double[10+i*19] = elemento->dato->yci;
-	buffer_sock_double[11+i*19] = elemento->dato->xri;
-	buffer_sock_double[12+i*19] = elemento->dato->yri;
-	buffer_sock_double[13+i*19] = elemento->dato->xrf;
-	buffer_sock_double[14+i*19] = elemento->dato->yrf;
-	buffer_sock_double[15+i*19] = elemento->dato->xcf;
-	buffer_sock_double[16+i*19] = elemento->dato->ycf;
-	buffer_sock_double[17+i*19] = elemento->dato->Ci;
-	buffer_sock_double[18+i*19] = elemento->dato->S;
-	buffer_sock_double[19+i*19] = elemento->dato->Cf;
-	elemento = elemento->siguiente;
-        i++;
-   }
-
-//int j = 0;
-//for(j=0;j<19*lista_tamano+1;j++) {
-//   printf("%lf\n",buffer_sock_double[j]);
-//}
-
-   /* Send back received data */
-   if (send(clientsock, buffer_sock_double, buffer_sock_double_len, 0) != buffer_sock_double_len)
-        Die("Failed to send bytes to client");
-
-   return 0;
-}
-#endif
 
 

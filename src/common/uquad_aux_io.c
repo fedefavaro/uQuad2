@@ -22,7 +22,8 @@
  * @brief lib to handle a list of IO devices, and read/write from them in a non blocking manner.
  *
  */
-#include <uquad_aux_io.h>
+#include "uquad_aux_io.h"
+#include "uquad_types.h"
 
 io_t * io_init(void){
     io_t * io;

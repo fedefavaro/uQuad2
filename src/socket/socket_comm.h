@@ -1,8 +1,9 @@
-/******************************************************************************
+/**
+ ******************************************************************************
  *
- * @file       quadcop_types.h
+ * @file       socket_comm.h
  * @author     Federico Favaro, Joaquin Berrutti y Lucas Falkenstein
- * @brief      ??
+ * @brief      Implementa cmunicacion con otra pc que tenga matlab para graficar trayectoria en tiempo real
  * @see        ??
  *
  *****************************************************************************/
@@ -23,46 +24,31 @@
  *
  */
 
-#ifndef QUADCOP_TYPES_H
-#define QUADCOP_TYPES_H
 
-#include <quadcop_config.h>
-#include <uquad_aux_time.h>  // para time.h
+#ifndef SOCKET_COMM_H
+#define SOCKET_COMM_H
 
-#define VEL_DESIRED		3.0 //m/s
+#include <stdlib.h>
+#include <quadcop_types.h>
+#include <path_planning.h>
 
-//double masa = 1.85; // kg
-//double g = 9.81; // m/s*s
-//double B = 1; // coef friccion
-#define MASA	1.85
-#define G	9.81
-#define B	1
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
+#define MAXPENDING 	5    /* Max connection requests */
+#define BUFFSIZE 	32
+#define PORT_DEF 	12345
+
+int socket_comm_init(void);
+
+int socket_comm_wait_client(void);
+
+int socket_comm_send_path(Lista_path *lista);
+
+int socket_comm_update_position(position_t position);
+
+#endif // SOCKET_COMM_H
 
 
 
-// Almacena posicion actual del quad
-typedef struct position {
-   double x;
-   double y;
-   double z;
-   struct timeval ts;
-} position_t;
-
-#if !SIMULATE_GPS
-// Almacena velovidad actual del quad
-typedef struct velocity {
-   double module;
-   double angle;
-   struct timeval ts;
-} velocity_t;
-#else
-// Almacena velocidad actual del quad
-typedef struct velocity {
-   double x;
-   double y;
-   double z;
-   struct timeval ts;
-} velocity_t;
-#endif
-
-#endif

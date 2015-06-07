@@ -26,11 +26,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h> //para speed_t (BAUDRATE)
+#include <math.h>
 
 #include "gps_comm.h"
 #include <serial_comm.h>
 #include <quadcop_config.h>
 #include <uquad_aux_time.h>
+#include <control_yaw.h> // Para YAW_SAMPLE_TIME
 
 //defines para etapa de preconfig
 #define DEVICE			"/dev/ttyUSB0"
@@ -281,11 +283,11 @@ int gps_send_command(int fd, const char *command)
 /**
  * Simula movimiento del quad en base a modelo fisico
  */
-void gps_simulate_position(posicion_t* pos, velocidad_t* vel, double yaw_measured)
+void gps_simulate_position(position_t* pos, velocity_t* vel, double yaw_measured, double pitch)
 {
 
-   double F_x = masa*g*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
-   double F_y = masa*g*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
+   double F_x = MASA*G*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
+   double F_y = MASA*G*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
 
    int i = 0;
    for(i=0;i<5;i++) {
@@ -295,8 +297,8 @@ void gps_simulate_position(posicion_t* pos, velocidad_t* vel, double yaw_measure
 	double r_y = -B*vel->y;
 
 	// Aceleracion
-	double a_x = (r_x + F_x)/masa;
-	double a_y = (r_y + F_y)/masa;
+	double a_x = (r_x + F_x)/MASA;
+	double a_y = (r_y + F_y)/MASA;
 
 	// Velocidad
 	vel->x = vel->x + a_x*YAW_SAMPLE_TIME/5;

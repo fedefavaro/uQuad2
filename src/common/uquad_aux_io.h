@@ -32,8 +32,17 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <uquad_error_codes.h>
-#include <uquad_types.h>
+#include "uquad_error_codes.h"
+//#include "uquad_types.h"
+
+#ifndef UQUAD_BOOL
+  #define UQUAD_BOOL int
+  #ifndef true
+    #define true 1
+    #define false 0
+  #endif //true
+#endif //UQUAD_BOOL
+typedef UQUAD_BOOL uquad_bool_t;
 
 typedef struct io_dev{
     int fd;

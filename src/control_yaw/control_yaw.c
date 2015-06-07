@@ -23,9 +23,10 @@
  *
  */
 
-#include <control_yaw.h>
+#include "control_yaw.h"
 #include <stdlib.h>
 #include <math.h>
+#include <quadcop_config.h>
 
 double Kp = 0.7;     
 double Td = 0.4;  
@@ -133,12 +134,12 @@ double control_yaw_calc_error(double yaw_d, double yaw_measured)
  */
 double simulate_yaw(double yaw_d)
 {
-   static last_yaw_measured = INITIAL_YAW;
+   static double last_yaw_simulated = INITIAL_YAW;
 
-   yaw_simulated = last_yaw_measured + PORCENTAGE_UPDATE_YAW*(yaw_d - last_yaw_measured);
-   last_yaw_measured = yaw_measured;
+   double yaw_simulated = last_yaw_simulated + PORCENTAGE_UPDATE_YAW*(yaw_d - last_yaw_simulated);
+   last_yaw_simulated = yaw_simulated;
 
-   return;
+   return yaw_simulated;
 }
 #endif
 

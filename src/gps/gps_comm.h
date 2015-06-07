@@ -28,6 +28,7 @@
 
 #include <uquad_error_codes.h>
 #include <quadcop_config.h>
+#include <quadcop_types.h>
 
 #include <stdlib.h>
 #include <gps.h>
@@ -62,6 +63,7 @@ int get_gps_data(gps_t* gps);
 int gps_connect(const char *device, int baud);
 int gps_disconnect(int fd);
 int gps_send_command(int fd, const char *command);
-void gps_simulate_position(posicion_t* pos, velocidad_t* vel, double yaw_measured);
+
+void gps_simulate_position(position_t* pos, velocity_t* vel, double yaw_measured, double pitch);
 
 #endif

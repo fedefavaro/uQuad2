@@ -37,7 +37,7 @@
 #define FAKE_YAW		1
 #define SOCKET_TEST		1
 
-#define DEBUG                   1
+#define DEBUG                   0
 
 #if DEBUG
    #define DEBUG_TIMING_MAIN	0 //imprime en stdout la duracion del loop

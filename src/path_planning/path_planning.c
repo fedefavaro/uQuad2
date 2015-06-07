@@ -557,7 +557,7 @@ int log_trayectoria(Lista_path *lista)
 
     fprintf(output_file, "%i \n",  lista->tamano);
 
-    fprintf(output_file, "%i \n",  RADIO);
+    fprintf(output_file, "%lf \n",  RADIO);
     fprintf(output_file, "%lf \n", elemento->dato->xi);		// x waypoint inicial
     fprintf(output_file, "%lf \n", elemento->dato->yi);		// y inicial
     fprintf(output_file, "%lf \n", elemento->dato->anguloi);	// angulo YAW inicial
@@ -580,7 +580,7 @@ int log_trayectoria(Lista_path *lista)
     // Guardo resultados en log file
      while (elemento->siguiente != NULL) {
 	elemento = elemento->siguiente;
-	fprintf(output_file, "%i \n",  RADIO);
+	fprintf(output_file, "%lf \n",  RADIO);
 	fprintf(output_file, "%lf \n", elemento->dato->xi);
 	fprintf(output_file, "%lf \n", elemento->dato->yi);
 	fprintf(output_file, "%lf \n", elemento->dato->anguloi);
@@ -634,8 +634,6 @@ int path_planning(Lista_wp *wp, Lista_path *lista_path)
         // Defino el tipo de trayectoria
         tipo_trayectoria_t *path_type = (tipo_trayectoria_t *)malloc(sizeof(enum tipo_trayectoria));
         eleccion_curva_dubins(cuad, p_inicial_conv, p_final_conv, path_type);
-
-printf("%lf\n",(double)*path_type);
 
         // Hallo la trayectoria
         trayectoria_t *path = (trayectoria_t *)malloc(sizeof(struct trayectoria));
