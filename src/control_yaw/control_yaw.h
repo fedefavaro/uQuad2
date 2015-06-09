@@ -31,14 +31,16 @@
 #include <stdlib.h>
 
 
-#define CONTROL_YAW_BUFF_SIZE		4 //usar numeros pares
+#define CONTROL_YAW_BUFF_SIZE		2 //usar numeros pares
 #define YAW_SAMPLE_TIME			0.05 //en segundos
 
-#define CONTROL_YAW_ADD_DERIVATIVE	0
+#define PORCENTAGE_UPDATE_YAW		0.1//0.06
+#define INITIAL_YAW			0//M_PI/2
 
-#define PORCENTAGE_UPDATE_YAW		0.2//0.06
-#define INITIAL_YAW			M_PI/6
+#define CONTROL_YAW_ADD_DERIVATIVE	1
 
+#define CONTROL_YAW_MEAN_ENABLE		0 // Realiza promedio antes de derivar. Ver control_yaw_derivate_error()
+#define CONTROL_YAW_ADD_ZERO		0 // Agrega un cero al filtro de u. Ver control_yaw_filter_input() TODO ES COMPATIBLE CON DERIVAR EL ERROR??
 
 typedef struct error_yaw {
 	double error;
@@ -63,7 +65,7 @@ int control_yaw_add_error_buff(error_yaw_t new_err);
  *
  * Puede hacer promedio opt=1 o saltear muestras opt=0
  */
-double control_yaw_derivate_error(int8_t opt);
+double control_yaw_derivate_error(void);
 
 
 /*

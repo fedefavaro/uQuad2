@@ -521,7 +521,7 @@ bool first_time = true;
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%u %u %u %u %lu %lu %lf %lf %lf %lf\n",
+	buff_len += sprintf(buf_pwm, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf\n",
 				ch_buff[0],
 				ch_buff[1],
 				ch_buff[2],
@@ -531,7 +531,8 @@ bool first_time = true;
 				position.x,
 				position.y,
 				position.z,
-				yaw_d);
+				yaw_d,
+				u);
 
 	strcat(buff_act, buf_pwm);
 	log_writeOK = check_write_locks(log_fd);
