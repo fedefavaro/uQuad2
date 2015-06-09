@@ -1,8 +1,10 @@
 clear all
 close all
+clc
 
 %% Create the serial object
-tcpObject = tcpip('localhost', 1234);
+%tcpObject = tcpip('10.42.43.2', 12345);
+tcpObject = tcpip('164.73.38.204', 12345);
 fopen(tcpObject);
 
 %% Set up the figure window
@@ -23,10 +25,10 @@ figureHandle = figure('NumberTitle','off',...
 %    'XColor',[0.9725 0.9725 0.9725],...
 %    'Color',[0 0 0]);
 
-axesHandle = axes('XLim',[0 1000],'YLim',[0 1000],'Parent',figureHandle,'YGrid','on','XGrid','on');
+axesHandle = axes('Parent',figureHandle,'YGrid','on','XGrid','on');
 
 hold on;
-
+axis equal
 plotHandle = plot(axesHandle, 0, 0, 'LineWidth', 2);
 
 %xlim(axesHandle,[min(time) max(time+0.001)]);
@@ -40,6 +42,8 @@ ylabel('Eje y [m]','FontWeight','bold','FontSize',14,'Color',[0 0 1]);
 % Create title
 title('Trayectoria','FontSize',15,'Color',[0 0 1]);
 
+%% Trayectoria ideal
+plotPath(tcpObject);
 
 %% Collect data
 count = 1;

@@ -28,9 +28,9 @@
 #include <math.h>
 #include <quadcop_config.h>
 
-double Kp = 5;     
+double Kp = 3.5;     
 double Td = 0.4;
-double alpha = 0.4;
+double alpha = 0.25;
 double a = 0.5;
 double b = 0.5;
 
@@ -138,7 +138,7 @@ void control_yaw_filter_input(double *u)
 /*
  * Los parametros de entrada son en radianes pero el control es en grados
  */
-double control_yaw_calc_error(double yaw_d, double yaw_measured) 
+double control_yaw_calc_input(double yaw_d, double yaw_measured) 
 {
 /* double u = 0;
    u = 180/M_PI*Kp*(yaw_d - yaw_measured);
@@ -157,7 +157,7 @@ double control_yaw_calc_error(double yaw_d, double yaw_measured)
    control_yaw_add_error_buff(new_err);
    u += Kp*Td*control_yaw_derivate_error();
    //Filtro la entrada a la planta para suavizar los picos
-   //control_yaw_filter_input(&u);
+   control_yaw_filter_input(&u);
 #endif
 
    return u;

@@ -24,6 +24,10 @@
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+
+// TODO saturar comandos maximos y minimos
+// en throttle no usar valores maximos
+
 #include "futaba_sbus.h"
 #include <uquad_aux_time.h>
 #include <uquad_error_codes.h>
@@ -53,6 +57,8 @@ void futaba_sbus_set_channel(uint8_t channel, int16_t value)
    {
       if (value > 2000)
          value = 2000;
+      if (value < 1000)
+         value = 1000;
       channels[channel-1] = value;
    }
 }

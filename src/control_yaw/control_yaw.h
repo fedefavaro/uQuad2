@@ -34,7 +34,7 @@
 #define CONTROL_YAW_BUFF_SIZE		2 //usar numeros pares
 #define YAW_SAMPLE_TIME			0.05 //en segundos
 
-#define PORCENTAGE_UPDATE_YAW		0.1//0.06
+#define PORCENTAGE_UPDATE_YAW		0.173//0.15//0.06
 #define INITIAL_YAW			0//M_PI/2
 
 #define CONTROL_YAW_ADD_DERIVATIVE	1
@@ -73,11 +73,12 @@ double control_yaw_derivate_error(void);
  *
  * Control proporcional o PD segun definido por usuario
  */
-double control_yaw_calc_error(double yaw_d, double yaw_measured);
+double control_yaw_calc_input(double yaw_d, double yaw_measured);
 
 double simulate_yaw(double yaw_d);
 
 void set_yaw_zero(double yaw_measured);
+
 double get_yaw_zero(void);
 
 #endif // CONTROL_YAW_H

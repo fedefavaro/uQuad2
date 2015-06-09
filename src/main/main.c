@@ -105,7 +105,11 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 
 // UAVTalk
 int fd_CC3D;
+#if !FAKE_YAW
 actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
+#else
+actitud_t act = {0,0,INITIAL_YAW,{0,0}};
+#endif
 actitud_t act_last = {0,0,0,{0,0}};
 bool uavtalk_updated = false;
 
@@ -464,14 +468,14 @@ bool first_time = true;
 		  control_status = FINISHED;
 		  puts("¡¡ Trayectoria finalizada !!");
 		  ch_buff[3] = 1000; // detengo los motores
-		  continue;
+		  //continue;
 	      }
 	      
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
 
 	      /// Control TODO mejorar esto
-	      u = control_yaw_calc_error(yaw_d, act.yaw);  // TODO PASAR A RADIANES
+	      u = control_yaw_calc_input(yaw_d, act.yaw);  // TODO PASAR A RADIANES
 	      //printf("senal de control: %lf\n", u); // dbg
 
 	      //Convertir velocidad en comando
@@ -722,7 +726,7 @@ void read_from_stdin(void)
             puts("Seteando valor neutro");
             break;
          case 'A':
-#if FAKE_YAW
+#if !FAKE_YAW
 	    //yaw_zero = act.yaw;
 	    set_yaw_zero(act.yaw);
 #endif
