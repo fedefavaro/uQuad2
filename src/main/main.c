@@ -464,13 +464,13 @@ bool first_time = true;
 #endif //!SIMULATE_GPS
 	      
 	      //carrot chase
-	      retval = path_following(wp, lista_path, &yaw_d);
+/*	      retval = path_following(wp, lista_path, &yaw_d);
 	      if (retval == -1) {
 		  control_status = FINISHED;
 		  puts("¡¡ Trayectoria finalizada !!");
 		  ch_buff[3] = 1000; // detengo los motores
 		  //continue;
-	      }
+	      }*/
 	      
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
@@ -710,6 +710,20 @@ void read_from_stdin(void)
             puts("Deteniendo");
             control_status = STOPPED;
             break;
+
+	 case '1':
+	    yaw_d = 30*M_PI/180; //30 grados en radianes
+	    puts("30 grados");
+	    break;
+	 case '2':
+	    yaw_d = -30*M_PI/180; //30 grados en radianes
+	    puts("-30 grados");
+	    break;
+	 case '1':
+	    yaw_d = 0; //30 grados en radianes
+	    puts("0 grados");
+	    break;
+
          case 'F':
             puts("WARN: Failsafe set");
             ch_buff[5] = 50;
