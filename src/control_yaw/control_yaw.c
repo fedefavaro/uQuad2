@@ -28,7 +28,7 @@
 #include <math.h>
 #include <quadcop_config.h>
 
-double Kp = 3.5;     
+double Kp = 3.5;//2.7;     
 double Td = 0.4;
 double alpha = 0.25;
 double a = 0.5;

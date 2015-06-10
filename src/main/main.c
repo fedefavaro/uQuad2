@@ -719,7 +719,7 @@ void read_from_stdin(void)
 	    yaw_d = -30*M_PI/180; //30 grados en radianes
 	    puts("-30 grados");
 	    break;
-	 case '1':
+	 case '3':
 	    yaw_d = 0; //30 grados en radianes
 	    puts("0 grados");
 	    break;
