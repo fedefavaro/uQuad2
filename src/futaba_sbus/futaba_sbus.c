@@ -57,8 +57,8 @@ void futaba_sbus_set_channel(uint8_t channel, int16_t value)
    {
       if (value > 2000)
          value = 2000;
-      if (value < 1000)
-         value = 1000;
+      //if (value < 1000)
+        // value = 1000;
       channels[channel-1] = value;
    }
 }
