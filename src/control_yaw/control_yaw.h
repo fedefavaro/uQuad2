@@ -34,7 +34,7 @@
 #define CONTROL_YAW_BUFF_SIZE		2 //usar numeros pares
 #define YAW_SAMPLE_TIME			0.05 //en segundos
 
-#define PORCENTAGE_UPDATE_YAW		0.173//0.15//0.06
+#define PORCENTAGE_UPDATE_YAW		0.13//0.173//0.15//0.06
 #define INITIAL_YAW			0//M_PI/2
 
 #define CONTROL_YAW_ADD_DERIVATIVE	1

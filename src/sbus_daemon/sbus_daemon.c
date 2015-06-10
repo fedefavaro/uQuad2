@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     */
    int16_t *ch_buff;
    
-   //char str[128];	- dbg
+   //char str[128]; // dbg
 
    // check input arguments
    if(argc<2)
@@ -131,11 +131,11 @@ int main(int argc, char *argv[])
 #endif //PC_TEST
 
    // Lleva a cero todos los canales y el mensaje sbus
-   futaba_sbus_set_channel(1, 1500); //init roll en cero
-   futaba_sbus_set_channel(2, 1500); //init pitch en cero
-   futaba_sbus_set_channel(3, 1500); //init yaw en cero
-   futaba_sbus_set_channel(6, 950); //init throttle en minimo
-   futaba_sbus_set_channel(7, 1500); //inint flight mode 2
+   futaba_sbus_set_channel(ROLL_CHANNEL, 1500); //init roll en cero
+   futaba_sbus_set_channel(PITCH_CHANNEL, 1500); //init pitch en cero
+   futaba_sbus_set_channel(YAW_CHANNEL, 1500); //init yaw en cero
+   futaba_sbus_set_channel(THROTTLE_CHANNEL, 950); //init throttle en minimo
+   futaba_sbus_set_channel(FLIGHTMODE_CHANNEL, 1500); //inint flight mode 2
    futaba_sbus_update_msg();
 
    sleep_ms(500); //Para ponerme a tiro con main
@@ -180,24 +180,26 @@ int main(int argc, char *argv[])
 
 	if(msg_received)
 	{
-	   futaba_sbus_set_channel(1, ch_buff[0]);
-	   futaba_sbus_set_channel(2, ch_buff[1]);
-	   futaba_sbus_set_channel(3, ch_buff[2]);
-	   futaba_sbus_set_channel(6, ch_buff[3]);
-	   //futaba_sbus_set_channel(7, ch_buff[4]); // flight mode no se modifica
+	   futaba_sbus_set_channel(ROLL_CHANNEL, ch_buff[ROLL_CH_INDEX]);
+	   futaba_sbus_set_channel(PITCH_CHANNEL, ch_buff[PITCH_CH_INDEX]);
+	
+	   futaba_sbus_set_channel(YAW_CHANNEL, ch_buff[YAW_CH_INDEX]);
+	   futaba_sbus_set_channel(THROTTLE_CHANNEL, ch_buff[THROTTLE_CH_INDEX]);
+	   //futaba_sbus_set_channel(7, ch_buff[FLIGHTMODE_CH_INDEX]); // flight mode no se modifica
 
 	   // Comando para activar failsafe
-	   if ( (ch_buff[5] == 50) && 
+	   if ( (ch_buff[FAILSAFE_CH_INDEX] == ACTIVATE_FAILSAFE) && 
 	   (futaba_sbus_get_failsafe() == SBUS_SIGNAL_OK) )
 		futaba_sbus_set_failsafe(SBUS_SIGNAL_FAILSAFE);
 
 	   // Comando para desactivar failsafe
- 	   if ( (ch_buff[5] == 100) && 
+ 	   if ( (ch_buff[FAILSAFE_CH_INDEX] == DEACTIVATE_FAILSAFE) && 
 	   (futaba_sbus_get_failsafe() == SBUS_SIGNAL_FAILSAFE) )
 		futaba_sbus_set_failsafe(SBUS_SIGNAL_OK);
  
 	   futaba_sbus_update_msg();
 	   msg_received = false;
+	   //print_sbus_data();  // dbg
 	}
 
 #if !PC_TEST

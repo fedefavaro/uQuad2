@@ -85,12 +85,12 @@ uquad_kmsgq_t *kmsgq 	= NULL;
 /** 
  * Valores iniciales de los canales a enviar al proceso sbusd
  *
- * ch_buff[0]  roll
- * ch_buff[1]  pitch
- * ch_buff[2]  yaw
- * ch_buff[3]  throttle
- * ch_buff[4]  flight mode
- * ch_buff[5]  activar/desactivar failsafe
+ * ch_buff[ROLL_CH_INDEX]	roll
+ * ch_buff[PITCH_CH_INDEX]	pitch
+ * ch_buff[YAW_CH_INDEX]	yaw
+ * ch_buff[THROTTLE_CH_INDEX]	throttle
+ * ch_buff[FLIGHTMODE_CH_INDEX]	flight mode
+ * ch_buff[FAILSAFE_CH_INDEX]	activar/desactivar failsafe
  *
  * init todo en cero y flight mode en 2 
  */
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   //log_trayectoria(lista_path);    //dbg
+   log_trayectoria(lista_path);    //dbg
    //visualizacion_path(lista_path); // dbg
 
 #if SOCKET_TEST
@@ -470,7 +470,7 @@ bool first_time = true;
 	      if (retval == -1) {
 		  control_status = FINISHED;
 		  puts("¡¡ Trayectoria finalizada !!");
-		  ch_buff[3] = 1000; // detengo los motores
+		  ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL; // detengo los motores
 		  //continue;
 	      }
 	      
@@ -482,8 +482,8 @@ bool first_time = true;
 	      //printf("senal de control: %lf\n", u); // dbg
 
 	      //Convertir velocidad en comando
-	      ch_buff[2] = (uint16_t) (u*25/11 + 1500);
-	      //printf("comando a enviar: %u\n", ch_buff[2]); // dbg
+	      ch_buff[YAW_CH_INDEX] = (uint16_t) (u*25/11 + 1500);
+	      //printf("comando a enviar: %u\n", ch_buff[YAW_CH_INDEX]); // dbg
          
       	      //gps_updated = false;
 #if !DISABLE_UAVTALK
@@ -529,10 +529,10 @@ bool first_time = true;
 	buff_len = uavtalk_to_str(buff_act, act);
 
 	buff_len += sprintf(buf_pwm, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf\n",
-				ch_buff[0],
-				ch_buff[1],
-				ch_buff[2],
-				ch_buff[3],
+				ch_buff[ROLL_CH_INDEX],
+				ch_buff[PITCH_CH_INDEX],
+				ch_buff[YAW_CH_INDEX],
+				ch_buff[THROTTLE_CH_INDEX],
 				tv_diff.tv_sec,
 				tv_diff.tv_usec,
 				position.x,
@@ -700,7 +700,7 @@ void read_from_stdin(void)
          switch(tmp_buff[0])
          {
          case 'S':
-            ch_buff[3] = throttle_inicial; //valor pasado como parametro
+            ch_buff[THROTTLE_CH_INDEX] = throttle_inicial; //valor pasado como parametro
 #if !SIMULATE_GPS
 	    velocity.module = 4; //TODO esto??
 #endif //!SIMULATE_GPS
@@ -708,11 +708,12 @@ void read_from_stdin(void)
             control_status = STARTED;
             break;
          case 'P':
-            ch_buff[3] = 1000;
+            ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
             puts("Deteniendo");
             control_status = STOPPED;
             break;
-/*
+
+/*       // Para test escalon.
 	 case '1':
 	    yaw_d = 30*M_PI/180; //30 grados en radianes
 	    puts("30 grados");
@@ -728,18 +729,18 @@ void read_from_stdin(void)
 */
          case 'F':
             puts("WARN: Failsafe set");
-            ch_buff[5] = 50;
+            ch_buff[FAILSAFE_CH_INDEX] = ACTIVATE_FAILSAFE;
             break;
          case 'f':
             puts("WARN: Failsafe clear");
-            ch_buff[5] = 100;
+            ch_buff[FAILSAFE_CH_INDEX] = DEACTIVATE_FAILSAFE;
             break;
          case 'b':
-            ch_buff[0] = 1500;
-            ch_buff[1] = 1500;
-            ch_buff[2] = 1500;
-            ch_buff[3] = 1000;  // neutral throttle
-            ch_buff[4] = 1500;
+            ch_buff[ROLL_CH_INDEX] = ROLL_NEUTRAL;
+            ch_buff[PITCH_CH_INDEX] = PITCH_NEUTRAL;
+            ch_buff[YAW_CH_INDEX] = YAW_NEUTRAL;
+            ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
+            ch_buff[FLIGHTMODE_CH_INDEX] = FLIGHT_MODE_2;  //neutral value
             puts("Seteando valor neutro");
             break;
          case 'A':
@@ -747,35 +748,35 @@ void read_from_stdin(void)
 	    //yaw_zero = act.yaw;
 	    set_yaw_zero(act.yaw);
 #endif
-            ch_buff[0] = 1500; //roll
-            ch_buff[1] = 1500; //pitch
-            ch_buff[2] = 1000; //yaw
-            ch_buff[3] = 950;  //throttle  
+            ch_buff[ROLL_CH_INDEX] = ROLL_NEUTRAL;
+            ch_buff[PITCH_CH_INDEX] = PITCH_NEUTRAL;
+            ch_buff[YAW_CH_INDEX] = YAW_ARM;
+            ch_buff[THROTTLE_CH_INDEX] = THROTTLE_ARM; 
             puts("Armando...");
             break;
          case 'D':
-            ch_buff[0] = 1500; //roll
-            ch_buff[1] = 1500; //pitch
-            ch_buff[2] = 2000; //yaw
-            ch_buff[3] = 950;  //throttle
+            ch_buff[ROLL_CH_INDEX] = ROLL_NEUTRAL;
+            ch_buff[PITCH_CH_INDEX] = PITCH_NEUTRAL;
+            ch_buff[YAW_CH_INDEX] = YAW_DISARM;
+            ch_buff[THROTTLE_CH_INDEX] = THROTTLE_DISARM;
             puts("Desarmando...");
             break;
 #ifdef SETANDO_CC3D
 	// Para setear maximos y minimos en CC3D
          case 'M':
-            ch_buff[0] = 2000; //roll
-            ch_buff[1] = 2000; //pitch
-            ch_buff[2] = 2000; //yaw
-            ch_buff[3] = 2000; //throttle
-            ch_buff[4] = 2000; //flight mode
+            ch_buff[ROLL_CH_INDEX] = MAX_COMMAND;
+            ch_buff[PITCH_CH_INDEX] = MAX_COMMAND;
+            ch_buff[YAW_CH_INDEX] = MAX_COMMAND;
+            ch_buff[THROTTLE_CH_INDEX] = MAX_COMMAND;
+            ch_buff[FLIGHTMODE_CH_INDEX] = MAX_COMMAND;
             puts("Seteando maximo valor"); 
             break;
          case 'm':
-            ch_buff[0] = 1000;
-            ch_buff[1] = 1000;
-            ch_buff[2] = 1000;
-            ch_buff[3] = 950; //min throttle
-            ch_buff[4] = 1000;
+            ch_buff[ROLL_CH_INDEX] = MIN_COMMAND;
+            ch_buff[PITCH_CH_INDEX] = MIN_COMMAND;
+            ch_buff[YAW_CH_INDEX] = MIN_COMMAND;
+            ch_buff[THROTTLE_CH_INDEX] = MIN_THROTTLE; // Se necesecita que sea distino por el armado/desarmado
+            ch_buff[FLIGHTMODE_CH_INDEX] = MIN_COMMAND;
             puts("Seteando minimo valor");
             break;
 #endif

@@ -40,11 +40,53 @@
 #define SBUS_SIGNAL_FAILSAFE    0x03
 #define SBUS_DATA_LENGTH    	25
 
+// Canales de Futaba SBUS asignados
 #define ROLL_CHANNEL		1
 #define PITCH_CHANNEL		2
 #define YAW_CHANNEL		3
 #define THROTTLE_CHANNEL	6
 #define FLIGHTMODE_CHANNEL	7
+
+// Indices del buffer que almacena comandos
+#define ROLL_CH_INDEX		0
+#define PITCH_CH_INDEX		1
+#define YAW_CH_INDEX		2
+#define THROTTLE_CH_INDEX	3
+#define FLIGHTMODE_CH_INDEX	4
+#define FAILSAFE_CH_INDEX	5
+
+// Valores neutrales (cero) de los comandos
+#define ROLL_NEUTRAL		1500
+#define PITCH_NEUTRAL		1500
+#define YAW_NEUTRAL		1500
+#define THROTTLE_NEUTRAL	1000
+
+// Valores de comando para flight mode
+#define FLIGHT_MODE_1		1000
+#define FLIGHT_MODE_2		1500
+#define FLIGHT_MODE_3		2000
+
+// Valores maximos de los comandos
+#define MAX_COMMAND		2000
+
+// Valores minimos de los comandos
+#define MIN_COMMAND		2000
+#define MIN_THROTTLE		950
+
+// Valores neutrales (cero) de los comandos
+#define ROLL_NEUTRAL		1500
+#define PITCH_NEUTRAL		1500
+#define YAW_NEUTRAL		1500
+#define THROTTLE_NEUTRAL	1000
+
+// Valores para el armado y desarmado de la cc3d
+#define THROTTLE_ARM		950
+#define THROTTLE_DISARM		950
+#define YAW_ARM			1000	// "yaw left"
+#define YAW_DISARM		2000	// "yaw right"
+
+#define ACTIVATE_FAILSAFE	50
+#define DEACTIVATE_FAILSAFE	100
 
 #if PC_TEST
 #define START_SBUS_ARG 		"sbusd.log" //test en un PC linux
@@ -125,6 +167,7 @@ int futaba_sbus_start_daemon(void);
 
 #if PC_TEST
 int convert_sbus_data(char* buf_str);
+void print_sbus_data(void);
 #endif //PC_TEST
 
 #endif

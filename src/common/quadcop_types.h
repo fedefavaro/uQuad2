@@ -29,7 +29,7 @@
 #include <quadcop_config.h>
 #include <uquad_aux_time.h>  // para time.h
 
-#define VEL_DESIRED		3.0 //m/s
+#define VEL_DESIRED		4//3.0 //m/s
 
 //double masa = 1.85; // kg
 //double g = 9.81; // m/s*s
