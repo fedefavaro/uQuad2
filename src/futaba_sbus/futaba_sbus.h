@@ -40,6 +40,12 @@
 #define SBUS_SIGNAL_FAILSAFE    0x03
 #define SBUS_DATA_LENGTH    	25
 
+#define ROLL_CHANNEL		1
+#define PITCH_CHANNEL		2
+#define YAW_CHANNEL		3
+#define THROTTLE_CHANNEL	6
+#define FLIGHTMODE_CHANNEL	7
+
 #if PC_TEST
 #define START_SBUS_ARG 		"sbusd.log" //test en un PC linux
 #else

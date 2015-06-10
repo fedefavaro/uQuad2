@@ -55,10 +55,13 @@ void futaba_sbus_set_channel(uint8_t channel, int16_t value)
 {
    if ((channel>0) && (channel<=16))
    {
-      if (value > 2000)
+      if (value > 2000) {
          value = 2000;
-      //if (value < 1000)
-        // value = 1000;
+      } else if (channel == THROTTLE_CHANNEL && value < 950) {
+         value = 950;
+      } else if ( value < 1000 )
+	 value = 1000;      
+
       channels[channel-1] = value;
    }
 }

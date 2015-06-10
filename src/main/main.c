@@ -362,19 +362,21 @@ bool first_time = true;
 	   retval = uavtalk_read(fd_CC3D, &act);
 	   if (retval < 0)
 	   {
-	#if DEBUG
+	   #if DEBUG
 		err_log("uavtalk_read failed");
-	#endif
+	   #endif
 		continue;
 	   } else if (retval == 0) {
-	#if DEBUG
+	   #if DEBUG
 		err_log("objeto no era actitud");  
-	#endif
+	   #endif
 		continue;
 	   }
 	   uavtalk_updated = true; //readOK (retval > 0)
 	} else {
+        #if DEBUG 
 	   err_log("UAVTalk: read NOT ok");
+        #endif
 	   continue;
 	   //quit(0);
 	}
@@ -464,13 +466,13 @@ bool first_time = true;
 #endif //!SIMULATE_GPS
 	      
 	      //carrot chase
-/*	      retval = path_following(wp, lista_path, &yaw_d);
+	      retval = path_following(wp, lista_path, &yaw_d);
 	      if (retval == -1) {
 		  control_status = FINISHED;
 		  puts("¡¡ Trayectoria finalizada !!");
 		  ch_buff[3] = 1000; // detengo los motores
 		  //continue;
-	      }*/
+	      }
 	      
 	      if (err_count_no_data > 0)
 	         err_count_no_data--;
@@ -710,7 +712,7 @@ void read_from_stdin(void)
             puts("Deteniendo");
             control_status = STOPPED;
             break;
-
+/*
 	 case '1':
 	    yaw_d = 30*M_PI/180; //30 grados en radianes
 	    puts("30 grados");
@@ -723,7 +725,7 @@ void read_from_stdin(void)
 	    yaw_d = 0; //30 grados en radianes
 	    puts("0 grados");
 	    break;
-
+*/
          case 'F':
             puts("WARN: Failsafe set");
             ch_buff[5] = 50;
