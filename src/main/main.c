@@ -386,6 +386,11 @@ bool first_time = true;
 	sleep_ms(15); //simulo demora en lectura TODO determinar cuanto
 #endif
 
+#if !FAKE_YAW
+	// Calcula diferencia respecto a cero
+	act.yaw = act.yaw - get_yaw_zero();
+#endif
+
 	++count_50; // ??
 
 	/// Polling de dispositivos IO
@@ -441,10 +446,6 @@ bool first_time = true;
 	   if (first_time)	
 		first_time = false;
 
-#if !FAKE_YAW
-	   // Calcula diferencia respecto a cero
-	   act.yaw = act.yaw - get_yaw_zero();
-#endif
            /// Path Follower & yaw control
 	   // si hay datos de gps y de yaw hago carrot chase //TODO cuando tenga gps esto tiene que cambiar porque no tienen la misma cadencia que actitud
 	   if(gps_updated && uavtalk_updated)
