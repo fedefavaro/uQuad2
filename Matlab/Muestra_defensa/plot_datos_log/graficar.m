@@ -83,7 +83,7 @@ axis equal
 
 
 %% Grafica datos obtenidos
-data = importdata('log_PD_nuevo_1',' ');
+data = importdata('log_PD_nuevo_5',' ');
 % data2 = importdata('log_PD_8',' ');
 % data3 = importdata('log_PD_7',' ');
 
@@ -175,6 +175,12 @@ xlabel('numero de muestra')
 ylabel('tiempo(ms)')
 grid on
 
+figure
+plot(diff(t))
+title('Derivada del tiempo de medida')
+xlabel('numero de muestra')
+ylabel('tiempo(ms)')
+grid on
 
 figure
 hold on
