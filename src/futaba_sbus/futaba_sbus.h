@@ -70,7 +70,7 @@
 #define MAX_COMMAND		2000
 
 // Valores minimos de los comandos
-#define MIN_COMMAND		2000
+#define MIN_COMMAND		1000
 #define MIN_THROTTLE		950
 
 // Valores neutrales (cero) de los comandos

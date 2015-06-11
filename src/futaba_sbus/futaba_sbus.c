@@ -55,12 +55,20 @@ void futaba_sbus_set_channel(uint8_t channel, int16_t value)
 {
    if ((channel>0) && (channel<=16))
    {
+
       if (value > MAX_COMMAND) {
          value = MAX_COMMAND;
-      } else if ( channel == THROTTLE_CHANNEL && value <= MIN_THROTTLE ) {
-         value = MIN_THROTTLE;
-      } else if ( value < MIN_COMMAND )
-	 value = MIN_COMMAND;      
+      }
+
+      if ( channel == THROTTLE_CHANNEL ) {
+	  if ( value < MIN_THROTTLE ) {
+              value = MIN_THROTTLE;
+          }
+      } else {
+	  if ( value < MIN_COMMAND ) {
+	     value = MIN_COMMAND;      
+          }
+      }
 
       channels[channel-1] = value;
    }
@@ -213,23 +221,22 @@ int convert_sbus_data(char* buf_str)
    return 0; //char_count?
 
 }
-
+#endif
 
 void print_sbus_data(void)
 {
    int i;
    
    // Preparo el mensaje sbus
-   for(i=0;i<SBUS_DATA_LENGTH;i++)
+   for(i=0;i<18;i++)
    {
-      printf("%02X ", sbusData[i]);
+      printf("%d  ", channels[i]);
    }
    printf("\n");
    
    return;
 
 }
-#endif //PC_TEST
 
 
 

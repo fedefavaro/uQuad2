@@ -33,11 +33,11 @@
 #endif //PC_TEST
 
 #define SIMULATE_GPS		1
-#define DISABLE_UAVTALK		0
-#define FAKE_YAW		0
+#define DISABLE_UAVTALK		1
+#define FAKE_YAW		1
 #define SOCKET_TEST		1
 
-#define DEBUG                   0
+#define DEBUG                   1
 
 #if DEBUG
    #define DEBUG_TIMING_MAIN	0 //imprime en stdout la duracion del loop
