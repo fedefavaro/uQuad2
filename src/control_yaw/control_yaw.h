@@ -32,12 +32,12 @@
 
 
 #define CONTROL_YAW_BUFF_SIZE		2 //usar numeros pares
-#define YAW_SAMPLE_TIME			0.05 //en segundos
+#define YAW_SAMPLE_TIME			2*0.05 //en segundos
 
 #define PORCENTAGE_UPDATE_YAW		0.13//0.173//0.15//0.06
 #define INITIAL_YAW			0//M_PI/2
 
-#define CONTROL_YAW_ADD_DERIVATIVE	1
+#define CONTROL_YAW_ADD_DERIVATIVE	0
 
 #define CONTROL_YAW_MEAN_ENABLE		0 // Realiza promedio antes de derivar. Ver control_yaw_derivate_error()
 #define CONTROL_YAW_ADD_ZERO		0 // Agrega un cero al filtro de u. Ver control_yaw_filter_input() TODO ES COMPATIBLE CON DERIVAR EL ERROR??

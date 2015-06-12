@@ -716,16 +716,20 @@ void read_from_stdin(void)
 /*       // Para test escalon.
 	 case '1':
 	    yaw_d = 30*M_PI/180; //30 grados en radianes
-	    puts("30 grados");
+	    puts("60 grados");
 	    break;
 	 case '2':
-	    yaw_d = -30*M_PI/180; //30 grados en radianes
-	    puts("-30 grados");
+	    yaw_d = -60*M_PI/180; //30 grados en radianes
+	    puts("-60 grados");
 	    break;
 	 case '3':
-	    yaw_d = 0; //30 grados en radianes
+	    yaw_d = 0; //0 grados en radianes
 	    puts("0 grados");
 	    break;
+	 case '4':                                                               
+	    yaw_d = 120*M_PI/180; //0 grados en radianes                                    
+            puts("120 grados");                                                    
+            break; 
 */
          case 'F':
             puts("WARN: Failsafe set");
