@@ -373,7 +373,7 @@ void loop() //Main Loop
             // Get US distance measures
             sen_data.us_obstacle_raw = analogRead(ADC0_PIN);
             //sen_data.us_height = analogRead(ADC1_PIN);
-            sen_data.us_obstacle = sen_data.us_obstacle_raw*0.99226 + 3.51228;
+            sen_data.us_obstacle = sen_data.us_obstacle_raw*0.99226 + 3.51228; //no lo mando!
             //sen_data.us_height = sen_data.us_height_raw*0.99226 + 3.51228;
             
             
