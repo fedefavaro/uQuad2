@@ -85,17 +85,16 @@ end
 
 
 %% Grafica datos obtenidos
-data = importdata('log_PD_nuevo_2',' ');
+data = importdata('log_esc_yaw_kp_2_7_1',' ');
 % dataB = importdata('log_PD_nuevo_3',' ');
-% data3 = importdata('log_PD_7',' ');
 
 %posicion -xy
 plot(data(:,12),data(:,13),'b')
-plot(dataB(:,12),dataB(:,13),'g')
+% plot(dataB(:,12),dataB(:,13),'g')
 
 t = data(:,1)*1000 + data(:,2)/1000; %timepo en milisegundos
 t2 = data(:,10)*1000 + data(:,11)/1000; %timepo en milisegundos
-tB = dataB(:,10)*1000 + dataB(:,11)/1000; %timepo en milisegundos
+% tB = dataB(:,10)*1000 + dataB(:,11)/1000; %timepo en milisegundos
 % t3 = data2(:,10)*1000 + data2(:,11)/1000; %timepo en milisegundos
 % t4 = data3(:,10)*1000 + data3(:,11)/1000; %timepo en milisegundos
 
