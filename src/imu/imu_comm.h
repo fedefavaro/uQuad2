@@ -35,32 +35,32 @@
  * 
  * NOTA: No hay caracter de separacion.
  */
-typedef struct imu_frame{
+typedef struct imu_frame {
     uint16_t T_us;   // Time since previous sample in us
     int16_t acc [3]; // ADC counts
     int16_t gyro[3]; // ADC counts
     int16_t magn[3]; // ADC counts
     uint16_t temp;   // Tens of °C
     uint32_t pres;   // Pa
-    int16_t us_obstacle // ADC counts // cm?
-}imu_raw_t;
+    int16_t us_obstacle; // ADC counts // cm?
+} imu_raw_t;
 
 
 /**
  * imu_data_t: Stores calibrated data. This is the final output of imu_comm,
  * and should be passed on the the control loop.
  */
-typedef struct imu_data{
+typedef struct imu_data {
     double T_us;         // us
     uquad_mat_t *acc;    // m/s^2
     uquad_mat_t *gyro;   // rad/s
     uquad_mat_t *magn;   // rad - Euler angles - {psi/roll,phi/pitch,theta/yaw}
     double temp;         // °C
     double alt;          // m
-    double us_obstacle   // m
+    double us_obstacle;   // m
     //uquad_bool_t acc_ok; // acc norm() in range
     //uquad_bool_t magn_ok;// magn norm() in range
-}imu_data_t;
+} imu_data_t;
 
 
 
