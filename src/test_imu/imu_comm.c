@@ -1,7 +1,7 @@
 
 
 #include "imu_comm.h"
-
+#include <math.h>
 uint16_t tiempo;
 int16_t accx;
 int16_t accy;
@@ -46,7 +46,7 @@ static unsigned char RX_imu_buffer[31];
 //static int largo_mensaje;
 
 // flag que identifica mensaje completo
-//static bool imu_ready;
+static bool imu_ready;
 
 //int cont = 0;
 
@@ -98,6 +98,7 @@ bool check_read_locks(int fd) {
 //*****************************************************************************
 int imu_comm_read(int fd)
 {
+   int ret;
    uint8_t imu_data_ready = 0;
    uint8_t c;
    int index = 0;
@@ -118,7 +119,7 @@ int imu_comm_read(int fd)
 	    in_sync = true;
         } else {
             if (index < 30) {
-	       X_imu_buffer[index++] = c;
+	       RX_imu_buffer[index++] = c;
 	    } else { // index == 30 
                if ((c == 'Z')) {
                    RX_imu_buffer[index++] = c;
@@ -159,9 +160,10 @@ void imu_comm_parse_frame_binary(imu_raw_t *frame)//, unsigned char *data)
     //temp
     frame->temp = (uint16_t)buffParse_16[i++];
     //press
-    frame->pres = *((uint32_t*)(buffParse_16+i));
+    frame->pres = *((uint32_t*)(buffParse_16 + i));
     //us - obstaculo
-    frame->us_obstacle = (buffParse_16+((i++)++));
+    i++;
+    frame->us_obstacle = *((int16_t*)(buffParse_16 + i++));
 }
 
 
@@ -335,6 +337,8 @@ void magn_calib_init(void)
 
 void pres_calib_init(void)
 {
+    int i;
+
     // Cargo K
     *pres_K = 44330;
     
@@ -344,7 +348,7 @@ void pres_calib_init(void)
     // Cargo po promediando varios resultados con el quad en el piso, previo al despegue
     imu_raw_t raw;
     imu_ready = false;
-    for (int i=0; i < 500; i++) {
+    for (i=0; i < 500; i++) {
         while(!imu_ready);
         imu_comm_parse_frame_binary(&raw);
         *pres_po = *pres_po + raw.pres;

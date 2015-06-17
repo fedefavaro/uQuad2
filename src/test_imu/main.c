@@ -25,20 +25,25 @@
 
 #include <stdlib.h>
 
-#include <imu_comm.h>
-#include <uquad_aux_math.h>
-#include <uquad_aux_time.h>
+#include "imu_comm.h"
+#include "uquad_aux_math.h"
+#include "uquad_aux_time.h"
 
 #include <unistd.h>
+#include <sys/ioctl.h>
+#include <termios.h> 
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 /// Global vars
 int fd;
 
 /// Forward decs
 int configure_port(int fd, speed_t baudrate);
+void quit(void);
+void set_signals(void);
 
 int main(int argc, char *argv[])
 {
@@ -47,7 +52,7 @@ int main(int argc, char *argv[])
    set_signals();
 
    /// Abrir puerto de la imu
-   fd = open_port("/dev/ttyUSB0");
+   fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NONBLOCK);
    if (fd < 0) {
       puts("No se pudo abrir el puerto");
       return -1;
@@ -58,7 +63,7 @@ int main(int argc, char *argv[])
    retval = configure_port(fd, B115200); //TODO cambiar nombre
    if (retval < 0) {
       puts("No se pudo configurar el puerto");
-      return -1;
+      quit();
    }
 
    // Clean serial buffer
@@ -83,6 +88,9 @@ int main(int argc, char *argv[])
    //magn_calib_init();
    //pres_calib_init();
 
+   struct timeval tv_in_loop;
+   bool IMU_readOK = false;
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
@@ -94,7 +102,13 @@ int main(int argc, char *argv[])
 	IMU_readOK = check_read_locks(fd);
 	if (IMU_readOK) {
 
-            
+            // Leo datos
+	    retval = imu_comm_read(fd);            
+ 	    if (retval != 1 ) {
+		puts("unable to read data");
+		continue;
+	    }
+
             // Paso los datos del buffer RX a imu_raw.
             imu_comm_parse_frame_binary(&imu_raw);
             //imu_raw2data(&imu_raw, imu_data);
@@ -102,11 +116,11 @@ int main(int argc, char *argv[])
             print_imu_raw(&imu_raw);
             
 	    // Reseteo imu_ready.
-            reset_imu_ready();
+            IMU_readOK = false;
         }
 
 	/// Control de tiempos del loop
-	wait_loop_T_US(MAIN_LOOP_50_MS,tv_in_loop);
+	wait_loop_T_US(50000UL,tv_in_loop);
 
    } // for(;;)
 
@@ -168,12 +182,6 @@ int configure_port(int fd, speed_t baudrate)
   cfsetospeed(&options, baudrate);			// set the out baud rate...
   cfmakeraw(&options);
   options.c_cflag |= (CLOCAL | CREAD);			// enable the receiver and set local mode...
-  //options.c_cflag &= ~PARENB;				// No parity bit...
-  //options.c_cflag &= ~CSTOPB;				// 1 stop bits...
-  //options.c_cflag &= ~CSIZE;				// mask the character size bits...
-  //options.c_cflag |= CS8;    				// select 8 data bits...
-  //options.c_lflag &= ~(ICANON | ECHO | ECHOE | /*ISIG*/ ECHOK); 	// choosing raw input...
-  //options.c_iflag &= ~(IXON | IXOFF | IXANY); 		// disable software flow control...
   
   // set the new options for the port...
   if((rc = tcsetattr(fd, TCSANOW, &options)) < 0){
@@ -183,33 +191,6 @@ int configure_port(int fd, speed_t baudrate)
   
   return 0;
 
-}
-
-
-/**
- * calcula diferencia entre tiempo de entrada al loop ('tv_in')y tiempo
- * actual ('tv_end') y manda a dormir la cantidad de tiempo que falte 
- * para completar 'loop_duration_usec'.
- */
-int wait_loop_T_US(unsigned long loop_duration_usec, struct timeval tv_in)
-{
-   struct timeval tv_end, tv_diff;
-   gettimeofday(&tv_end,NULL);
-   int retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-   if(retval > 0)
-   {
-      if(tv_diff.tv_usec < loop_duration_usec)
-         usleep(loop_duration_usec - (unsigned long)tv_diff.tv_usec); // Sobro tiempo, voy a dormir
-   } else
-         err_log("WARN: Main Absurd timing!");
-   
-#if DEBUG_TIMING_MAIN
-      gettimeofday(&tv_end,NULL);
-      retval = uquad_timeval_substract(&tv_diff, tv_end, tv_in);
-      printf("duracion loop main: %lu\n",(unsigned long)tv_diff.tv_usec);
-#endif
-
-   return retval;
 }
 
 
