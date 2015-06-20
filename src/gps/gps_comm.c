@@ -293,8 +293,8 @@ void gps_simulate_position(position_t* pos, velocity_t* vel, double yaw_measured
    for(i=0;i<5;i++) {
   
 	// Fuerza de rozamiento
-	double r_x = -B*vel->x;
-	double r_y = -B*vel->y;
+	double r_x = -B_roz*vel->x;
+	double r_y = -B_roz*vel->y;
 
 	// Aceleracion
 	double a_x = (r_x + F_x)/MASA;

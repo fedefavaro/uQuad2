@@ -36,7 +36,7 @@
 //double B = 1; // coef friccion
 #define MASA	1.85
 #define G	9.81
-#define B	1
+#define B_roz	1
 
 
 

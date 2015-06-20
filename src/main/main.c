@@ -36,6 +36,7 @@
 #include <serial_comm.h>
 #include <gps_comm.h>
 #include <UAVTalk.h>
+#include <imu_comm.h>
 #include <control_yaw.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -113,6 +114,15 @@ actitud_t act = {0,0,INITIAL_YAW,{0,0}};
 actitud_t act_last = {0,0,0,{0,0}};
 bool uavtalk_updated = false;
 
+// IMU
+imu_raw_t imu_raw;
+imu_data_t *imu_data;
+int fd_IMU;
+bool imu_updated = false;
+bool baro_calibrated;
+double po = 0; //variable para relevar presion ambiente (calib del baro)
+int baro_calib_cont = 0; //contador para determinar cuantas muestras tomar para la calib del baro
+
 // Control de yaw
 double u = 0; //senal de control (setpoint de velocidad angular)
 double yaw_d = 0;
@@ -171,6 +181,7 @@ int main(int argc, char *argv[])
    int retval;
    char* log_name;
    int err_count_no_data = 0; //si no tengo datos nuevos varias veces es peligroso
+   int no_gps_data = 0; //si no tengo datos nuevos varias veces es peligroso
 
    if(argc<3)
    {
@@ -245,7 +256,7 @@ int main(int argc, char *argv[])
 
    /// Control velocidad
    // TODO
-   pitch = atan(B*VEL_DESIRED/MASA/G);
+   pitch = atan(B_roz*VEL_DESIRED/MASA/G);
 
    /// Control altura
    // TODO
@@ -311,15 +322,33 @@ int main(int argc, char *argv[])
    /// inicializa UAVTalk
 #if !DISABLE_UAVTALK
    fd_CC3D = uav_talk_init();
+   if(fd_CC3D < 0) 
+   {
+      err_log("Failed to init UAVTalk!");
+      quit(0);  
+   } 
    bool CC3D_readOK;
 #endif
-   
-int8_t count_50 = 1; // controla tiempo de loop 100ms
-//act_last = act;
 
-char buff_act[512]; //TODO determinar valor
-char buf_pwm[512]; //TODO determinar valor
-int buff_len;
+   /// init IMU
+#if !DISABLE_IMU
+   fd_IMU = imu_comm_init(IMU_DEVICE);
+   if(fd_IMU < 0) 
+   {
+      err_log("Failed to init IMU!");
+      quit(0);  
+   } 
+   bool IMU_readOK;
+   imu_data_alloc(imu_data);
+   magn_calib_init(); //Carga parametros de calibracion del magn, baro se calibra en el loop
+#endif
+   
+   int8_t count_50 = 1; // controla tiempo de loop 100ms
+   //act_last = act;
+
+   char buff_act[512]; //TODO determinar valor
+   char buf_pwm[512]; //TODO determinar valor
+   int buff_len;
 
 // TODO Espero a tener comunicacion estable con cc3d
 #if !DISABLE_UAVTALK  
@@ -328,14 +357,13 @@ int buff_len;
    serial_flush(fd_CC3D);
 #endif 
 
-#if DISABLE_UAVTALK 
-uavtalk_updated = true;
-#else
-uavtalk_updated = false;
-#endif
-gps_updated = true;
+#if !DISABLE_IMU
+   // Clean IMU serial buffer
+   err_log("Clearing IMU input buffer...");
+   serial_flush(fd_IMU);
+#endif 
 
-bool first_time = true;
+   bool first_time = true;
 
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
@@ -372,25 +400,63 @@ bool first_time = true;
 	   #endif
 		continue;
 	   }
-	   uavtalk_updated = true; //readOK (retval > 0)
+	   uavtalk_updated = true;
 	} else {
         #if DEBUG 
 	   err_log("UAVTalk: read NOT ok");
         #endif
-	   continue;
+	   //continue;
 	   //quit(0);
 	}
 #else
    #if FAKE_YAW
 	if(control_status == STARTED && !first_time)
 	   act.yaw = simulate_yaw(yaw_d);  //yaw_d es el del loop anterior
+	uavtalk_updated = true;
    #endif	
 	sleep_ms(15); //simulo demora en lectura TODO determinar cuanto
 #endif
-
 #if !FAKE_YAW
 	// Calcula diferencia respecto a cero
 	act.yaw = act.yaw - get_yaw_zero();
+#endif
+
+#if !DISABLE_IMU
+	// Lectura de datos de la IMU
+	IMU_readOK = check_read_locks(fd_IMU);
+	if (IMU_readOK) {
+
+            // Leo datos
+	    retval = imu_comm_read(fd_IMU);            
+ 	    if (retval != 1 ) {
+		puts("unable to read data");
+		continue;
+	    }
+            // Paso los datos del buffer RX a imu_raw.
+            imu_comm_parse_frame_binary(&imu_raw);
+	    //print_imu_raw(&imu_raw); // dbg
+
+            if (!baro_calibrated) {
+		po += imu_raw.pres;
+		baro_calib_cont++;
+		if (baro_calib_cont == BARO_CALIB_SAMPLES) {
+		   pres_calib_init(po/BARO_CALIB_SAMPLES);
+		   baro_calibrated = true;
+		}
+	    } else {
+	       imu_raw2data(&imu_raw, imu_data);
+	    }
+
+	    imu_updated = true;
+            IMU_readOK = false;
+
+        } else {
+        #if DEBUG 
+	   err_log("imu: read NOT ok");
+        #endif
+	   //continue;
+	   //quit(0);
+	}
 #endif
 
 	++count_50; // ??
@@ -410,12 +476,10 @@ bool first_time = true;
 	   read_from_stdin();
 	}
 
+
 	/** loop 100 ms **/
 	if(count_50 > 1)
 	{ 
-
-	   //sleep_ms(5); //era 105000 us ??
-
 #if !SIMULATE_GPS
 	   /// Obener datos del GPS
 	   retval = get_gps_data(&gps);
@@ -427,73 +491,98 @@ bool first_time = true;
 		//que hago si SI hay datos!?
 		printf("%lf\t%lf\t%lf\t%lf\t%lf\n",   \
 			gps.latitude,gps.longitude,gps.altitude,gps.speed,gps.track);
+		gps_updated = true;
 	   }
+#else //GPS SIMULADO
+	   if(control_status == STARTED && !first_time)
+	      gps_simulate_position(&position, &velocity, act.yaw, pitch);
+	   gps_updated = true;
 #endif //!SIMULATE_GPS
 
 	   count_50 = 0;
-	} // if(count_50 > 1)
+	} /** end loop 100 ms **/
 
-#if SIMULATE_GPS
-	/*
-	 * En esta funcion entra la posicion actual y sale la siguiente (simulada)
-	 * act_last guarda el angulo medido en el loop anterior
-	 * pitch calculado en abse a velocidad (esta es seteada por el usuario)
-	 */
-	 if(control_status == STARTED && !first_time)
-	   gps_simulate_position(&position, &velocity, act.yaw, pitch);
-#endif //SIMULATE_GPS
 
 	if(control_status == STARTED)
         {
 	   if (first_time)	
 		first_time = false;
 
-           /// Path Follower & yaw control
-	   // si hay datos de gps y de yaw hago carrot chase //TODO cuando tenga gps esto tiene que cambiar porque no tienen la misma cadencia que actitud
-	   if(gps_updated && uavtalk_updated)
+           /// Con datos de actitud hago control de yaw y path following(si tengo gps)
+	   if(uavtalk_updated)
 	   {
+	      /// Path Follower - si hay datos de gps y de yaw hago carrot chase	      
+	      if(gps_updated) {
 #if !SIMULATE_GPS
-	     /* guardo en waypoint p los valores de x, y hallados mediante el gps.
-	      * primero deberia hacer convert_gps2utm(&utm, gps) y restarle la utm inicial
-	      */
-	      //convert_gps2waypoint(&wp, gps); // TODO no implementado!!
-	      wp.angulo = act.yaw;
+	        /* guardo en waypoint p los valores de (x,y) hallados mediante el gps.
+	         * primero deberia hacer convert_gps2utm(&utm, gps) y restarle la utm inicial
+	         */
+	         //convert_gps2waypoint(&wp, gps); // TODO no implementado!!
+	         wp.angulo = act.yaw;
 #else
-              wp.x = position.x; //TODO definir si la variable posicion la voy a usar siempre o solo simulando gps
-	      wp.y = position.y;
-	      wp.z = position.z;
-	      wp.angulo = act.yaw;
+                 wp.x = position.x;
+	         wp.y = position.y;
+	         wp.z = position.z;
+	         wp.angulo = act.yaw;
 #endif //!SIMULATE_GPS
 	      
-	      //carrot chase
-	      retval = path_following(wp, lista_path, &yaw_d);
-	      if (retval == -1) {
-		  control_status = FINISHED;
-		  puts("¡¡ Trayectoria finalizada !!");
-		  ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL; // detengo los motores
-		  //continue;
+	         //carrot chase
+	         retval = path_following(wp, lista_path, &yaw_d);
+	         if (retval == -1) {
+		     control_status = FINISHED;
+		     puts("¡¡ Trayectoria finalizada !!");
+		     ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL; // detengo los motores
+	         }
+		 
+		 no_gps_data = 0;
+
+	      } else {
+		 no_gps_data++;
+		 if (no_gps_data > 1) { // Debo tener datos del gps cada 2 loops de 50 ms
+		    err_count_no_data++;
+		    no_gps_data = 0;
+		    err_log("No tengo datos de gps para seguimiento de trayectorias");
+		 }
 	      }
-	      
-	      if (err_count_no_data > 0)
+
+	   /// Control Yaw - necesito solo medida de yaw
+	   u = control_yaw_calc_input(yaw_d, act.yaw);  // TODO PASAR A RADIANES
+	   //printf("senal de control: %lf\n", u); // dbg
+
+	   //Convertir velocidad en comando
+	   ch_buff[YAW_CH_INDEX] = (uint16_t) (u*25/11 + 1500);
+	   //printf("comando a enviar: %u\n", ch_buff[YAW_CH_INDEX]); // dbg
+
+           if (err_count_no_data > 0)
 	         err_count_no_data--;
 
-	      /// Control TODO mejorar esto
-	      u = control_yaw_calc_input(yaw_d, act.yaw);  // TODO PASAR A RADIANES
-	      //printf("senal de control: %lf\n", u); // dbg
-
-	      //Convertir velocidad en comando
-	      ch_buff[YAW_CH_INDEX] = (uint16_t) (u*25/11 + 1500);
-	      //printf("comando a enviar: %u\n", ch_buff[YAW_CH_INDEX]); // dbg
-         
-      	      //gps_updated = false;
-#if !DISABLE_UAVTALK
-	      uavtalk_updated = false;
-#endif
 	   } else {
-	      err_log("No tengo datos para seguimiento de trayectorias");
+	      err_log("No tengo datos para control de yaw");
 	      err_count_no_data++;
 	   }
-	} 
+	
+	
+	   /// Control de Velocidad
+	   if(gps_updated) {
+	      //TODO...
+
+	   }
+
+#if !DISABLE_IMU
+	   /// Control de Altura
+	   if(imu_updated) {
+	      //TODO...
+
+	   }
+#endif
+
+	   // Luego de finalizados los controles reseteo flags
+	   uavtalk_updated = false;
+	   gps_updated = false;
+	   imu_updated = false;
+	
+	} // end if(control_started)
+
 
 	// Envia actitud y throttle deseados a sbusd (a traves de mensajes de kernel)
 	retval = uquad_kmsgq_send(kmsgq, buff_out, MSGSZ);

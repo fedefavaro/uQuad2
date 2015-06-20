@@ -139,6 +139,38 @@ void serial_flush(int fd)
 }
 
 
+/* devuelve true si puedo leer, false si no puedo */
+bool check_read_locks(int fd) {
+
+   fd_set rfds;
+   struct timeval tv;
+   tv.tv_sec = 0;
+   tv.tv_usec = 0;
+   FD_ZERO(&rfds);
+   FD_SET(fd, &rfds);
+   int retval = select(fd+1, &rfds, NULL, NULL, &tv);
+   if(retval < 0)
+      printf("select() failed!\n");
+     
+   return FD_ISSET(fd,&rfds);
+}
+
+
+bool check_write_locks(int fd) {
+
+   fd_set wfds;
+   struct timeval tv;
+   tv.tv_sec = 0;
+   tv.tv_usec = 0;
+   FD_ZERO(&wfds);
+   FD_SET(fd, &wfds);
+   int retval = select(fd+1, NULL, &wfds, NULL, &tv);
+   if(retval < 0)
+      printf("select() failed!\n");
+     
+   return FD_ISSET(fd,&wfds);
+}
+
 
 
 

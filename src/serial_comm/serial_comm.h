@@ -28,6 +28,7 @@
 
 
 #include <termios.h> 
+#include <stdbool.h>
 
 /**
  * Abre el puerto serie especificado por device.
@@ -47,6 +48,10 @@ int configure_port(int fd);
 int configure_port_gps(int fd, speed_t baudrate);
 
 void serial_flush(int fd);
+
+bool check_read_locks(int fd);
+bool check_write_locks(int fd);
+
 
 #endif
 

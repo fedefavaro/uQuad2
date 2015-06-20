@@ -2,3 +2,4 @@
 add_library (imu_comm imu_comm)
 
 target_link_libraries(imu_comm uquad_aux_math)
+target_link_libraries(imu_comm serial_comm)

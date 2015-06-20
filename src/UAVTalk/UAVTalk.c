@@ -139,6 +139,7 @@ void uav_talk_print_attitude(actitud_t act)
    
 }
 
+#if 0
 /* devuelve true si puedo leer, false si no puedo */
 bool check_read_locks(int fd) {
 
@@ -160,8 +161,6 @@ bool check_read_locks(int fd) {
      
    return FD_ISSET(fd,&rfds);
 }
-
-
 bool check_write_locks(int fd) {
 
   fd_set wfds;
@@ -177,6 +176,7 @@ bool check_write_locks(int fd) {
      
    return FD_ISSET(fd,&wfds);
 }
+#endif
 
 static inline int8_t uavtalk_get_int8(uavtalk_message_t *msg, int pos) {
 	return msg->Data[pos];

@@ -8,10 +8,11 @@
 #include "uquad_aux_math.h"
 #include "uquad_aux_time.h"
 
-#define RX_IMU_BUFFER_SIZE 34		// Tamaño del buffer de recepcion
-#define IMU_BYTES_T_US    4             // Tamaño del tiempo recibido por la IMU en formato binario
+#define RX_IMU_BUFFER_SIZE	34 // Tamaño del buffer de recepcion
+#define IMU_BYTES_T_US    	4  // Tamaño del tiempo recibido por la IMU en formato binario
 
-
+#define IMU_DEVICE		"/dev/ttyUSB0" // TODO esto va a variar seguramente
+#define BARO_CALIB_SAMPLES	100
 /**
  * Datos crudos de la IMU
  * Contiene 34 bytes, 32 utiles mas init/end.
@@ -53,40 +54,33 @@ typedef struct imu_frame {
  */
 typedef struct imu_data {
     double T_us;         // us
-    uquad_mat_t *acc;    // m/s^2
-    uquad_mat_t *gyro;   // rad/s
+    //uquad_mat_t *acc;    // m/s^2
+    //uquad_mat_t *gyro;   // rad/s
     uquad_mat_t *magn;   // rad - Euler angles - {psi/roll,phi/pitch,theta/yaw}
     double temp;         // °C
     double alt;          // m
     double us_obstacle;   // m
     double us_altitude;   // m
-    //uquad_bool_t acc_ok; // acc norm() in range
-    //uquad_bool_t magn_ok;// magn norm() in range
 } imu_data_t;
 
 
-
-bool check_read_locks(int fd);
-
-void imu_comm_parse_frame_binary(imu_raw_t *frame);
-
-void print_imu_raw(imu_raw_t *frame);
-
-void acc_calib_init(void);
-void gyro_calib_init(void);
-void magn_calib_init(void);
-void pres_calib_init(void);
-
-void temp_raw2data(imu_raw_t *raw, imu_data_t *data);
-void acc_raw2data(imu_raw_t *raw, imu_data_t *data);
-void gyro_raw2data(imu_raw_t *raw, imu_data_t *data);
-void magn_raw2data(imu_raw_t *raw, imu_data_t *data);
-void pres_raw2data(imu_raw_t *raw, imu_data_t * data);
-void imu_raw2data(imu_raw_t *raw, imu_data_t *data);
-
+int imu_comm_init(char *device);
 void imu_data_alloc(imu_data_t *imu_data);
 
-void printDouble( double val, unsigned int precision);
+void imu_comm_parse_frame_binary(imu_raw_t *frame);
+void print_imu_raw(imu_raw_t *frame);
 
+//void acc_calib_init(void);
+//void gyro_calib_init(void);
+void magn_calib_init(void);
+void pres_calib_init(double po);
+
+void temp_raw2data(imu_raw_t *raw, imu_data_t *data);
+//void acc_raw2data(imu_raw_t *raw, imu_data_t *data);
+//void gyro_raw2data(imu_raw_t *raw, imu_data_t *data);
+void magn_raw2data(imu_raw_t *raw, imu_data_t *data);
+void pres_raw2data(imu_raw_t *raw, imu_data_t * data);
+
+void imu_raw2data(imu_raw_t *raw, imu_data_t *data);
 
 #endif
