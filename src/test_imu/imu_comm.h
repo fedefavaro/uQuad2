@@ -8,7 +8,7 @@
 #include "uquad_aux_math.h"
 #include "uquad_aux_time.h"
 
-#define RX_IMU_BUFFER_SIZE 32           // Tamaño del buffer de recepcion
+#define RX_IMU_BUFFER_SIZE 31           // Tamaño del buffer de recepcion
 #define IMU_BYTES_T_US    4             // Tamaño del tiempo recibido por la IMU en formato binario
 
 
@@ -36,7 +36,7 @@
  * NOTA: No hay caracter de separacion.
  */
 typedef struct imu_frame {
-    uint16_t T_us;   // Time since previous sample in us
+    uint32_t T_us;   // Time since previous sample in us
     int16_t acc [3]; // ADC counts
     int16_t gyro[3]; // ADC counts
     int16_t magn[3]; // ADC counts

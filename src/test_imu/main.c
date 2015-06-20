@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
    /// Inicializo variables IMU
    imu_raw_t imu_raw;
    imu_data_t *imu_data;
-   imu_data_alloc(imu_data);
+   //imu_data_alloc(imu_data);
     
 
    /// Calibraciones IMU
