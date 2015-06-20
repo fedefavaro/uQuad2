@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
 
             // Paso los datos del buffer RX a imu_raw.
             imu_comm_parse_frame_binary(&imu_raw);
+
             //imu_raw2data(&imu_raw, imu_data);
             
             print_imu_raw(&imu_raw);

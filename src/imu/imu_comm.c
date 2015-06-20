@@ -40,7 +40,7 @@ static double expo;
 static double *pres_exponente = & expo;   
     
 // Buffer de recepcion.
-static unsigned char RX_imu_buffer[31];
+static unsigned char RX_imu_buffer[RX_IMU_BUFFER_SIZE];
 //static int RX_imu_buffer_inicio;
 //static int RX_imu_buffer_ultimo;
 //static int largo_mensaje;
@@ -99,7 +99,7 @@ bool check_read_locks(int fd) {
 int imu_comm_read(int fd)
 {
    int ret;
-   uint8_t imu_data_ready = 0;
+   int imu_data_ready = 0;
    uint8_t c;
    int index = 0;
    bool in_sync = false;
@@ -117,20 +117,15 @@ int imu_comm_read(int fd)
             index = 0;
 	    RX_imu_buffer[index] = c;
 	    in_sync = true;
-        } else {
-            if (index < 30) {
-	       RX_imu_buffer[index++] = c;
-	    } else { // index == 30 
-               if ((c == 'Z')) {
-                   RX_imu_buffer[index++] = c;
-		   imu_data_ready = 1;
-	       } else
-		   return -1;
-            }
-	}
-
+        } else if ((index < (RX_IMU_BUFFER_SIZE-2)) && (in_sync == true)) {
+	       RX_imu_buffer[++index] = c;
+	} else if ( (c == 'Z') && (in_sync == true) ) {
+               RX_imu_buffer[++index] = c;
+	       imu_data_ready = 1;
+	} else return -1;
+            
    } // while...
-
+	
    return imu_data_ready;
 }
 
@@ -162,8 +157,10 @@ void imu_comm_parse_frame_binary(imu_raw_t *frame)//, unsigned char *data)
     //press
     frame->pres = *((uint32_t*)(buffParse_16 + i));
     //us - obstaculo
-    i++;
-    frame->us_obstacle = *((int16_t*)(buffParse_16 + i++));
+    i = i+2;
+    frame->us_obstacle = buffParse_16[i];
+    //us - altura
+    frame->us_altitude = buffParse_16[++i];
 }
 
 
@@ -175,7 +172,8 @@ void imu_comm_parse_frame_binary(imu_raw_t *frame)//, unsigned char *data)
 //*****************************************************************************
 void print_imu_raw(imu_raw_t *frame)
 {
-    printf("%u", frame->T_us);
+    printf("%c", RX_imu_buffer[0]);
+    printf("  %lu", frame->T_us);
     printf("  %i", frame->acc[0]);
     printf("  %i", frame->acc[1]);
     printf("  %i", frame->acc[2]);
@@ -185,9 +183,11 @@ void print_imu_raw(imu_raw_t *frame)
     printf("  %i", frame->magn[0]);
     printf("  %i", frame->magn[1]);
     printf("  %i", frame->magn[2]);
-    printf("  %u", frame->temp);
+    printf("  %i", frame->temp);
     printf("  %lu", frame->pres);
-    printf("  %i\n", frame->us_obstacle);
+    printf("  %i", frame->us_obstacle);
+    printf("  %i", frame->us_altitude);
+    printf("  %c\n", RX_imu_buffer[RX_IMU_BUFFER_SIZE-1]);
 }
 
 
