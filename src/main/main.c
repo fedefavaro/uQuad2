@@ -487,25 +487,25 @@ int read_from_stdin(void)
             ang_d = 1500;
             break;
          case '1':
-            ang_d = 1525;
+            ang_d = 1545;
             break;
          case '2':
-            ang_d = 1550;
+            ang_d = 1455;
             break;
          case '3':
-            ang_d = 1575;
+            ang_d = 1591;
             break;
          case '4':
-            ang_d = 1600;
+            ang_d = 1409;
             break;
          case '5':
-            ang_d = 1625;
-            break;
-         case '6':
             ang_d = 1650;
             break;
+         case '6':
+            ang_d = 1400;
+            break;
          case '7':
-            ang_d = 1700;
+            ang_d = 1350;
             break;
          case '8':
             ang_d = 1725;
@@ -563,7 +563,7 @@ int read_from_stdin(void)
          } //switch(tmp_buff[0])
 
          if(negativos && retval==0)
-            ang_d = -ang_d;
+            ang_d = 3000 - ang_d;
 
          return retval;
 }
