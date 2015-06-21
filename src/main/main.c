@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   log_trayectoria(lista_path);    //dbg
+   //log_trayectoria(lista_path);    //dbg
    //visualizacion_path(lista_path); // dbg
 
 #if SOCKET_TEST
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 
    /// Control velocidad
    // TODO
-   pitch = -atan(B*VEL_DESIRED/MASA/G);
+   pitch = -atan(B*VEL_DESIRED/MASA/G);  //El signo negativo es para que sea coherente con el sentido de giro de la cc3d (angulo positivo = giro horario)
 
    printf("pitch: %lf\n", pitch*180/M_PI);
 
@@ -714,10 +714,10 @@ void read_from_stdin(void)
             puts("Deteniendo");
             control_status = STOPPED;
             break;
-         case 'L':                                                                                                                                                 
-            ch_buff[PITCH_CH_INDEX] = (uint16_t)(pitch*(180/M_PI)*8.78 + 1500);                                                                                                         
-            puts("Comienza pitch");                                                                                                                                    
-            break; 
+	 case'L':
+            ch_buff[PITCH_CH_INDEX] = (uint16_t)(pitch*(180/M_PI)*8.7804 + 1500); // El valor teorico de m (y=mx+n) es m=500/55=9.09
+            puts("Comienza pitch");
+            break;
 
 /*       // Para test escalon.
 	 case '1':

@@ -3,9 +3,16 @@
 
 #include <path_planning.h>
 
-#define DELTA               3.4        // Parametro seguimiento rectas [m]
-#define LAMBDA              1.2      // Parametro seguimiento circunferencias [rad]
-#define ERROR_ACEPTABLE     4        // Distancia minima para determinar si se logro el objetivo [m]
+// Parametro seguimiento rectas [m]
+#define DELTA               3.4        
+// Parametro seguimiento circunferencias [rad]
+//#define LAMBDA              1.55 //Valor en que mejor convergen las cfas pero demora mucho
+#define LAMBDA              1.4  //Sigue cfas con poco error pero las cfas iniciales mal
+//#define LAMBDA              1.2  //atenua un poco el efecto de las cfas iniciales pero empeora seguimiento de cfas despues
+//#define LAMBDA              1.6  // Buen parametro
+
+// Distancia minima para determinar si se logro el objetivo [m]
+#define ERROR_ACEPTABLE     4    
 
 typedef enum estado {
     CFA_i,

@@ -28,7 +28,7 @@ double carrotChase_Line(way_point_t wp_i, way_point_t wp_f, way_point_t p)
 
     // Paso 6
     //double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
-    double yaw_d = -atan2(y - p.y, x - p.x);
+    double yaw_d = -atan2(y - p.y, x - p.x); //El signo negativo es para que sea coherente con el sentido de giro de la cc3d (angulo positivo = giro horario)
     
     //Correccion de discontinuidad de atan2
     double dyaw_d = yaw_d - last_yaw_d;
@@ -60,7 +60,7 @@ double carrotChase_Circle(way_point_t wp_c, int r, way_point_t p, char sentido)
 
     // Paso 5
     //double yaw_d = mod2pi(atan2(y - p.y, x - p.x));
-    double yaw_d = -atan2(y - p.y, x - p.x);
+    double yaw_d = -atan2(y - p.y, x - p.x); //El signo negativo es para que sea coherente con el sentido de giro de la cc3d (angulo positivo = giro horario)
     
     //Correccion de discontinuidad de atan2
     double dyaw_d = yaw_d - last_yaw_d;
