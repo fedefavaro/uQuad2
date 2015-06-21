@@ -245,7 +245,9 @@ int main(int argc, char *argv[])
 
    /// Control velocidad
    // TODO
-   pitch = atan(B*VEL_DESIRED/MASA/G);
+   pitch = -atan(B*VEL_DESIRED/MASA/G);
+
+   printf("pitch: %lf\n", pitch*180/M_PI);
 
    /// Control altura
    // TODO
@@ -712,6 +714,10 @@ void read_from_stdin(void)
             puts("Deteniendo");
             control_status = STOPPED;
             break;
+         case 'L':                                                                                                                                                 
+            ch_buff[PITCH_CH_INDEX] = (uint16_t)(pitch*(180/M_PI)*8.78 + 1500);                                                                                                         
+            puts("Comienza pitch");                                                                                                                                    
+            break; 
 
 /*       // Para test escalon.
 	 case '1':
@@ -748,22 +754,21 @@ void read_from_stdin(void)
             puts("Seteando valor neutro");
             break;
          case 'A':
-#if !FAKE_YAW
-	    //yaw_zero = act.yaw;
-	    set_yaw_zero(act.yaw);
-#endif
-            ch_buff[ROLL_CH_INDEX] = ROLL_NEUTRAL;
+#if !FAKE_YAW                                                                    
+            set_yaw_zero(act.yaw);                                               
+#endif          
+   	    ch_buff[ROLL_CH_INDEX] = ROLL_NEUTRAL;
             ch_buff[PITCH_CH_INDEX] = PITCH_NEUTRAL;
             ch_buff[YAW_CH_INDEX] = YAW_ARM;
             ch_buff[THROTTLE_CH_INDEX] = THROTTLE_ARM; 
-            puts("Armando...");
+            puts("Armando!!!");
             break;
          case 'D':
             ch_buff[ROLL_CH_INDEX] = ROLL_NEUTRAL;
             ch_buff[PITCH_CH_INDEX] = PITCH_NEUTRAL;
             ch_buff[YAW_CH_INDEX] = YAW_DISARM;
             ch_buff[THROTTLE_CH_INDEX] = THROTTLE_DISARM;
-            puts("Desarmando...");
+            puts("Desarmando!");
             break;
 #ifdef SETANDO_CC3D
 	// Para setear maximos y minimos en CC3D
