@@ -116,7 +116,7 @@ bool uavtalk_updated = false;
 
 // IMU
 imu_raw_t imu_raw;
-imu_data_t *imu_data;
+imu_data_t imu_data;
 int fd_IMU;
 bool imu_updated = false;
 bool baro_calibrated;
@@ -338,8 +338,8 @@ int main(int argc, char *argv[])
       err_log("Failed to init IMU!");
       quit(0);  
    } 
-   bool IMU_readOK;
-   imu_data_alloc(imu_data);
+   bool IMU_readOK = false;
+   imu_data_alloc(&imu_data);
    magn_calib_init(); //Carga parametros de calibracion del magn, baro se calibra en el loop
 #endif
    
@@ -422,13 +422,13 @@ int main(int argc, char *argv[])
 #endif
 
 #if !DISABLE_IMU
-	// Lectura de datos de la IMU
+	/// Lectura de datos de la IMU
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
 
             // Leo datos
 	    retval = imu_comm_read(fd_IMU);            
- 	    if (retval != 1 ) {
+ 	    if (retval < 0 ) {
 		puts("unable to read data");
 		continue;
 	    }
@@ -442,9 +442,11 @@ int main(int argc, char *argv[])
 		if (baro_calib_cont == BARO_CALIB_SAMPLES) {
 		   pres_calib_init(po/BARO_CALIB_SAMPLES);
 		   baro_calibrated = true;
+		   puts("Barometro calibrado!");
 		}
 	    } else {
-	       imu_raw2data(&imu_raw, imu_data);
+	       imu_raw2data(&imu_raw, &imu_data);
+	       print_imu_data(&imu_data);
 	    }
 
 	    imu_updated = true;

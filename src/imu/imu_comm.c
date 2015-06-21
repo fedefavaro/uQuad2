@@ -62,7 +62,7 @@ int imu_comm_init(char *device)
       return -1;
    }
 
-   return 0;
+   return fd;
 
 }
 
@@ -74,16 +74,9 @@ int imu_comm_init(char *device)
 //*****************************************************************************
 void imu_data_alloc(imu_data_t *imu_data)
 {
-    //imu_data->acc = uquad_mat_alloc(3,1);
-    //imu_data->gyro = uquad_mat_alloc(3,1);
     imu_data->magn = uquad_mat_alloc(3,1);
-
     // initialize data to zeros
-    //uquad_mat_zeros(imu_data->acc);
-    //uquad_mat_zeros(imu_data->gyro);
     uquad_mat_zeros(imu_data->magn);
-    //imu_data->acc_ok = false;
-    //imu_data->magn_ok = false;
 }
 
 
@@ -186,6 +179,21 @@ void print_imu_raw(imu_raw_t *frame)
     printf("  %c\n", RX_imu_buffer[RX_IMU_BUFFER_SIZE-1]);
 }
 
+//*****************************************************************************
+//
+// Imprime los datos de imu_data
+//
+//*****************************************************************************
+void print_imu_data(imu_data_t *data)
+{
+    printf("%lf", data->T_us);
+    printf("\t%lf", data->magn->m_full[0]);
+    printf("\t%lf", data->magn->m_full[1]);
+    printf("\t%lf", data->magn->m_full[2]);
+    printf("\t%lf", data->alt);
+    printf("\t%lf", data->us_obstacle);
+    printf("\t%lf\n", data->us_altitude);
+}
 
 
 //*****************************************************************************
@@ -286,10 +294,12 @@ void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 {
 	data->T_us = raw->T_us;
 	//temp_raw2data(raw, data);
-	//acc_raw2data(raw, data);
-	//gyro_raw2data(raw, data);
 	magn_raw2data(raw, data);
 	pres_raw2data(raw, data);
+
+	data->us_obstacle = raw->us_obstacle*0.99226 + 3.51228;
+	data->us_altitude = raw->us_altitude*0.99226 + 3.51228;
+
 }
 
 
