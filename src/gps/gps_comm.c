@@ -286,8 +286,8 @@ int gps_send_command(int fd, const char *command)
 void gps_simulate_position(position_t* pos, velocity_t* vel, double yaw_measured, double pitch)
 {
 
-   double F_x = MASA*G*sin(pitch)*cos(yaw_measured); // proyeccion en x fuerza motores
-   double F_y = MASA*G*sin(pitch)*sin(yaw_measured); // proyeccion en y fuerza motores
+   double F_x = MASA*G*sin(-pitch)*cos(-yaw_measured); // proyeccion en x fuerza motores
+   double F_y = MASA*G*sin(-pitch)*sin(-yaw_measured); // proyeccion en y fuerza motores
 
    int i = 0;
    for(i=0;i<5;i++) {

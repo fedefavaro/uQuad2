@@ -256,7 +256,8 @@ int main(int argc, char *argv[])
 
    /// Control velocidad
    // TODO
-   pitch = atan(B_roz*VEL_DESIRED/MASA/G);
+   pitch = -atan(B_roz*VEL_DESIRED/MASA/G); //El signo negativo es para que sea coherente con el sentido de giro de la cc3d (angulo positivo = giro horario)
+   printf("pitch: %lf\n", pitch*180/M_PI); //dbg
 
    /// Control altura
    // TODO
@@ -802,6 +803,10 @@ void read_from_stdin(void)
             ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
             puts("Deteniendo");
             control_status = STOPPED;
+            break;
+	 case'L':
+            ch_buff[PITCH_CH_INDEX] = (uint16_t)(pitch*(180/M_PI)*8.7804 + 1500); // El valor teorico de m (y=mx+n) es m=500/55=9.09
+            puts("Comienza pitch");
             break;
 
 /*       // Para test escalon.
