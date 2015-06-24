@@ -42,23 +42,12 @@
 #define fix(a)                    ((a>0)?floor(a):ceil(a))
 #define sign(a)                   ((a < 0.0)?-1.0:1.0)
 
-//#define CC3D_DEVICE	"/dev/ttyUSB0" //TODO que onda cuando tenga 2 ftdi?
 #define CC3D_DEVICE	"/dev/ttyO1"
 
 //#define CC3D_BAUD_57600
 #define CC3D_BAUD_115200
 
-//static struct timeval tv_start;
-  
-//static unsigned long last_gcstelemetrystats_send = 0;
-//static unsigned long last_flighttelemetry_connect = 0;
 static uint8_t gcstelemetrystatus = TELEMETRYSTATS_STATE_DISCONNECTED;
-
-//static uint32_t gcstelemetrystats_objid = GCSTELEMETRYSTATS_OBJID_001;
-//static uint8_t gcstelemetrystats_obj_len = GCSTELEMETRYSTATS_OBJ_LEN_001;
-//static uint8_t gcstelemetrystats_obj_status = GCSTELEMETRYSTATS_OBJ_STATUS_001;
-//static uint8_t flighttelemetrystats_obj_status = FLIGHTTELEMETRYSTATS_OBJ_STATUS_001;
-
 
 // CRC lookup table
 static const uint8_t crc_table[256] = {
@@ -83,8 +72,6 @@ static const uint8_t crc_table[256] = {
 
 int uav_talk_init(void)
 {
-   //uav_talk_get_start_time();
-   
    /// Puerto Serie Beagle-CC3D
    int fd = open_port(CC3D_DEVICE);
    if (fd < 0)
@@ -97,9 +84,6 @@ int uav_talk_init(void)
 #endif
    if (ret < 0)
       return -1;
-
-   // Clean serial buffer from cc3d
-   serial_flush(fd);
    
    return fd;
      
@@ -139,44 +123,6 @@ void uav_talk_print_attitude(actitud_t act)
    
 }
 
-#if 0
-/* devuelve true si puedo leer, false si no puedo */
-bool check_read_locks(int fd) {
-
-  fd_set rfds;
-  struct timeval tv;
-  tv.tv_sec = 0;
-#ifdef CC3D_BAUD_115200
-//  tv.tv_usec = 100;   //Espero un byte: T_byte=1/(BAUDRATE/10)
-  tv.tv_usec = 0;
-#else //#ifdef CC3D_BAUD_57600
-//  tv.tv_usec = 175;
-  tv.tv_usec = 0;
-#endif  
-   FD_ZERO(&rfds);
-   FD_SET(fd, &rfds);
-   int retval = select(fd+1, &rfds, NULL, NULL, &tv);
-   if(retval < 0)
-      printf("select() failed!\n");
-     
-   return FD_ISSET(fd,&rfds);
-}
-bool check_write_locks(int fd) {
-
-  fd_set wfds;
-  struct timeval tv;
-  tv.tv_sec = 0;
-  tv.tv_usec = 0;
-  
-   FD_ZERO(&wfds);
-   FD_SET(fd, &wfds);
-   int retval = select(fd+1, NULL, &wfds, NULL, &tv);
-   if(retval < 0)
-      printf("select() failed!\n");
-     
-   return FD_ISSET(fd,&wfds);
-}
-#endif
 
 static inline int8_t uavtalk_get_int8(uavtalk_message_t *msg, int pos) {
 	return msg->Data[pos];
@@ -267,23 +213,6 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg, int fd)
 					msg->ObjID += ((uint32_t) c) << 24;
 					status = UAVTALK_PARSE_STATE_GOT_OBJID;
 					cnt = 0;
-
-/*                                      // Agregado por mi
-                                        // descarto cualquier mensaje que no sea actitud
-                                        if (msg->ObjID != ATTITUDEACTUAL_OBJID && 
-                                            msg->ObjID != ATTITUDESTATE_OBJID)
-                                        {
-                                           while(read(fd,&c,1) > 0)
-                                           {
-					      if (c == UAVTALK_SYNC_VAL) {                                                  
-                                                 goto got_sync;
-					      }
-					   } 
-					   status = UAVTALK_PARSE_STATE_WAIT_SYNC;
-                                           return -1;
-                                        }
-*/
-
 				break;
 			}
 		break;
@@ -338,12 +267,7 @@ int uavtalk_read(int fd, actitud_t* act)
 {
 	int ret = 0;  
         struct timeval tv_aux;
-	static double last_yaw = 0; //Para fix TODO primer caso me preocupa, como inicializo esta variable
-	//int32_t start_time = uavtalk_get_time_usec();
-	//actitud_t act;        
-
-        //static int runs_uavtalk_T = 0;
-        //static int runs_uavtalk_A = 0;
+	static double last_yaw = 0; //Para fix
 
 	static uavtalk_message_t msg;
 	uint8_t show_prio_info = 0;
@@ -381,25 +305,7 @@ int uavtalk_read(int fd, actitud_t* act)
 				   gettimeofday(&tv_aux,NULL);
                                    uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
 				   
-/*                                   //chequeo si muestra anterior no fue hace mucho
-                                   ret = uquad_timeval_substract(&tv_aux, act.ts, act_buffer[NUM_PROMEDIOS].ts);
-                                   if (ret < 0)
-                                   {
-					err_log("WARN: Absurd timing!");
-                                   } else {
-     					if (tv_aux.tv_usec > 80000UL) {
-					   err_log("WARN: se perdieron muestras");
-					   actitud_t act_aux = act_buffer[NUM_PROMEDIOS];
-					   /// TODO si se hace derivada con tiempo real hay que inventar un tiempo para repetir la muestrra anterior.
-					   add_to_buff(act_aux);
-					} else {
-					   add_to_buff(act);
-					}
-      				   }
-*/				   
 				   serial_flush(fd);
-				   //while(read(fd,&c,1) > 0);
-				   //printf("atitude: %d\n", ++runs_uavtalk_A);
 				   break;
 			}
 		}

@@ -252,15 +252,20 @@ int main(int argc, char *argv[])
 #endif
 
    /// Control yaw
+#if CONTROL_YAW_ADD_DERIVATIVE
    control_yaw_init_error_buff();
+#endif
 
    /// Control velocidad
    // TODO
-   pitch = -atan(B_roz*VEL_DESIRED/MASA/G); //El signo negativo es para que sea coherente con el sentido de giro de la cc3d (angulo positivo = giro horario)
-   printf("pitch: %lf\n", pitch*180/M_PI); //dbg
+
+   // Se calcula el valor de pitch necesario para alcanzar la velocidad deseada.
+   // El signo negativo es para que sea coherente con el sentido de giro de la cc3d (angulo positivo = giro horario)
+   pitch = -atan(B_roz*VEL_DESIRED/MASA/G);
+   //printf("pitch: %lf\n", pitch*180/M_PI); //dbg
 
    /// Control altura
-   // TODO
+   control_alt_init_error_buff();
 
    /// Log
    log_fd = open(log_name, O_RDWR | O_CREAT | O_NONBLOCK );
@@ -279,8 +284,7 @@ int main(int argc, char *argv[])
       err_log("Failed to preconfigure gps!");
       quit(0);  
    } 
-   //sleep_ms(1000);  //TODO verificar si es necesario y cuanto
-  
+     
    /// Ejecuta GPS daemon - proceso independiente
    gpsd_child_pid = init_gps();
    if(gpsd_child_pid == -1)
@@ -308,7 +312,7 @@ int main(int argc, char *argv[])
    }
 
    //Doy tiempo a que inicien bien los procesos...
-   sleep_ms(500); //TODO verificar si es necesario y cuanto
+   sleep_ms(500); //TODO verificar cuanto es necesario
 
    /// inicializa IO manager
    io = io_init();
@@ -554,7 +558,7 @@ int main(int argc, char *argv[])
 
 	   //Convertir velocidad en comando
 	   ch_buff[YAW_CH_INDEX] = (uint16_t) (u*25/11 + 1500);
-	   //printf("comando a enviar: %u\n", ch_buff[YAW_CH_INDEX]); // dbg
+	   printf("  %u\n", ch_buff[YAW_CH_INDEX]); // dbg
 
            if (err_count_no_data > 0)
 	         err_count_no_data--;
@@ -605,7 +609,6 @@ int main(int argc, char *argv[])
 	act_last = act;
 	} else {
 	   err_log("WARN: Absurd timing!");
-	   //serial_flush(fd_CC3D);
 	}
 	#endif // !DISABLE_UAVTALK
 #endif // DEBUG
@@ -615,7 +618,8 @@ int main(int argc, char *argv[])
 	  quit(1);
 #endif
 
-	// Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw C_throttle T_s_main T_us_main pos.x pos.y pos.z yaw_d
+	/** Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw C_throttle T_s_main T_us_main pos.x pos.y pos.z yaw_d **/
+	
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
 	buff_len = uavtalk_to_str(buff_act, act);

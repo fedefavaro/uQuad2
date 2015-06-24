@@ -28,11 +28,11 @@
 #include <math.h>
 #include <quadcop_config.h>
 
-double Kp = 1.85;     
-double Td = 2.0;
-double alpha = 0.25;
-double a = 0.5;
-double b = 0.5;
+double Kp_alt = 1.85;     
+double Td_alt = 2.0;
+double alpha_alt = 0.25;
+//double a = 0.5;
+//double b = 0.5;
 
 /**
  * Buffer para almacenar senales de error
@@ -46,7 +46,7 @@ error_alt_t error_alt_buff[CONTROL_ALT_BUFF_SIZE];
 /*
  * Inicializa el buffer
  */
-int control_alt_init_error_buff(void)
+void control_alt_init_error_buff(void)
 {
    error_alt_t new_err;
    new_err.error = 0;
@@ -57,7 +57,7 @@ int control_alt_init_error_buff(void)
       error_alt_buff[i] = new_err;
    }
       
-   return 0;
+   return;
 }
 
 
@@ -120,8 +120,8 @@ void control_alt_filter_input(double *u)
    double x_k = *u; 
 
 #if !CONTROL_ALT_ADD_ZERO
-   //y_{k} = alpha*x_{k} + (1-alpha)*y_{k-1}
-   double y_k = alpha*x_k + (1-alpha)*y_k_1;
+   //y_{k} = alpha_alt*x_{k} + (1-alpha_alt)*y_{k-1}
+   double y_k = alpha_alt*x_k + (1-alpha_alt)*y_k_1;
 #else
    //y_{k} = x_{k} + a*x_{k} - b*y_{k-1}
    double y_k = x_k + a*x_k_1 - b*y_k_1;
@@ -141,16 +141,14 @@ void control_alt_filter_input(double *u)
 double control_alt_calc_input(double alt_d, double alt_measured) 
 {
 
-   double u = Kp*(alt_d - alt_measured); 
+   double u = Kp_alt*(alt_d - alt_measured); 
 
-#if CONTROL_ALT_ADD_DERIVATIVE
    error_alt_t new_err;
    new_err.error = (alt_d - alt_measured);
    control_alt_add_error_buff(new_err);
-   u += Kp*Td*control_alt_derivate_error();
+   u += Kp_alt*Td_alt*control_alt_derivate_error();
    //Filtro la entrada a la planta para suavizar los picos
    control_alt_filter_input(&u);
-#endif
 
    return u;
 }

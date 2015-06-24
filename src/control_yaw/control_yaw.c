@@ -46,7 +46,7 @@ error_yaw_t error_yaw_buff[CONTROL_YAW_BUFF_SIZE];
 /*
  * Inicializa el buffer
  */
-int control_yaw_init_error_buff(void)
+void control_yaw_init_error_buff(void)
 {
    error_yaw_t new_err;
    new_err.error = 0;
@@ -57,7 +57,7 @@ int control_yaw_init_error_buff(void)
       error_yaw_buff[i] = new_err;
    }
       
-   return 0;
+   return;
 }
 
 
@@ -135,30 +135,48 @@ void control_yaw_filter_input(double *u)
 }
 
 
+
+/*
+ * Agrega un elemento nuevo al buffer y elimina el ultimo.
+ */
+int control_yaw_print_error_buff(void)
+{
+   int i;
+   // Desplazo un lugar todos los elementos
+   for(i=0; i < CONTROL_YAW_BUFF_SIZE; i++)
+   {
+      printf("%lf  ",error_yaw_buff[i].error);
+   }
+   
+   //printf("\n");
+   
+   return 0;
+}
+
+
+
 /*
  * Los parametros de entrada son en radianes pero el control es en grados
  */
 double control_yaw_calc_input(double yaw_d, double yaw_measured) 
 {
-/* double u = 0;
-   u = 180/M_PI*Kp*(yaw_d - yaw_measured);
-#if CONTROL_YAW_ADD_DERIVATIVE
-   error_yaw_t new_err;
-   new_err.error = u;
-   control_yaw_add_error_buff(new_err);
-   u += Kp*Td*control_yaw_derivate_error();
-#endif*/
-
    double u = 180/M_PI*Kp*(yaw_d - yaw_measured); //El control se hace en grados y los datos enstan en radianes
 
 #if CONTROL_YAW_ADD_DERIVATIVE
    error_yaw_t new_err;
    new_err.error = 180/M_PI*(yaw_d - yaw_measured);
    control_yaw_add_error_buff(new_err);
+
+   //printf("%lf\n",control_yaw_derivate_error());   //dbg
+
    u += Kp*Td*control_yaw_derivate_error();
+   printf("%lf  ",u);
    //Filtro la entrada a la planta para suavizar los picos
    control_yaw_filter_input(&u);
 #endif
+
+   control_yaw_print_error_buff(); //dbg
+   printf("%lf",u);
 
    return u;
 }

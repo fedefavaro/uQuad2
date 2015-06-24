@@ -31,12 +31,12 @@
 #include <stdlib.h>
 
 
-#define CONTROL_ALT_BUFF_SIZE		6 //usar numeros pares
+#define CONTROL_ALT_BUFF_SIZE		4 //usar numeros pares
 #define ALT_SAMPLE_TIME			0.05 //en segundos
 
 #define INITIAL_ALT			0
 
-#define CONTROL_ALT_ADD_DERIVATIVE	1 //Este control debe ser PD!
+//#define CONTROL_ALT_ADD_DERIVATIVE	1 //Este control debe ser PD!
 
 #define CONTROL_ALT_MEAN_ENABLE		1 // Realiza promedio antes de derivar. Ver control_alt_derivate_error()
 #define CONTROL_ALT_ADD_ZERO		0 // Agrega un cero al filtro de u. Ver control_alt_filter_input() TODO ES COMPATIBLE CON DERIVAR EL ERROR??
@@ -50,7 +50,7 @@ typedef struct error_alt {
 /*
  * Inicializa el buffer
  */
-int control_alt_init_error_buff(void);
+void control_alt_init_error_buff(void);
 
 
 /*

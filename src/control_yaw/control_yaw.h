@@ -51,7 +51,7 @@ typedef struct error_yaw {
 /*
  * Inicializa el buffer
  */
-int control_yaw_init_error_buff(void);
+void control_yaw_init_error_buff(void);
 
 
 /*

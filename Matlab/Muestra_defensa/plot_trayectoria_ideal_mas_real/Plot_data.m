@@ -3,14 +3,11 @@ close all
 clc
 
 %% Create the serial object
-<<<<<<< HEAD
 % tcpObject = tcpip('10.42.43.2', 12345);
 % tcpObject = tcpip('164.73.38.204', 12345);
-tcpObject = tcpip('164.73.38.228', 12345);
-=======
-tcpObject = tcpip('10.42.43.2', 12345);
+% tcpObject = tcpip('164.73.38.228', 12345);
 % tcpObject = tcpip('164.73.38.227', 12345);
->>>>>>> 6573654f2844b30c3ce198ffad3726067a49eddb
+tcpObject = tcpip('localhost', 12345);
 fopen(tcpObject);
 
 %% Set up the figure window
