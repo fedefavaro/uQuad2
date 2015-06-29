@@ -2,90 +2,90 @@ close all
 clear all
 clc
 
-% %% Grafica Trayectoria ideal
-% figure
-% hold on
-% grid on
-% axis equal
-% title('Trayectoria 2D')
-% 
-% data = importdata('cuadrado.txt');
-% n = data(1);
-% 
-% for i=0:(size(data,1)/19)-1
-%     
-%     % Radio de cfas
-%     r = data(2+19*i);
-%     % Way point inicial
-%     xi = data(3+19*i);
-%     yi = data(4+19*i);
-%     alpha = data(5+19*i);
-%     % Way point final
-%     xf = data(6+19*i);
-%     yf = data(7+19*i);
-%     beta = data(8+19*i);
-%     % Tipo de curva de Dubins (R=0, L=1)
-%     if ((data(9+19*i) == 0) || (data(9+19*i) == 1) || (data(9+19*i) == 5))
-%         cfa_i = 1;
-%     else
-%         cfa_i = 0;
-%     end
-%     if ((data(9+19*i) == 0) || (data(9+19*i) == 3) || (data(9+19*i) == 5))
-%         cfa_f = 1;
-%     else
-%         cfa_f = 0;
-%     end
-%     % Coordenadas cfa inicial
-%     xci = data(10+19*i);
-%     yci = data(11+19*i);
-%     % Coordenadas recta
-%     xri = data(12+19*i);
-%     yri = data(13+19*i);
-%     xrf = data(14+19*i);
-%     yrf = data(15+19*i);
-%     % Coordenadas cfa final
-%     xcf = data(16+19*i);
-%     ycf = data(17+19*i);
-%     % Angulo de arco de cfa inicial
-%     l1 = mod2pi(data(18+19*i));
-%     % Largo tramo recto
-%     l2 = data(19+19*i);
-%     % Angulo de arco de cfa final
-%     l3 = mod2pi(data(20+19*i));        
-% 
-% % Generacion de vectores para graficar
-% 
-%  if cfa_i == 0
-%      theta1 = linspace(alpha+(pi/2), alpha+(pi/2)-l1, 500);
-%  end
-%  if cfa_i == 1
-%      theta1 = linspace(alpha-(pi/2), alpha-(pi/2)+l1, 500);
-%  end
-%  x1 = xci + r*cos(theta1);
-%  y1 = yci + r*sin(theta1);
-% 
-% if cfa_f == 0
-%     theta2 = linspace(beta+(pi/2)+l3, beta+(pi/2), 500);
-% end
-% if cfa_f == 1
-%     theta2 = linspace(beta-(pi/2)-l3, beta-(pi/2), 500);
-% end
-% x2 = xcf + r*cos(theta2);
-% y2 = ycf + r*sin(theta2);
-% 
-% x3 = linspace(xri,xrf,500);
-% y3 = linspace(yri,yrf,500);
-% 
-% plot(x1,y1,'r')
-% plot(x2,y2,'r')
-% plot(x3,y3,'r')
-% drawnow;
-% 
-% end
+%% Grafica Trayectoria ideal
+figure
+hold on
+grid on
+axis equal
+title('Trayectoria 2D')
+
+data = importdata('trayectoria.txt');
+n = data(1);
+
+for i=0:(size(data,1)/19)-1
+    
+    % Radio de cfas
+    r = data(2+19*i);
+    % Way point inicial
+    xi = data(3+19*i);
+    yi = data(4+19*i);
+    alpha = data(5+19*i);
+    % Way point final
+    xf = data(6+19*i);
+    yf = data(7+19*i);
+    beta = data(8+19*i);
+    % Tipo de curva de Dubins (R=0, L=1)
+    if ((data(9+19*i) == 0) || (data(9+19*i) == 1) || (data(9+19*i) == 5))
+        cfa_i = 1;
+    else
+        cfa_i = 0;
+    end
+    if ((data(9+19*i) == 0) || (data(9+19*i) == 3) || (data(9+19*i) == 5))
+        cfa_f = 1;
+    else
+        cfa_f = 0;
+    end
+    % Coordenadas cfa inicial
+    xci = data(10+19*i);
+    yci = data(11+19*i);
+    % Coordenadas recta
+    xri = data(12+19*i);
+    yri = data(13+19*i);
+    xrf = data(14+19*i);
+    yrf = data(15+19*i);
+    % Coordenadas cfa final
+    xcf = data(16+19*i);
+    ycf = data(17+19*i);
+    % Angulo de arco de cfa inicial
+    l1 = mod2pi(data(18+19*i));
+    % Largo tramo recto
+    l2 = data(19+19*i);
+    % Angulo de arco de cfa final
+    l3 = mod2pi(data(20+19*i));        
+
+% Generacion de vectores para graficar
+
+ if cfa_i == 0
+     theta1 = linspace(alpha+(pi/2), alpha+(pi/2)-l1, 500);
+ end
+ if cfa_i == 1
+     theta1 = linspace(alpha-(pi/2), alpha-(pi/2)+l1, 500);
+ end
+ x1 = xci + r*cos(theta1);
+ y1 = yci + r*sin(theta1);
+
+if cfa_f == 0
+    theta2 = linspace(beta+(pi/2)+l3, beta+(pi/2), 500);
+end
+if cfa_f == 1
+    theta2 = linspace(beta-(pi/2)-l3, beta-(pi/2), 500);
+end
+x2 = xcf + r*cos(theta2);
+y2 = ycf + r*sin(theta2);
+
+x3 = linspace(xri,xrf,500);
+y3 = linspace(yri,yrf,500);
+
+plot(x1,y1,'r')
+plot(x2,y2,'r')
+plot(x3,y3,'r')
+drawnow;
+
+end
 
 
 %% Grafica datos obtenidos
-data = importdata('log_pf_pruebas_5',' ');
+data = importdata('log_pf_pruebas_4',' ');
 % dataB = importdata('log_PD_nuevo_3',' ');
 
 %posicion -xy

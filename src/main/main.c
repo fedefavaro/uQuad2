@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
 
-   //log_trayectoria(lista_path);    //dbg
+   log_trayectoria(lista_path);    //dbg
    //visualizacion_path(lista_path); // dbg
 
 #if SOCKET_TEST
