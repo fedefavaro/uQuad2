@@ -123,6 +123,17 @@ grid on
 hold off
 
 
+figure
+hold on
+plot(t2,data(:,4)*180/3.1416,'b')
+plot(t2,(data(:,7)-1500)/8.7804,'r')
+title('Pitch medido vs Pitch deseado')
+xlabel('time (ms)')
+ylabel('Pitch (deg)')
+legend('Pitch medido','Pitch deseado')
+grid on
+hold off
+
 
 figure
 hold on
