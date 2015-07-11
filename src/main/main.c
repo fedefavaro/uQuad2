@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
 	    // Si no estoy calibrando convierto datos para usarlos
 	    if (baro_calibrated) {
 		imu_raw2data(&imu_raw, &imu_data);
-		print_imu_data(&imu_data);
+		//print_imu_data(&imu_data);
 	    }
 
 	    imu_updated = true;
@@ -643,7 +643,7 @@ int main(int argc, char *argv[])
 	// checkeo de tiempos al muestrear - debuggin
 	retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
 	if(retval > 0) {
-	   if(dt.tv_usec > 60000) {
+	   if(dt.tv_usec > 90000) {
 		err_log("WARN: se perdieron muestras");
            }
 	act_last = act;

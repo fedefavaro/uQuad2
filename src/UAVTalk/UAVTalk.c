@@ -116,10 +116,10 @@ int32_t uavtalk_get_time_usec(void)
 
 void uav_talk_print_attitude(actitud_t act)
 {
-   printf("Roll: %lf  ", act.roll); 
-   printf("Pitch: %lf  ", act.pitch);
-   printf("Yaw: %lf  ", act.yaw);
-   printf("Time: %04lu:%06lu\n", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
+   printf("Roll: %lf  ", act.roll*180/M_PI); 
+   printf("Pitch: %lf  ", act.pitch*180/M_PI);
+   printf("Yaw: %lf\n", act.yaw*180/M_PI);
+   //printf("Time: %04lu:%06lu\n", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
    
 }
 
@@ -314,7 +314,7 @@ int uavtalk_read(int fd, actitud_t* act)
 	
 #ifdef DEBUG
         //uavtalk_print_msg(&msg);
-        //uav_talk_print_attitude(act);
+        //uav_talk_print_attitude(*act);
 #endif
 	//printf("time: %lu\n", uavtalk_get_time_usec() - start_time);
 	//printf("Total: %d\n", ++runs_uavtalk_T); 

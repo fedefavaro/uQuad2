@@ -149,6 +149,8 @@ int main(int argc, char *argv[])
    {
 	gettimeofday(&tv_in,NULL);
 
+	printf("errores: %d\n",err_count);//dbg
+
 	if (err_count > MAX_ERR_SBUSD)
 	{
 	   err_log("error count exceded");
