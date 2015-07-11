@@ -139,6 +139,9 @@ int main(int argc, char *argv[])
    futaba_sbus_update_msg();
 
    sleep_ms(500); //Para ponerme a tiro con main
+   
+   bool main_ready = false;
+
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
    // Loop
    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -149,12 +152,15 @@ int main(int argc, char *argv[])
 	if (err_count > MAX_ERR_SBUSD)
 	{
 	   err_log("error count exceded");
+	   //err_count = 0;
 	   quit();
 	}
 
 	ret = uquad_read(&rbuf);
 	if(ret == ERROR_OK)
 	{
+	   if(!main_ready) main_ready = true;
+
            //err_log("read ok!");
  	   msg_received = true;
 	   // Parse message. 2 bytes per channel.
@@ -172,7 +178,7 @@ int main(int argc, char *argv[])
 	   //err_log("Failed to read msg!");
 	   msg_received = false;
 	   rcv_err_count++;
-	   if (rcv_err_count > 3) {
+	   if (main_ready && rcv_err_count > 3) {
 		err_count++;
 		rcv_err_count = 0;
 	   }

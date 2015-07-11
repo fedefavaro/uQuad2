@@ -119,7 +119,7 @@ imu_raw_t imu_raw;
 imu_data_t imu_data;
 int fd_IMU;
 bool imu_updated = false;
-bool baro_calibrated;
+bool baro_calibrated = false;
 double po = 0; //variable para relevar presion ambiente (calib del baro)
 int baro_calib_cont = 0; //contador para determinar cuantas muestras tomar para la calib del baro
 
@@ -358,7 +358,6 @@ int main(int argc, char *argv[])
 // TODO Espero a tener comunicacion estable con cc3d
 #if !DISABLE_UAVTALK  
    err_log("Clearing CC3D input buffer...");
-   //while(read(fd_CC3D,tmp_buff,1) > 0);
    serial_flush(fd_CC3D);
 #endif 
 
@@ -366,7 +365,8 @@ int main(int argc, char *argv[])
    // Clean IMU serial buffer
    err_log("Clearing IMU input buffer...");
    serial_flush(fd_IMU);
-#endif 
+#endif
+
 
    bool first_time = true;
 
@@ -441,7 +441,7 @@ int main(int argc, char *argv[])
             imu_comm_parse_frame_binary(&imu_raw);
 	    //print_imu_raw(&imu_raw); // dbg
 
-            if (!baro_calibrated) {
+            /*if (!baro_calibrated) {
 		po += imu_raw.pres;
 		baro_calib_cont++;
 		if (baro_calib_cont == BARO_CALIB_SAMPLES) {
@@ -452,6 +452,12 @@ int main(int argc, char *argv[])
 	    } else {
 	       imu_raw2data(&imu_raw, &imu_data);
 	       print_imu_data(&imu_data);
+	    }*/
+
+	    // Si no estoy calibrando convierto datos para usarlos
+	    if (baro_calibrated) {
+		imu_raw2data(&imu_raw, &imu_data);
+		print_imu_data(&imu_data);
 	    }
 
 	    imu_updated = true;
@@ -463,6 +469,28 @@ int main(int argc, char *argv[])
         #endif
 	   //continue;
 	   //quit(0);
+	}
+
+// --- dbg
+	/// Reviso si quedan datos para no atrasarme
+	IMU_readOK = check_read_locks(fd_IMU);
+	if (IMU_readOK) {
+		printf("todavia quedan datos!\n");
+		IMU_readOK = false;
+		continue;
+	}
+// --- dbg
+
+	if (!baro_calibrated) {
+		if(imu_updated) {		
+			po += imu_raw.pres;
+			baro_calib_cont++;
+			if (baro_calib_cont == BARO_CALIB_SAMPLES) {
+			   pres_calib_init(po/BARO_CALIB_SAMPLES);
+			   baro_calibrated = true;
+			   puts("Barometro calibrado!");
+		}	}
+		goto end_loop; //si estoy calibrando no hago nada mas!
 	}
 #endif
 
@@ -644,6 +672,8 @@ int main(int argc, char *argv[])
 	   if(retval < 0)
 		err_log_stderr("Failed to write to log file!");
 	}
+
+	end_loop:
 
 	/// Control de tiempos del loop
 	wait_loop_T_US(MAIN_LOOP_50_MS,tv_in_loop);

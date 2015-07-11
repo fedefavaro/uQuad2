@@ -24,12 +24,12 @@ int16_t us_obstacle;
 static uquad_mat_t *magn_K;
 static uquad_mat_t *magn_b;
 // Baro
-static double K;
-static double *pres_K = &K;
+//static double K;
+//static double *pres_K = &K;
 static double po = 0;
-static double *pres_po = &po;
-static double expo;
-static double *pres_exponente = & expo;   
+//static double *pres_po = &po;
+//static double expo;
+//static double *pres_exponente = & expo;   
     
 // Buffer de recepcion.
 static unsigned char RX_imu_buffer[RX_IMU_BUFFER_SIZE];
@@ -227,17 +227,14 @@ void magn_calib_init(void)
 /*
  * Recibe como parametro un promedio de la presion ambiente
  * en el momento de encendido
- */ 
-void pres_calib_init(double po)
-{
-    // Cargo K
-    *pres_K = 44330;
-  
-    // Cargo exp
-    *pres_exponente = 0.191387559808612;
+ */
 
+#define PRESS_EXP                  0.191387559808612
+#define PRESS_K                    44330.0
+void pres_calib_init(double po_mean)
+{
     // cargo presion ambiente medida
-    *pres_po = po;
+    po = po_mean;
 
 }
 
@@ -286,7 +283,7 @@ void magn_raw2data(imu_raw_t *raw, imu_data_t *data)
 
 void pres_raw2data(imu_raw_t *raw, imu_data_t * data)
 {
-	data->alt = *pres_K*(1 - pow((raw->pres / *pres_po), *pres_exponente));
+	data->alt = PRESS_K*(1.0 - pow((raw->pres / po), PRESS_EXP));
 }
 
 
