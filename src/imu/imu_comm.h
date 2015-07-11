@@ -5,8 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include "uquad_aux_math.h"
-#include "uquad_aux_time.h"
+#include <uquad_aux_math.h>
+#include <uquad_aux_time.h>
 
 #define RX_IMU_BUFFER_SIZE	34 // Tamaño del buffer de recepcion
 #define IMU_BYTES_T_US    	4  // Tamaño del tiempo recibido por la IMU en formato binario
@@ -59,6 +59,7 @@ typedef struct imu_data {
     double alt;          // m
     double us_obstacle;   // m
     double us_altitude;   // m
+    struct timeval ts;
 } imu_data_t;
 
 

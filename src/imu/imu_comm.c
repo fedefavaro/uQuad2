@@ -289,6 +289,8 @@ void pres_raw2data(imu_raw_t *raw, imu_data_t * data)
 
 void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 {
+	struct timeval tv_aux;
+
 	data->T_us = raw->T_us;
 	//temp_raw2data(raw, data);
 	magn_raw2data(raw, data);
@@ -296,6 +298,31 @@ void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 
 	data->us_obstacle = raw->us_obstacle*0.99226 + 3.51228;
 	data->us_altitude = raw->us_altitude*0.99226 + 3.51228;
+
+	// Timestamp
+	gettimeofday(&tv_aux,NULL);
+	uquad_timeval_substract(&data->ts, tv_aux, get_main_start_time());
+
+}
+
+/*
+ *
+ * T_s_imu T_us_imu alt us_obstacle us_altitude
+*/
+int imu_to_str(char* buf_str, imu_data_t imu_data)
+{
+   char* buf_ptr = buf_str;
+   //int ret;
+   
+   // Timestamp
+   buf_ptr += sprintf(buf_ptr, "%04lu %06lu", (unsigned long)imu_data.ts.tv_sec, (unsigned long)imu_data.ts.tv_usec);
+  
+   buf_ptr += sprintf(buf_ptr, " %lf", imu_data.alt);
+   buf_ptr += sprintf(buf_ptr, " %lf", imu_data.us_obstacle);
+   buf_ptr += sprintf(buf_ptr, " %lf\n", imu_data.us_altitude);
+   //buf_ptr += sprintf(buf_ptr,"\t");
+
+   return (buf_ptr - buf_str); //char_count
 
 }
 

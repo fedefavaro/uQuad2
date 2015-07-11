@@ -124,7 +124,7 @@ double po = 0; //variable para relevar presion ambiente (calib del baro)
 int baro_calib_cont = 0; //contador para determinar cuantas muestras tomar para la calib del baro
 
 // Control de yaw
-double u = 0; //senal de control (setpoint de velocidad angular)
+double u_yaw = 0; //senal de control (setpoint de velocidad angular)
 double yaw_d = 0;
 
 // Control activado/desactivado // TODO Mover
@@ -351,9 +351,9 @@ int main(int argc, char *argv[])
    int8_t count_50 = 1; // controla tiempo de loop 100ms
    //act_last = act;
 
-   char buff_act[512]; //TODO determinar valor
-   char buf_pwm[512]; //TODO determinar valor
-   int buff_len;
+   char buff_log[512]; //TODO determinar valor
+   char buff_log_aux[512]; //TODO determinar valor
+   int buff_log_len;
 
 // TODO Espero a tener comunicacion estable con cc3d
 #if !DISABLE_UAVTALK  
@@ -414,7 +414,6 @@ int main(int argc, char *argv[])
 	   //quit(0);
 	}
 
-// --- dbg
 	/// Reviso si quedan datos para no atrasarme
 	CC3D_readOK = check_read_locks(fd_CC3D);
 	if (CC3D_readOK) {
@@ -422,8 +421,6 @@ int main(int argc, char *argv[])
 		CC3D_readOK = false;
 		continue;
 	}
-// --- dbg
-
 
 #else
    #if FAKE_YAW
@@ -453,23 +450,10 @@ int main(int argc, char *argv[])
             imu_comm_parse_frame_binary(&imu_raw);
 	    //print_imu_raw(&imu_raw); // dbg
 
-            /*if (!baro_calibrated) {
-		po += imu_raw.pres;
-		baro_calib_cont++;
-		if (baro_calib_cont == BARO_CALIB_SAMPLES) {
-		   pres_calib_init(po/BARO_CALIB_SAMPLES);
-		   baro_calibrated = true;
-		   puts("Barometro calibrado!");
-		}
-	    } else {
-	       imu_raw2data(&imu_raw, &imu_data);
-	       print_imu_data(&imu_data);
-	    }*/
-
 	    // Si no estoy calibrando convierto datos para usarlos
 	    if (baro_calibrated) {
 		imu_raw2data(&imu_raw, &imu_data);
-		//print_imu_data(&imu_data);
+		//print_imu_data(&imu_data); //dbg
 	    }
 
 	    imu_updated = true;
@@ -483,7 +467,6 @@ int main(int argc, char *argv[])
 	   //quit(0);
 	}
 
-// --- dbg
 	/// Reviso si quedan datos para no atrasarme
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
@@ -491,7 +474,6 @@ int main(int argc, char *argv[])
 		IMU_readOK = false;
 		continue;
 	}
-// --- dbg
 
 	if (!baro_calibrated) {
 		if(imu_updated) {		
@@ -506,7 +488,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	++count_50; // ??
+	++count_50; // control de loop 100ms
 
 	/// Polling de dispositivos IO
 	retval = io_poll(io);
@@ -593,11 +575,11 @@ int main(int argc, char *argv[])
 	      }
 
 	   /// Control Yaw - necesito solo medida de yaw
-	   u = control_yaw_calc_input(yaw_d, act.yaw);  // TODO PASAR A RADIANES
+	   u_yaw = control_yaw_calc_input(yaw_d, act.yaw);  // TODO PASAR A RADIANES
 	   //printf("senal de control: %lf\n", u); // dbg
 
 	   //Convertir velocidad en comando
-	   ch_buff[YAW_CH_INDEX] = (uint16_t) (u*25/11 + 1500);
+	   ch_buff[YAW_CH_INDEX] = (uint16_t) (u_yaw*25/11 + 1500);
 	   //printf("  %u\n", ch_buff[YAW_CH_INDEX]); // dbg
 
            if (err_count_no_data > 0)
@@ -662,9 +644,12 @@ int main(int argc, char *argv[])
 	
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
-	buff_len = uavtalk_to_str(buff_act, act);
 
-	buff_len += sprintf(buf_pwm, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf\n",
+	//datos de CC3D para log
+	buff_log_len = uavtalk_to_str(buff_log, act);
+
+	//otros logs
+	buff_log_len += sprintf(buff_log_aux, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf",
 				ch_buff[ROLL_CH_INDEX],
 				ch_buff[PITCH_CH_INDEX],
 				ch_buff[YAW_CH_INDEX],
@@ -675,12 +660,18 @@ int main(int argc, char *argv[])
 				position.y,
 				position.z,
 				yaw_d,
-				u);
+				u_yaw);
 
-	strcat(buff_act, buf_pwm);
+	strcat(buff_log, buff_log_aux);
+	
+	//datos de IMU para log
+	buff_log_len += imu_to_str(buff_log_aux, imu_data);
+
+	strcat(buff_log, buff_log_aux);
+
 	log_writeOK = check_write_locks(log_fd);
 	if (log_writeOK) {
-	   retval = write(log_fd, buff_act, buff_len);
+	   retval = write(log_fd, buff_log, buff_log_len);
 	   if(retval < 0)
 		err_log_stderr("Failed to write to log file!");
 	}
