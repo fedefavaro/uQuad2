@@ -36,7 +36,7 @@
 #define DISABLE_UAVTALK		1
 #define DISABLE_IMU		1
 #define FAKE_YAW		1
-#define SOCKET_TEST		1
+#define SOCKET_TEST		0
 
 #define DEBUG                   1
 

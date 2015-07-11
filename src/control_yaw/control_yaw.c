@@ -142,7 +142,7 @@ void control_yaw_filter_input(double *u)
 int control_yaw_print_error_buff(void)
 {
    int i;
-   // Desplazo un lugar todos los elementos
+  
    for(i=0; i < CONTROL_YAW_BUFF_SIZE; i++)
    {
       printf("%lf  ",error_yaw_buff[i].error);
@@ -175,8 +175,8 @@ double control_yaw_calc_input(double yaw_d, double yaw_measured)
    control_yaw_filter_input(&u);
 #endif
 
-   control_yaw_print_error_buff(); //dbg
-   printf("%lf",u);
+   //control_yaw_print_error_buff(); //dbg
+   //printf("%lf",u);
 
    return u;
 }

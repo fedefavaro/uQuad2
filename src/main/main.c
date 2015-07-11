@@ -434,7 +434,7 @@ int main(int argc, char *argv[])
             // Leo datos
 	    retval = imu_comm_read(fd_IMU);            
  	    if (retval < 0 ) {
-		puts("unable to read data");
+		puts("unable to read IMU data");
 		continue;
 	    }
             // Paso los datos del buffer RX a imu_raw.
@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
 
 	   //Convertir velocidad en comando
 	   ch_buff[YAW_CH_INDEX] = (uint16_t) (u*25/11 + 1500);
-	   printf("  %u\n", ch_buff[YAW_CH_INDEX]); // dbg
+	   //printf("  %u\n", ch_buff[YAW_CH_INDEX]); // dbg
 
            if (err_count_no_data > 0)
 	         err_count_no_data--;
