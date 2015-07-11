@@ -305,7 +305,7 @@ int uavtalk_read(int fd, actitud_t* act)
 				   gettimeofday(&tv_aux,NULL);
                                    uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
 				   
-				   serial_flush(fd);
+				   //serial_flush(fd);
 				   break;
 			}
 		}

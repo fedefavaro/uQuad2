@@ -398,12 +398,12 @@ int main(int argc, char *argv[])
 	   #if DEBUG
 		err_log("uavtalk_read failed");
 	   #endif
-		continue;
+		//continue;
 	   } else if (retval == 0) {
 	   #if DEBUG
 		err_log("objeto no era actitud");  
 	   #endif
-		continue;
+		//continue;
 	   }
 	   uavtalk_updated = true;
 	} else {
@@ -413,6 +413,18 @@ int main(int argc, char *argv[])
 	   //continue;
 	   //quit(0);
 	}
+
+// --- dbg
+	/// Reviso si quedan datos para no atrasarme
+	CC3D_readOK = check_read_locks(fd_CC3D);
+	if (CC3D_readOK) {
+		printf("todavia quedan datos CC3D!\n");
+		CC3D_readOK = false;
+		continue;
+	}
+// --- dbg
+
+
 #else
    #if FAKE_YAW
 	if(control_status == STARTED && !first_time)
@@ -435,7 +447,7 @@ int main(int argc, char *argv[])
 	    retval = imu_comm_read(fd_IMU);            
  	    if (retval < 0 ) {
 		puts("unable to read IMU data");
-		continue;
+		//continue;
 	    }
             // Paso los datos del buffer RX a imu_raw.
             imu_comm_parse_frame_binary(&imu_raw);
@@ -475,7 +487,7 @@ int main(int argc, char *argv[])
 	/// Reviso si quedan datos para no atrasarme
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
-		printf("todavia quedan datos!\n");
+		printf("todavia quedan datos IMU!\n");
 		IMU_readOK = false;
 		continue;
 	}
