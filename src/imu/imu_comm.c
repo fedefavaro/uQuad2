@@ -315,7 +315,7 @@ int imu_to_str(char* buf_str, imu_data_t imu_data)
    //int ret;
    
    // Timestamp
-   buf_ptr += sprintf(buf_ptr, "%04lu %06lu", (unsigned long)imu_data.ts.tv_sec, (unsigned long)imu_data.ts.tv_usec);
+   buf_ptr += sprintf(buf_ptr, " %04lu %06lu", (unsigned long)imu_data.ts.tv_sec, (unsigned long)imu_data.ts.tv_usec);
   
    buf_ptr += sprintf(buf_ptr, " %lf", imu_data.alt);
    buf_ptr += sprintf(buf_ptr, " %lf", imu_data.us_obstacle);

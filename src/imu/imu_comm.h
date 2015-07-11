@@ -78,5 +78,6 @@ void magn_raw2data(imu_raw_t *raw, imu_data_t *data);
 void pres_raw2data(imu_raw_t *raw, imu_data_t * data);
 
 void imu_raw2data(imu_raw_t *raw, imu_data_t *data);
+int imu_to_str(char* buf_str, imu_data_t imu_data);
 
 #endif
