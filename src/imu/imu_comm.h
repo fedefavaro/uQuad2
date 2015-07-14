@@ -11,7 +11,7 @@
 #define RX_IMU_BUFFER_SIZE	34 // Tamaño del buffer de recepcion
 #define IMU_BYTES_T_US    	4  // Tamaño del tiempo recibido por la IMU en formato binario
 
-#define IMU_DEVICE		"/dev/ttyUSB0" // TODO esto va a variar seguramente
+#define IMU_DEVICE		"/dev/ttyUSB1" // Conectado a pines CN3 del FTDI mini module
 #define BARO_CALIB_SAMPLES	100
 /**
  * Datos crudos de la IMU

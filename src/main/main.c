@@ -45,6 +45,7 @@
 #include <math.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 
 #define CH_COUNT		6
 #define BUFF_SIZE		12
@@ -210,6 +211,7 @@ int main(int argc, char *argv[])
 
    // Control de tiempos
    struct timeval tv_in_loop,
+		  tv_out_loop, tv_out_last_loop,
                   tv_start_main,
                   tv_diff;
 #if DEBUG
@@ -367,7 +369,7 @@ int main(int argc, char *argv[])
    serial_flush(fd_IMU);
 #endif
 
-
+   int bytes_avail = 0;
    bool first_time = true;
 
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
@@ -377,8 +379,10 @@ int main(int argc, char *argv[])
    for(;;)
    {
 	//para tener tiempo de entrada en cada loop
-	gettimeofday(&tv_in_loop,NULL); //para tener tiempo de entrada en cada loop
+	gettimeofday(&tv_in_loop,NULL);
 	
+	leer_denuevo:
+
 	//TODO Mejorar control de errores
 	if(err_count_no_data > 10)
 	{
@@ -472,7 +476,9 @@ int main(int argc, char *argv[])
 	if (IMU_readOK) {
 		printf("todavia quedan datos IMU!\n");
 		IMU_readOK = false;
-		continue;
+		ioctl(fd_IMU, FIONREAD, &bytes_avail);
+		//printf("%d\n ",bytes_avail);
+		if(bytes_avail > 33) goto leer_denuevo; //continue;
 	}
 
 	if (!baro_calibrated) {
@@ -620,7 +626,7 @@ int main(int argc, char *argv[])
 	   quit_log_if(ERROR_FAIL,"Failed to send message!");
 	}
 
-#if DEBUG 
+/*#if DEBUG 
 	#if !DISABLE_UAVTALK       
 	// checkeo de tiempos al muestrear - debuggin
 	retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
@@ -633,7 +639,7 @@ int main(int argc, char *argv[])
 	   err_log("WARN: Absurd timing!");
 	}
 	#endif // !DISABLE_UAVTALK
-#endif // DEBUG
+#endif // DEBUG*/
 
 #if SOCKET_TEST
        if (socket_comm_update_position(position) == -1)
@@ -644,6 +650,10 @@ int main(int argc, char *argv[])
 	
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
+
+	// Duracion del main
+	gettimeofday(&tv_out_loop,NULL);
+	uquad_timeval_substract(&dt, tv_out_loop, tv_out_last_loop);
 
 	//datos de CC3D para log
 	buff_log_len = uavtalk_to_str(buff_log, act);
@@ -677,6 +687,19 @@ int main(int argc, char *argv[])
 	}
 
 	end_loop:
+
+/*#if DEBUG 
+	// checkeo de tiempos del main
+	gettimeofday(&tv_out_loop,NULL);
+	retval = uquad_timeval_substract(&dt, tv_out_loop, tv_in_loop);
+	if(retval > 0) {
+	   if(dt.tv_usec > 50000) {
+		err_log("WARN: se atraso main");
+           }
+	} else {
+	   err_log("WARN: Main absurd timing!");
+	}
+#endif // DEBUG*/
 
 	/// Control de tiempos del loop
 	wait_loop_T_US(MAIN_LOOP_50_MS,tv_in_loop);

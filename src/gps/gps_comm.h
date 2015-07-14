@@ -38,7 +38,7 @@
 //#define	START_GPSD		"gpsd /dev/ttyUSB0 -S 1234"
 #define	START_GPSD_PATH		"/usr/sbin/gpsd"
 
-#define	START_GPSD_DEV		"/dev/ttyUSB0"
+#define	START_GPSD_DEV		"/dev/ttyUSB0"  // Conectado a pines CN2 del FTDI mini module
 #define	START_GPSD_PORT		"1234"
 
 typedef struct gps {
