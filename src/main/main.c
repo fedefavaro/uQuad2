@@ -381,8 +381,6 @@ int main(int argc, char *argv[])
 	//para tener tiempo de entrada en cada loop
 	gettimeofday(&tv_in_loop,NULL);
 	
-	leer_denuevo:
-
 	//TODO Mejorar control de errores
 	if(err_count_no_data > 10)
 	{
@@ -432,14 +430,17 @@ int main(int argc, char *argv[])
 	   act.yaw = simulate_yaw(yaw_d);  //yaw_d es el del loop anterior
 	uavtalk_updated = true;
    #endif	
-	sleep_ms(15); //simulo demora en lectura TODO determinar cuanto
 #endif
+
 #if !FAKE_YAW
 	// Calcula diferencia respecto a cero
 	act.yaw = act.yaw - get_yaw_zero();
 #endif
 
 #if !DISABLE_IMU
+	// Vuelvo a leer si tengo una trama de datos completa luego de finalizada la elctura
+	leer_IMU_denuevo:
+
 	/// Lectura de datos de la IMU
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
@@ -471,7 +472,7 @@ int main(int argc, char *argv[])
 	   //quit(0);
 	}
 
-	/// Reviso si quedan datos para no atrasarme
+/*	/// Reviso si quedan datos para no atrasarme
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
 		printf("todavia quedan datos IMU!\n");
@@ -479,6 +480,12 @@ int main(int argc, char *argv[])
 		ioctl(fd_IMU, FIONREAD, &bytes_avail);
 		//printf("%d\n ",bytes_avail);
 		if(bytes_avail > 33) goto leer_denuevo; //continue;
+	}*/
+	// Reviso si tengo una trama de datos completa atrasada
+	ioctl(fd_IMU, FIONREAD, &bytes_avail);
+	if(bytes_avail > 33) {
+		printf("todavia quedan datos IMU!\n");
+		goto leer_IMU_denuevo;
 	}
 
 	if (!baro_calibrated) {
