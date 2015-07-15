@@ -129,7 +129,7 @@
 #define UAVTALK_TYPE_ACK				(UAVTALK_TYPE_VER | 0x03)
 #define UAVTALK_TYPE_NACK				(UAVTALK_TYPE_VER | 0x04)
 
-#define CC3D_DEVICE	"/dev/ttyUSB0"
+#define CC3D_DEVICE	"/dev/ttyUSB1"
 
 typedef enum {
 	UAVTALK_PARSE_STATE_WAIT_SYNC = 0,

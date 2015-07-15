@@ -45,7 +45,7 @@
 // -- -- -- -- -- -- -- -- --
 
 int fd_CC3D;
-
+int log_fd;
 
 
 
@@ -60,6 +60,10 @@ void quit(void)
    retval = uav_talk_deinit(fd_CC3D);
    if(retval != 0)
       puts("Could not close UAVTalk correctly!");
+
+   /// Log
+   close(log_fd);
+
    exit(0);
 
 }
@@ -77,27 +81,76 @@ void uquad_sig_handler(int signal_num)
 
 void signal_handler_IO(int status)
 {
-     printf("received data from UART.\n");
+     //printf("received data from UART.\n");
 }
 
 
 
 void set_signals(void)
 {
-   struct sigaction saio;
+   //struct sigaction saio;
 
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
 
-   saio.sa_handler = signal_handler_IO;
+  /* saio.sa_handler = signal_handler_IO;
    saio.sa_flags = 0;
    saio.sa_restorer = NULL; 
-   sigaction(SIGIO,&saio,NULL);
+   sigaction(SIGIO,&saio,NULL);*/
 
 }
 
 
+int uquad_timeval_substract (struct timeval * result, struct timeval x, struct timeval y){
+    /* Perform the carry for the later subtraction by updating y. */
+    if (x.tv_usec < y.tv_usec) {
+	int nsec = (y.tv_usec - x.tv_usec) / 1000000 + 1;
+	y.tv_usec -= 1000000 * nsec;
+	y.tv_sec += nsec;
+    }
+    if (x.tv_usec - y.tv_usec > 1000000) {
+	int nsec = (y.tv_usec - x.tv_usec) / 1000000;
+	y.tv_usec += 1000000 * nsec;
+	y.tv_sec -= nsec;
+    }
+    
+    /* Compute the time remaining to wait.
+       tv_usec is certainly positive. */
+    result->tv_sec = x.tv_sec - y.tv_sec;
+    result->tv_usec = x.tv_usec - y.tv_usec;
+    
+    if(x.tv_sec < y.tv_sec)
+	// -1 if diff is negative
+	return -1;
+    if(x.tv_sec > y.tv_sec)
+	// 1 if diff is positive
+	return 1;
+    // second match, check usec
+    if(x.tv_usec < y.tv_usec)
+	// -1 if diff is negative
+	return -1;
+    if(x.tv_usec > y.tv_usec)
+	// 1 if diff is positive
+	return 1;
+
+    // 0 if equal
+    return 0;
+}
+
+static struct timeval main_start_time;
+
+void set_main_start_time(void)
+{
+   gettimeofday(&main_start_time,NULL);
+   return;
+}
+
+
+struct timeval get_main_start_time(void)
+{
+   return main_start_time;
+}
 
 /*********************************************/
 /****************   IO    ********************/
@@ -113,9 +166,9 @@ int open_port(char *device)
       puts("Unable to open port");
    }
     
-   fcntl(fd, F_SETFL, FNDELAY);
+  /* fcntl(fd, F_SETFL, FNDELAY);
    fcntl(fd, F_SETOWN, getpid());
-   fcntl(fd, F_SETFL,  O_ASYNC );
+   fcntl(fd, F_SETFL,  O_ASYNC );*/
   
    return fd;
 }
@@ -155,7 +208,7 @@ bool check_read_locks(int fd) {
    fd_set rfds;
    struct timeval tv;
    tv.tv_sec = 0;
-   tv.tv_usec = 0;
+   tv.tv_usec = 30000; //TODO detemrinar el timeout en microsegundos
    FD_ZERO(&rfds);
    FD_SET(fd, &rfds);
    int retval = select(fd+1, &rfds, NULL, NULL, &tv);
@@ -166,7 +219,20 @@ bool check_read_locks(int fd) {
 }
 
 
+bool check_write_locks(int fd) {
 
+   fd_set wfds;
+   struct timeval tv;
+   tv.tv_sec = 0;
+   tv.tv_usec = 0;
+   FD_ZERO(&wfds);
+   FD_SET(fd, &wfds);
+   int retval = select(fd+1, NULL, &wfds, NULL, &tv);
+   if(retval < 0)
+      printf("select() failed!\n");
+     
+   return FD_ISSET(fd,&wfds);
+}
 /*********************************************/
 /**************** UAVTalk ********************/
 /*********************************************/
@@ -231,6 +297,22 @@ void uav_talk_print_attitude(actitud_t act)
 }
 
 
+int uavtalk_to_str(char* buf_str, actitud_t act)
+{
+   char* buf_ptr = buf_str;
+   //int ret;
+   
+   // Timestamp
+   buf_ptr += sprintf(buf_ptr, "%04lu %06lu", (unsigned long)act.ts.tv_sec, (unsigned long)act.ts.tv_usec);
+  
+   buf_ptr += sprintf(buf_ptr, " %lf", act.roll);
+   buf_ptr += sprintf(buf_ptr, " %lf", act.pitch);
+   buf_ptr += sprintf(buf_ptr, " %lf\n", act.yaw);
+   //buf_ptr += sprintf(buf_ptr,"\t");
+
+   return (buf_ptr - buf_str); //char_count
+
+}
 
 static inline float uavtalk_get_float(uavtalk_message_t *msg, int pos) {
 	float f;
@@ -240,7 +322,7 @@ static inline float uavtalk_get_float(uavtalk_message_t *msg, int pos) {
 
 
 
-uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg, int fd)
+uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 {
 	static uint8_t status = UAVTALK_PARSE_STATE_WAIT_SYNC;
 	static uint8_t crc = 0;
@@ -415,20 +497,22 @@ int main(int argc, char *argv[])
 
    int retval = 0;
 
-   //setea senales y mascara
-   set_signals();
-
    // Control de tiempos
    struct timeval ts;
    struct timeval tv_aux;
 
    bool CC3D_readOK;
+   actitud_t act;
+   bool act_updated = false;
 
    static double last_yaw = 0; //Para fix
 
    static uavtalk_message_t msg;
    uint8_t c;
 
+   char buff_log[126]; //TODO determinar valor
+   int buff_log_len;
+   bool log_writeOK = false;
    // -- -- -- -- -- -- -- -- --
    // Inicializacion
    // -- -- -- -- -- -- -- -- --
@@ -439,12 +523,69 @@ int main(int argc, char *argv[])
       quit();  
    } 
    
+   set_signals();
   
+
+   /// Log
+   log_fd = open("log_uavtalk_parser", O_RDWR | O_CREAT | O_NONBLOCK );
+   if(log_fd < 0)
+   {
+      puts("Failed to open log file!");
+      quit();
+   }
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
    for(;;)
    {
+	
+
+        CC3D_readOK = check_read_locks(fd_CC3D);
+	if (CC3D_readOK) {
+           retval = read(fd_CC3D,&c,1);
+	   if (retval <= 0) {
+	      puts("read failed");
+    	   } else {
+              retval = uavtalk_parse_char(c, &msg);
+	      if (retval > 0) {
+		   // consume msg
+		   switch (msg.ObjID) {
+			case ATTITUDEACTUAL_OBJID:
+			case ATTITUDESTATE_OBJID:
+        		   act.roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL)*M_PI/180;
+			   act.pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH)*M_PI/180;
+			   act.yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW)*M_PI/180;
+				   
+			   //Correccion de discontinuidad de atan2
+/*			   double dyaw = act->yaw - last_yaw;
+			   if (abs(dyaw) >= M_PI)
+				act->yaw -= 2.0*M_PI*fix((dyaw+M_PI*sign(dyaw))/(2.0*M_PI));				   last_yaw = act->yaw;*/
+                                  
+			   // Timestamp
+			   gettimeofday(&tv_aux,NULL);
+                           uquad_timeval_substract(&act.ts, tv_aux, get_main_start_time());
+   
+			   act_updated = true;
+			   break;
+		   }
+	      }
+	   }
+	   if(act_updated)
+	   {
+	      uav_talk_print_attitude(act);
+	      //datos de CC3D para log
+	      buff_log_len = uavtalk_to_str(buff_log, act);
+	      log_writeOK = check_write_locks(log_fd);
+	      if (log_writeOK) {
+	          retval = write(log_fd, buff_log, buff_log_len);
+	          if(retval < 0)
+		     puts("Failed to write to log file!");
+	       }
+
+	      act_updated = false;
+	   }
+	} //else puts("timeout");
         
    } // for(;;)
 
