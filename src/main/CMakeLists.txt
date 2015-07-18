@@ -1,6 +1,8 @@
 set(main_bin auto_pilot)
 add_executable (${main_bin} main)
 
+find_package (Threads)
+target_link_libraries (${main_bin} ${CMAKE_THREAD_LIBS_INIT})
 # Set required libraries
 target_link_libraries(${main_bin} uquad_kernel_msgq)
 target_link_libraries(${main_bin} uquad_time)

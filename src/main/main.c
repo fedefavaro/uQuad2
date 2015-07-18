@@ -47,12 +47,22 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 
+// shm - shared memory.
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 #define CH_COUNT		6
 #define BUFF_SIZE		12
 
 #define KILL_SBUS		"killall sbusd"
 
+#define SHMSZ     27
+#include <semaphore.h>
+
 /// Global vars
+//Semaphore
+sem_t * sem_id;
 
 // Almacena pids de hijos
 pid_t sbusd_child_pid = 0;
@@ -328,13 +338,13 @@ int main(int argc, char *argv[])
 
    /// inicializa UAVTalk
 #if !DISABLE_UAVTALK
-   fd_CC3D = uav_talk_init();
+   /*fd_CC3D = uav_talk_init();
    if(fd_CC3D < 0) 
    {
       err_log("Failed to init UAVTalk!");
       quit(0);  
    } 
-   bool CC3D_readOK;
+   bool CC3D_readOK;*/
 #endif
 
    /// init IMU
@@ -359,8 +369,8 @@ int main(int argc, char *argv[])
 
 // TODO Espero a tener comunicacion estable con cc3d
 #if !DISABLE_UAVTALK  
-   err_log("Clearing CC3D input buffer...");
-   serial_flush(fd_CC3D);
+   //err_log("Clearing CC3D input buffer...");
+   //serial_flush(fd_CC3D);
 #endif 
 
 #if !DISABLE_IMU
@@ -371,6 +381,39 @@ int main(int argc, char *argv[])
 
    int bytes_avail = 0;
    bool first_time = true;
+
+//--------------------------------------------------------------
+    typedef struct act_sdata {
+	actitud_t act;
+	int flag;
+    } act_sdata_t;
+
+
+    int shmid;
+    key_t key = 5678;
+    act_sdata_t *shm;
+
+   /**
+    * Semaphore open
+    */
+    sem_id=sem_open("/mysem", O_CREAT, S_IRUSR | S_IWUSR, 1);
+
+    /*
+     * Locate the segment.
+     */
+    if ((shmid = shmget(key, SHMSZ, 0666)) < 0) {
+        perror("shmget");
+        exit(1);
+    }
+
+    /*
+     * Now we attach the segment to our data space.
+     */
+    if ((shm = shmat(shmid, NULL, 0)) == (void *) -1) {
+        perror("shmat");
+        exit(1);
+    }
+//--------------------------------------------------------------
 
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
@@ -391,8 +434,16 @@ int main(int argc, char *argv[])
 
 	/** loop 50 ms **/
 #if !DISABLE_UAVTALK
+
+	sem_wait(sem_id);
+	if(shm->flag == 2)
+	   puts("perdi un dato!");
+	act = shm->act;
+	shm->flag = 0;
+	sem_post(sem_id);
+	uav_talk_print_attitude(act);
 	/// Leo datos de CC3D
-	CC3D_readOK = check_read_locks(fd_CC3D);
+/*	CC3D_readOK = check_read_locks(fd_CC3D);
 	if (CC3D_readOK) {
 	   retval = uavtalk_read(fd_CC3D, &act);
 	   if (retval < 0)
@@ -422,7 +473,7 @@ int main(int argc, char *argv[])
 		printf("todavia quedan datos CC3D!\n");
 		CC3D_readOK = false;
 		continue;
-	}
+	}*/
 
 #else
    #if FAKE_YAW
@@ -777,9 +828,9 @@ void quit(int Q)
 
 #if !DISABLE_UAVTALK
    /// cerrar UAVTalk
-   retval = uav_talk_deinit(fd_CC3D);
-   if(retval != ERROR_OK)
-      err_log("Could not close UAVTalk correctly!");
+   //retval = uav_talk_deinit(fd_CC3D);
+   //if(retval != ERROR_OK)
+     // err_log("Could not close UAVTalk correctly!");
 #endif // !DISABLE_UAVTALK
      
    exit(0);

@@ -27,7 +27,6 @@
 #include "OSD_Vars.h"
 
 #include <sys/signal.h>
-
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -37,8 +36,20 @@
 #include <sys/ioctl.h> 
 #include <linux/serial.h>
 #include <termios.h>
-
 #include <math.h>
+
+//
+#include <semaphore.h>
+
+// shm - shared memory.
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+#define SHMSZ     27
+
+#define fix(a)                    ((a>0)?floor(a):ceil(a))
+#define sign(a)                   ((a < 0.0)?-1.0:1.0)
 
 // -- -- -- -- -- -- -- -- -- 
 // GLobal Vars
@@ -47,7 +58,8 @@
 int fd_CC3D;
 int log_fd;
 
-
+int shmid;
+sem_t * sem_id;
 
 // -- -- -- -- -- -- -- -- -- 
 // Funciones auxiliares
@@ -61,6 +73,17 @@ void quit(void)
    if(retval != 0)
       puts("Could not close UAVTalk correctly!");
 
+   // Remove shared memory
+   shmctl(shmid, IPC_RMID, NULL);
+
+   //Semaphore Close: Close a named semaphore
+   if ( sem_close(sem_id) < 0 )
+  	perror("sem_close");
+    
+   //Semaphore unlink: Remove a named semaphore  from the system.
+   if ( sem_unlink("/mysem") < 0 )
+    	perror("sem_unlink");
+    
    /// Log
    close(log_fd);
 
@@ -79,13 +102,6 @@ void uquad_sig_handler(int signal_num)
 
 
 
-void signal_handler_IO(int status)
-{
-     //printf("received data from UART.\n");
-}
-
-
-
 void set_signals(void)
 {
    //struct sigaction saio;
@@ -93,11 +109,6 @@ void set_signals(void)
    // Catch signals
    signal(SIGINT,  uquad_sig_handler);
    signal(SIGQUIT, uquad_sig_handler);
-
-  /* saio.sa_handler = signal_handler_IO;
-   saio.sa_flags = 0;
-   saio.sa_restorer = NULL; 
-   sigaction(SIGIO,&saio,NULL);*/
 
 }
 
@@ -166,10 +177,6 @@ int open_port(char *device)
       puts("Unable to open port");
    }
     
-  /* fcntl(fd, F_SETFL, FNDELAY);
-   fcntl(fd, F_SETOWN, getpid());
-   fcntl(fd, F_SETFL,  O_ASYNC );*/
-  
    return fd;
 }
 
@@ -435,58 +442,8 @@ uint8_t uavtalk_parse_char(uint8_t c, uavtalk_message_t *msg)
 
 
 
-/*int uavtalk_read(int fd, actitud_t* act)
-{
-	int ret = 0;  
-        struct timeval tv_aux;
-	static double last_yaw = 0; //Para fix
 
-	static uavtalk_message_t msg;
-	uint8_t show_prio_info = 0;
-	uint8_t c;
 
-	// grabbing data
-	while (!show_prio_info && check_read_locks(fd))
-	{				
-		ret = read(fd,&c,1);
-		if (ret <= 0) {
-		  err_log("read failed");
-    		  return -1;
-		}
-
-		// parse data to msg
-                ret = uavtalk_parse_char(c, &msg, fd);
-		if (ret > 0) {
-			// consume msg
-			switch (msg.ObjID) {
-
-				case ATTITUDEACTUAL_OBJID:
-				case ATTITUDESTATE_OBJID:
-				   show_prio_info = 1;
-        			   act->roll  = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL)*M_PI/180;
-				   act->pitch = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH)*M_PI/180;
-				   act->yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW)*M_PI/180;
-				   
-				   //Correccion de discontinuidad de atan2
-				   double dyaw = act->yaw - last_yaw;
-				   if (abs(dyaw) >= M_PI)
-					act->yaw -= 2.0*M_PI*fix((dyaw+M_PI*sign(dyaw))/(2.0*M_PI));
-				   last_yaw = act->yaw;
-                                   
-				   // Timestamp
-				   gettimeofday(&tv_aux,NULL);
-                                   uquad_timeval_substract(&act->ts, tv_aux, get_main_start_time());
-				   
-				   break;
-			}
-		}
-
-        } //while
-	
-        uav_talk_print_attitude(*act);
-
-	return show_prio_info;
-}*/
 
 
 /*********************************************/
@@ -508,11 +465,22 @@ int main(int argc, char *argv[])
    static double last_yaw = 0; //Para fix
 
    static uavtalk_message_t msg;
-   uint8_t c;
+   uint8_t data;
 
    char buff_log[126]; //TODO determinar valor
    int buff_log_len;
    bool log_writeOK = false;
+
+
+    typedef struct act_sdata {
+	actitud_t act;
+	int flag;
+    } act_sdata_t;
+
+    // shm - shared memory.
+    key_t key = 5678;
+    act_sdata_t *shm;
+
    // -- -- -- -- -- -- -- -- --
    // Inicializacion
    // -- -- -- -- -- -- -- -- --
@@ -525,7 +493,6 @@ int main(int argc, char *argv[])
    
    set_signals();
   
-
    /// Log
    log_fd = open("log_uavtalk_parser", O_RDWR | O_CREAT | O_NONBLOCK );
    if(log_fd < 0)
@@ -534,20 +501,38 @@ int main(int argc, char *argv[])
       quit();
    }
 
+    // Semaphore open
+    sem_id=sem_open("/mysem", O_CREAT, S_IRUSR | S_IWUSR, 1);
+
+    //Create the segment.
+    if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
+        perror("shmget");
+        exit(1);
+    }
+
+    //Now we attach the segment to our data space.
+    if ((shm = shmat(shmid, NULL, 0)) == (void *) -1) {
+        perror("shmat");
+        exit(1);
+    }
+
+    // init flag
+    shm->flag = 0;
+
+
    // -- -- -- -- -- -- -- -- -- 
    // Loop
    // -- -- -- -- -- -- -- -- -- 
    for(;;)
    {
 	
-
         CC3D_readOK = check_read_locks(fd_CC3D);
 	if (CC3D_readOK) {
-           retval = read(fd_CC3D,&c,1);
+           retval = read(fd_CC3D,&data,1);
 	   if (retval <= 0) {
 	      puts("read failed");
     	   } else {
-              retval = uavtalk_parse_char(c, &msg);
+              retval = uavtalk_parse_char(data, &msg);
 	      if (retval > 0) {
 		   // consume msg
 		   switch (msg.ObjID) {
@@ -558,14 +543,14 @@ int main(int argc, char *argv[])
 			   act.yaw   = uavtalk_get_float(&msg, ATTITUDEACTUAL_OBJ_YAW)*M_PI/180;
 				   
 			   //Correccion de discontinuidad de atan2
-/*			   double dyaw = act->yaw - last_yaw;
+			   double dyaw = act.yaw - last_yaw;
 			   if (abs(dyaw) >= M_PI)
-				act->yaw -= 2.0*M_PI*fix((dyaw+M_PI*sign(dyaw))/(2.0*M_PI));				   last_yaw = act->yaw;*/
+				act.yaw -= 2.0*M_PI*fix((dyaw+M_PI*sign(dyaw))/(2.0*M_PI));				   last_yaw = act.yaw;
                                   
 			   // Timestamp
 			   gettimeofday(&tv_aux,NULL);
                            uquad_timeval_substract(&act.ts, tv_aux, get_main_start_time());
-   
+   			   if(retval < 0) puts("WARN: Absurd timing!");
 			   act_updated = true;
 			   break;
 		   }
@@ -573,8 +558,14 @@ int main(int argc, char *argv[])
 	   }
 	   if(act_updated)
 	   {
-	      uav_talk_print_attitude(act);
-	      //datos de CC3D para log
+	      sem_wait(sem_id);
+	      shm->act = act;
+	      if(shm->flag > 0) {
+		 shm->flag = 2;
+	      } else shm->flag = 1;
+	      sem_post(sem_id);
+	      
+	      //uav_talk_print_attitude(act);
 	      buff_log_len = uavtalk_to_str(buff_log, act);
 	      log_writeOK = check_write_locks(log_fd);
 	      if (log_writeOK) {
@@ -583,9 +574,10 @@ int main(int argc, char *argv[])
 		     puts("Failed to write to log file!");
 	       }
 
+
 	      act_updated = false;
 	   }
-	} //else puts("timeout");
+	}
         
    } // for(;;)
 
