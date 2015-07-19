@@ -1,4 +1,0 @@
-Primera aproximacion a leer info del gps.
-
-1. Inicializa gps (abre y configura puerto serie)
-2. Lee un string de largo fijo y lo imprime

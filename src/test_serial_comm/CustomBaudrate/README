@@ -1,3 +1,0 @@
-Permite modificar el baudrate de una comunicacion serial a valores no soportados.
-
-Ejecutar: ./set_custom_speed /dev/tty* speed
