@@ -35,7 +35,7 @@
 #include <futaba_sbus.h>
 #include <serial_comm.h>
 #include <gps_comm.h>
-#include <UAVTalk.h>
+#include <uavtalk_parser.h>
 #include <imu_comm.h>
 #include <control_yaw.h>
 #include <sys/types.h>
@@ -67,6 +67,7 @@ sem_t * sem_id;
 // Almacena pids de hijos
 pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
+pid_t uavtalk_child_pid = 0;
 
 // Para log en matlab a traves de red ip
 //int clientsock;
@@ -338,6 +339,12 @@ int main(int argc, char *argv[])
 
    /// inicializa UAVTalk
 #if !DISABLE_UAVTALK
+   uavtalk_child_pid = uavtalk_parser_start(tv_start_main);
+   if(uavtalk_child_pid == -1)
+   {
+      err_log_stderr("Failed to start child process (uavtalk)!"); 
+      quit(1);  
+   }
    /*fd_CC3D = uav_talk_init();
    if(fd_CC3D < 0) 
    {
@@ -434,10 +441,16 @@ int main(int argc, char *argv[])
 
 	/** loop 50 ms **/
 #if !DISABLE_UAVTALK
-
+	leer_cc3d:
 	sem_wait(sem_id);
 	if(shm->flag == 2)
 	   puts("perdi un dato!");
+	if(shm->flag == 0) {
+	   puts("llegue muy temprano!");
+	   sem_post(sem_id);
+	   sleep_ms(5);
+	   goto leer_cc3d;
+	}
 	act = shm->act;
 	shm->flag = 0;
 	sem_post(sem_id);
@@ -474,7 +487,6 @@ int main(int argc, char *argv[])
 		CC3D_readOK = false;
 		continue;
 	}*/
-
 #else
    #if FAKE_YAW
 	if(control_status == STARTED && !first_time)
