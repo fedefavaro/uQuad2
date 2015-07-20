@@ -52,15 +52,18 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-#define CH_COUNT		6
-#define BUFF_SIZE		12
+#define CH_COUNT		6	//cantidad de canales de comunicacion con sbusd
+#define BUFF_SIZE		12	//tamano del buffer de comunicacion (tamano de cada canal = BUFF_SIZE/CH_COUNT)
 
 #define KILL_SBUS		"killall sbusd"
 
 #define SHMSZ     27
 #include <semaphore.h>
 
-/// Global vars
+
+/*********************************************
+ ************* Global vars *******************
+ *********************************************/
 //Semaphore
 sem_t * sem_id;
 
@@ -68,9 +71,6 @@ sem_t * sem_id;
 pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
 pid_t uavtalk_child_pid = 0;
-
-// Para log en matlab a traves de red ip
-//int clientsock;
 
 // Para prueba yaw
 uint16_t throttle_inicial = 0;
@@ -87,10 +87,9 @@ bool gps_updated = false;
 // LOG
 int log_fd;
 
-// IO
-static io_t *io  	= NULL;
-uquad_bool_t read_ok	= false;    //flag para determinar si se puede leer de un dispositivo
-unsigned char tmp_buff[2] = {0,0};  // Para leer entrada de usuario
+// STDIN
+bool stdin_readOK = false;		//puedo leer de la entrada estandar sin bloquear
+unsigned char tmp_buff[2] = {0,0};	//almacena commnado enviado por el usuario
 
 // KMQ
 uquad_kmsgq_t *kmsgq 	= NULL;
@@ -119,21 +118,21 @@ uint8_t *buff_out=(uint8_t *)ch_buff;
 // UAVTalk
 int fd_CC3D;
 #if !FAKE_YAW
-actitud_t act = {0,0,0,{0,0}}; //almacena variables de actitud leidas de la cc3d y timestamp
+actitud_t act = {0,0,0,{0,0}}; 			//almacena variables de actitud leidas de la cc3d y timestamp
 #else
-actitud_t act = {0,0,INITIAL_YAW,{0,0}};
+actitud_t act = {0,0,INITIAL_YAW,{0,0}};	//si estoy en modo fake yaw inicializo el valor de yaw
 #endif
-actitud_t act_last = {0,0,0,{0,0}};
 bool uavtalk_updated = false;
 
 // IMU
-imu_raw_t imu_raw;
-imu_data_t imu_data;
-int fd_IMU;
-bool imu_updated = false;
-bool baro_calibrated = false;
-double po = 0; //variable para relevar presion ambiente (calib del baro)
-int baro_calib_cont = 0; //contador para determinar cuantas muestras tomar para la calib del baro
+imu_raw_t imu_raw; 		//datos crudos
+imu_data_t imu_data; 		//datos utiles
+int fd_IMU; 			//file descriptor de la IMU
+bool IMU_readOK = false; 	//puedo leer sin bloquear
+bool imu_updated = false; 	//existen datos nuevos de la IMU
+bool baro_calibrated = false;	//barometro calibrado
+double po = 0; 			//variable para relevar presion ambiente (calib del baro)
+int baro_calib_cont = 0;	//contador para determinar cuantas muestras tomar para la calib del baro
 
 // Control de yaw
 double u_yaw = 0; //senal de control (setpoint de velocidad angular)
@@ -170,12 +169,11 @@ uint16_t convert_yaw2pwm(double yaw); // Convierte angulo de yaw a senal de pwm 
 /*********************************************/
 int main(int argc, char *argv[])
 {
-   /// mensajitos al usuario...
+   /// mensajes al usuario
 #if PC_TEST
    printf("----------------------\n  WARN: Modo 'PC test' - Ver common/quadcop_config.h  \n----------------------\n");
    sleep_ms(500);
 #endif
-
 #if SIMULATE_GPS
    printf("----------------------\n  WARN: GPS simulado - Ver common/quadcop_config.h  \n----------------------\n");
    sleep_ms(500);
@@ -305,8 +303,6 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to init gps!");
       quit(0);
    }
-#else
-   // TODO init fake gps
 #endif //!SIMULATE_GPS
 
    /// Ejecuta Demonio S-BUS - proceso independiente
@@ -324,7 +320,7 @@ int main(int argc, char *argv[])
       quit_log_if(ERROR_FAIL,"Failed to start message queue!");
    }
 
-   //Doy tiempo a que inicien bien los procesos...
+   //Doy tiempo a que inicien bien los procesos secundarios
    sleep_ms(500); //TODO verificar cuanto es necesario
 
    /// inicializa IO manager
@@ -345,13 +341,6 @@ int main(int argc, char *argv[])
       err_log_stderr("Failed to start child process (uavtalk)!"); 
       quit(1);  
    }
-   /*fd_CC3D = uav_talk_init();
-   if(fd_CC3D < 0) 
-   {
-      err_log("Failed to init UAVTalk!");
-      quit(0);  
-   } 
-   bool CC3D_readOK;*/
 #endif
 
    /// init IMU
@@ -362,7 +351,6 @@ int main(int argc, char *argv[])
       err_log("Failed to init IMU!");
       quit(0);  
    } 
-   bool IMU_readOK = false;
    imu_data_alloc(&imu_data);
    magn_calib_init(); //Carga parametros de calibracion del magn, baro se calibra en el loop
 #endif
@@ -432,61 +420,44 @@ int main(int argc, char *argv[])
 	gettimeofday(&tv_in_loop,NULL);
 	
 	//TODO Mejorar control de errores
-	if(err_count_no_data > 10)
+/*	if(err_count_no_data > 10)
 	{
 	   err_log("mas de 10 errores en recepcion de datos!");
 	   // TODO que hago? me quedo en hovering hasta obtener datos?
 	   err_count_no_data = 0; //por ahora...
-	}
+	}*/
 
 	/** loop 50 ms **/
 #if !DISABLE_UAVTALK
+	/// Leo datos de CC3D
+//--------------------------------------------------------------------------------------------------------
 	leer_cc3d:
-	sem_wait(sem_id);
+	// control de errores - si intento leer 3 veces (15ms) y no hay datos nuevos, cierro
+	if(err_act > 3) {
+		err_log("No hay datos nuevos de actitud, cerrando.");
+		quit(1);
+	} 
+	
+	sem_wait(sem_id); //activo semaforo para evitar que el parser modifique los datos mientras los leo
+	
+	// El parser sobreescribio un dato - //dbg
 	if(shm->flag == 2)
-	   puts("perdi un dato!");
-	if(shm->flag == 0) {
-	   puts("llegue muy temprano!");
-	   sem_post(sem_id);
-	   sleep_ms(5);
+	   puts("perdi un dato actitud!"); //dbg
+
+	// si llego al dato antes de que este pronto espero un poco y vuelvo a consultar	
+	if(shm->flag == 0) { 
+	   puts("llegue muy temprano!"); //dbg
+	   sem_post(sem_id); //desactivo semaforo - no pude leer dato
+	   sleep_ms(5); //doy tiempo a que este pronto el dato //TODO determinar cuanto
+	   err_act++;
 	   goto leer_cc3d;
 	}
-	act = shm->act;
-	shm->flag = 0;
-	sem_post(sem_id);
-	uav_talk_print_attitude(act);
-	/// Leo datos de CC3D
-/*	CC3D_readOK = check_read_locks(fd_CC3D);
-	if (CC3D_readOK) {
-	   retval = uavtalk_read(fd_CC3D, &act);
-	   if (retval < 0)
-	   {
-	   #if DEBUG
-		err_log("uavtalk_read failed");
-	   #endif
-		//continue;
-	   } else if (retval == 0) {
-	   #if DEBUG
-		err_log("objeto no era actitud");  
-	   #endif
-		//continue;
-	   }
-	   uavtalk_updated = true;
-	} else {
-        #if DEBUG 
-	   err_log("UAVTalk: read NOT ok");
-        #endif
-	   //continue;
-	   //quit(0);
-	}
-
-	/// Reviso si quedan datos para no atrasarme
-	CC3D_readOK = check_read_locks(fd_CC3D);
-	if (CC3D_readOK) {
-		printf("todavia quedan datos CC3D!\n");
-		CC3D_readOK = false;
-		continue;
-	}*/
+	act = shm->act; // copio de la memoria compartida a la memoria del main
+	shm->flag = 0;  // marco el flag acorde (dato leido)
+	sem_post(sem_id); //desactivo semaforo - (dato leido)
+	err_act = 0;
+	uav_talk_print_attitude(act); //dbg
+//--------------------------------------------------------------------------------------------------------	
 #else
    #if FAKE_YAW
 	if(control_status == STARTED && !first_time)
@@ -501,10 +472,10 @@ int main(int argc, char *argv[])
 #endif
 
 #if !DISABLE_IMU
+	/// Lectura de datos de la IMU
+//--------------------------------------------------------------------------------------------------------
 	// Vuelvo a leer si tengo una trama de datos completa luego de finalizada la elctura
 	leer_IMU_denuevo:
-
-	/// Lectura de datos de la IMU
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
 
@@ -512,7 +483,6 @@ int main(int argc, char *argv[])
 	    retval = imu_comm_read(fd_IMU);            
  	    if (retval < 0 ) {
 		puts("unable to read IMU data");
-		//continue;
 	    }
             // Paso los datos del buffer RX a imu_raw.
             imu_comm_parse_frame_binary(&imu_raw);
@@ -528,11 +498,7 @@ int main(int argc, char *argv[])
             IMU_readOK = false;
 
         } else {
-        #if DEBUG 
 	   err_log("imu: read NOT ok");
-        #endif
-	   //continue;
-	   //quit(0);
 	}
 
 /*	/// Reviso si quedan datos para no atrasarme
@@ -562,25 +528,16 @@ int main(int argc, char *argv[])
 		}	}
 		goto end_loop; //si estoy calibrando no hago nada mas!
 	}
+//--------------------------------------------------------------------------------------------------------
 #endif
 
 	++count_50; // control de loop 100ms
 
-	/// Polling de dispositivos IO
-	retval = io_poll(io);
-	quit_log_if(retval,"io_poll() error");
-
 	/// Check stdin
-	retval = io_dev_ready(io,STDIN_FILENO,&read_ok,NULL);
-	if(retval < 0)
-	{
-	   err_log("Failed to check stdin for input!");
-	}
-	if(read_ok)
-	{
+	stdin_readOK = check_read_locks(STDIN_FILENO);
+	if (stdin_readOK) {
 	   read_from_stdin();
 	}
-
 
 	/** loop 100 ms **/
 	if(count_50 > 1)
@@ -696,27 +653,12 @@ int main(int argc, char *argv[])
 	   quit_log_if(ERROR_FAIL,"Failed to send message!");
 	}
 
-/*#if DEBUG 
-	#if !DISABLE_UAVTALK       
-	// checkeo de tiempos al muestrear - debuggin
-	retval = uquad_timeval_substract(&dt, act.ts, act_last.ts);
-	if(retval > 0) {
-	   if(dt.tv_usec > 90000) {
-		err_log("WARN: se perdieron muestras");
-           }
-	act_last = act;
-	} else {
-	   err_log("WARN: Absurd timing!");
-	}
-	#endif // !DISABLE_UAVTALK
-#endif // DEBUG*/
-
 #if SOCKET_TEST
        if (socket_comm_update_position(position) == -1)
 	  quit(1);
 #endif
 
-	/** Log - T_s_act T_us_act roll pitch yaw C_roll C_pitch C_yaw C_throttle T_s_main T_us_main pos.x pos.y pos.z yaw_d **/
+	/** Log - T_s_act/T_us_act/roll/pitch/yaw/C_roll/C_pitch/C_yaw/C_throt/T_s_main/T_us_main/pos.x/pos.y/pos.z/yaw_d **/
 	
 	//Timestamp main
 	uquad_timeval_substract(&tv_diff, tv_in_loop, tv_start_main);
