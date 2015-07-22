@@ -186,7 +186,7 @@ int uavtalk_to_str(char* buf_str, actitud_t act)
   
    buf_ptr += sprintf(buf_ptr, " %lf", act.roll);
    buf_ptr += sprintf(buf_ptr, " %lf", act.pitch);
-   buf_ptr += sprintf(buf_ptr, " %lf\n", act.yaw);
+   buf_ptr += sprintf(buf_ptr, " %lf ", act.yaw);
 
    return (buf_ptr - buf_str); //char_count
 
