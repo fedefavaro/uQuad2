@@ -438,7 +438,7 @@ int main(int argc, char *argv[])
 	// control de errores - si intento leer 3 veces (15ms) y no hay datos nuevos, cierro
 	if(err_act > 3) {
 		err_log("No hay datos nuevos de actitud, cerrando.");
-		//quit(1);
+		quit(1);
 	} 
 	
 	sem_wait(sem_id); //activo semaforo para evitar que el parser modifique los datos mientras los leo

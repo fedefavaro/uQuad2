@@ -129,7 +129,7 @@
 #define UAVTALK_TYPE_ACK				(UAVTALK_TYPE_VER | 0x03)
 #define UAVTALK_TYPE_NACK				(UAVTALK_TYPE_VER | 0x04)
 
-#define CC3D_DEVICE	"/dev/ttyUSB1"
+#define CC3D_DEVICE	"/dev/ttyO1"
 #define SHMSZ     27
 
 typedef enum {
