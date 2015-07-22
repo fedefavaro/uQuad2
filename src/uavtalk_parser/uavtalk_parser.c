@@ -389,7 +389,7 @@ int uavtalk_parser_start(struct timeval main_start)
 	{
 	   puts("Failed to init UAVTalk!");
 	   exit(1);  
-	} 
+	}
    
 	// Semaphore open
 	sem_id=sem_open("/mysem", O_CREAT, S_IRUSR | S_IWUSR, 1);

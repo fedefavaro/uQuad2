@@ -60,6 +60,7 @@
 #define SHMSZ     27
 #include <semaphore.h>
 
+//#define SETANDO_CC3D
 
 /*********************************************
  ************* Global vars *******************
@@ -190,8 +191,9 @@ int main(int argc, char *argv[])
 
    int retval;
    char* log_name;
-   int err_count_no_data = 0; //si no tengo datos nuevos varias veces es peligroso
-   int no_gps_data = 0; //si no tengo datos nuevos varias veces es peligroso
+   int err_act = 0;		//Aumenta si no hay datos nuevos de actitud
+   int err_count_no_data = 0; 	//si no tengo datos nuevos varias veces es peligroso
+   int no_gps_data = 0;
 
    if(argc<3)
    {
@@ -323,14 +325,14 @@ int main(int argc, char *argv[])
    //Doy tiempo a que inicien bien los procesos secundarios
    sleep_ms(500); //TODO verificar cuanto es necesario
 
-   /// inicializa IO manager
+/*   /// inicializa IO manager
    io = io_init();
    if(io==NULL)
    {
       quit_log_if(ERROR_FAIL,"io init failed!");
    }
    retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
-   quit_log_if(retval, "Failed to add stdin to io list"); 
+   quit_log_if(retval, "Failed to add stdin to io list"); */
 
 
    /// inicializa UAVTalk
@@ -362,7 +364,6 @@ int main(int argc, char *argv[])
    char buff_log_aux[512]; //TODO determinar valor
    int buff_log_len;
 
-// TODO Espero a tener comunicacion estable con cc3d
 #if !DISABLE_UAVTALK  
    //err_log("Clearing CC3D input buffer...");
    //serial_flush(fd_CC3D);
@@ -377,6 +378,7 @@ int main(int argc, char *argv[])
    int bytes_avail = 0;
    bool first_time = true;
 
+#if !DISABLE_UAVTALK 
 //--------------------------------------------------------------
     typedef struct act_sdata {
 	actitud_t act;
@@ -409,6 +411,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 //--------------------------------------------------------------
+#endif //!DISABLE_UAVTALK 
 
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
    // -- -- -- -- -- -- -- -- -- 
@@ -420,12 +423,12 @@ int main(int argc, char *argv[])
 	gettimeofday(&tv_in_loop,NULL);
 	
 	//TODO Mejorar control de errores
-/*	if(err_count_no_data > 10)
+	if(err_count_no_data > 10)
 	{
 	   err_log("mas de 10 errores en recepcion de datos!");
 	   // TODO que hago? me quedo en hovering hasta obtener datos?
 	   err_count_no_data = 0; //por ahora...
-	}*/
+	}
 
 	/** loop 50 ms **/
 #if !DISABLE_UAVTALK
@@ -435,7 +438,7 @@ int main(int argc, char *argv[])
 	// control de errores - si intento leer 3 veces (15ms) y no hay datos nuevos, cierro
 	if(err_act > 3) {
 		err_log("No hay datos nuevos de actitud, cerrando.");
-		quit(1);
+		//quit(1);
 	} 
 	
 	sem_wait(sem_id); //activo semaforo para evitar que el parser modifique los datos mientras los leo
@@ -474,7 +477,7 @@ int main(int argc, char *argv[])
 #if !DISABLE_IMU
 	/// Lectura de datos de la IMU
 //--------------------------------------------------------------------------------------------------------
-	// Vuelvo a leer si tengo una trama de datos completa luego de finalizada la elctura
+	// Vuelvo a leer si tengo una trama de datos completa luego de finalizada la lectura
 	leer_IMU_denuevo:
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
@@ -491,7 +494,7 @@ int main(int argc, char *argv[])
 	    // Si no estoy calibrando convierto datos para usarlos
 	    if (baro_calibrated) {
 		imu_raw2data(&imu_raw, &imu_data);
-		//print_imu_data(&imu_data); //dbg
+		print_imu_data(&imu_data); //dbg
 	    }
 
 	    imu_updated = true;
@@ -734,6 +737,7 @@ int main(int argc, char *argv[])
 /**
  * Interrumpe ejecucion del programa. Dependiendo del valor del parametro
  * que se le pase interrumpe mas o menos cosas.
+ * Q == 3 : interrupcion por muerte del parser, cierra todo menos parser
  * Q == 2 : interrupcion manual (ctrl-c), cierra todo y avisa que fue manual
  * Q == 1 : interrupcion por muerte del sbusd, cierra todo menos sbusd
  * Q == 0 : interrupcion estandar, cierra todo
@@ -760,10 +764,10 @@ void quit(int Q)
          err_log("Could not terminate sbusd!");
    }
    
-   /// cerrar IO manager
+/*   /// cerrar IO manager
    retval = io_deinit(io);
    if(retval != ERROR_OK)
-      err_log("Could not close IO correctly!");
+      err_log("Could not close IO correctly!");*/
 
    /// Kernel Messeges Queue
    uquad_kmsgq_deinit(kmsgq);
@@ -781,10 +785,12 @@ void quit(int Q)
 #endif // !SIMULATE_GPS
 
 #if !DISABLE_UAVTALK
-   /// cerrar UAVTalk
-   //retval = uav_talk_deinit(fd_CC3D);
-   //if(retval != ERROR_OK)
-     // err_log("Could not close UAVTalk correctly!");
+   if(Q != 3) {
+      /// cerrar UAVTalk
+      retval = kill(uavtalk_child_pid, SIGKILL);
+      if(retval != ERROR_OK)
+         err_log("Could not close Parser correctly!");
+   }
 #endif // !DISABLE_UAVTALK
      
    exit(0);
@@ -816,6 +822,11 @@ void uquad_sig_handler(int signal_num)
          err_log_num("WARN: gpsd died! sig num:", signal_num);
          quit(0); //exit sin cerrar gpsd
 #endif //!SIMULATE_GPS
+#if !DISABLE_UAVTALK
+      } else if(p == uavtalk_child_pid) {
+         err_log_num("WARN: uavtalk_parser died! sig num:", signal_num);
+         quit(0); //exit sin cerrar gpsd
+#endif //!DISABLE_UAVTALK
       } else {
          err_log_num("SIGCHLD desconocido, return:", signal_num);
          //quit(0);
@@ -876,29 +887,6 @@ void read_from_stdin(void)
             puts("Deteniendo");
             control_status = STOPPED;
             break;
-	 case'L':
-            ch_buff[PITCH_CH_INDEX] = (uint16_t)(pitch*(180/M_PI)*8.7804 + 1500); // El valor teorico de m (y=mx+n) es m=500/55=9.09
-            puts("Comienza pitch");
-            break;
-
-/*       // Para test escalon.
-	 case '1':
-	    yaw_d = 30*M_PI/180; //30 grados en radianes
-	    puts("60 grados");
-	    break;
-	 case '2':
-	    yaw_d = -60*M_PI/180; //30 grados en radianes
-	    puts("-60 grados");
-	    break;
-	 case '3':
-	    yaw_d = 0; //0 grados en radianes
-	    puts("0 grados");
-	    break;
-	 case '4':                                                               
-	    yaw_d = 120*M_PI/180; //0 grados en radianes                                    
-            puts("120 grados");                                                    
-            break; 
-*/
          case 'F':
             puts("WARN: Failsafe set");
             ch_buff[FAILSAFE_CH_INDEX] = ACTIVATE_FAILSAFE;
