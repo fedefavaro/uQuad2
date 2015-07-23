@@ -27,7 +27,7 @@ clc
 
 
 %% Grafica datos obtenidos
-data = importdata('log_todo_5',' ');
+data = importdata('log_todo_6',' ');
 % dataB = importdata('log_PD_nuevo_3',' ');
 
 t_CC3D = data(:,1)*1000 + data(:,2)/1000; %timepo CC3D en milisegundos
