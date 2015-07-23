@@ -47,7 +47,14 @@ grid on
 
 figure
 plot(t_main,data(:,20))
-title('Distancia us')
+title('Distancia us frente')
+xlabel('t(ms)')
+ylabel('d(m)')
+grid on
+
+figure
+plot(t_main,data(:,21))
+title('Distancia us altura')
 xlabel('t(ms)')
 ylabel('d(m)')
 grid on
