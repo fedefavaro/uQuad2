@@ -435,6 +435,16 @@ int main(int argc, char *argv[])
 //--------------------------------------------------------------------------------------------------------
 	// Vuelvo a leer si tengo una trama de datos completa luego de finalizada la lectura
 	leer_IMU_denuevo:
+
+	// Reviso si tengo una trama de datos completa antes de leer
+	ioctl(fd_IMU, FIONREAD, &bytes_avail);
+	if(bytes_avail < 34) {
+		//puts("datos no completos IMU!"); //dbg
+		sleep_ms(5);
+		goto leer_IMU_denuevo;
+	}
+
+
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
 
