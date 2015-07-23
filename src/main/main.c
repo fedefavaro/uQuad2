@@ -515,11 +515,11 @@ int main(int argc, char *argv[])
 	sem_wait(sem_id); //activo semaforo para evitar que el parser modifique los datos mientras los leo
 	// El parser sobreescribio un dato - //dbg
 	if(shm->flag == 2)
-	   puts("perdi un dato actitud!"); //dbg
+	   //puts("perdi un dato actitud!"); //dbg
 
 	// si llego al dato antes de que este pronto espero un poco y vuelvo a consultar	
 	if(shm->flag == 0) { 
-	   puts("llegue muy temprano!"); //dbg
+	   //puts("llegue muy temprano!"); //dbg
 	   sem_post(sem_id); //desactivo semaforo - no pude leer dato
 	   sleep_ms(4); //doy tiempo a que este pronto el dato //TODO determinar cuanto
 	   err_act++;
