@@ -461,7 +461,7 @@ int uavtalk_parser_start(struct timeval main_start)
    }
 
    //-- -- -- El parent (main) ejecuta el siguiente codigo -- -- --
-   //sleep_ms(5);
+   sleep_ms(10);
    return child_pid;
         
 } 
