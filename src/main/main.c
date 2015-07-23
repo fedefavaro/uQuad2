@@ -430,50 +430,6 @@ int main(int argc, char *argv[])
 	   err_count_no_data = 0; //por ahora...
 	}
 
-	/** loop 50 ms **/
-#if !DISABLE_UAVTALK
-	/// Leo datos de CC3D
-//--------------------------------------------------------------------------------------------------------
-	leer_cc3d:
-	// control de errores - si intento leer 3 veces (15ms) y no hay datos nuevos, cierro
-	if(err_act > 3) {
-		err_log("No hay datos nuevos de actitud, cerrando.");
-		quit(1);
-	} 
-	
-	sem_wait(sem_id); //activo semaforo para evitar que el parser modifique los datos mientras los leo
-	
-	// El parser sobreescribio un dato - //dbg
-	if(shm->flag == 2)
-	   puts("perdi un dato actitud!"); //dbg
-
-	// si llego al dato antes de que este pronto espero un poco y vuelvo a consultar	
-	if(shm->flag == 0) { 
-	   puts("llegue muy temprano!"); //dbg
-	   sem_post(sem_id); //desactivo semaforo - no pude leer dato
-	   sleep_ms(5); //doy tiempo a que este pronto el dato //TODO determinar cuanto
-	   err_act++;
-	   goto leer_cc3d;
-	}
-	act = shm->act; // copio de la memoria compartida a la memoria del main
-	shm->flag = 0;  // marco el flag acorde (dato leido)
-	sem_post(sem_id); //desactivo semaforo - (dato leido)
-	err_act = 0;
-	uav_talk_print_attitude(act); //dbg
-//--------------------------------------------------------------------------------------------------------	
-#else
-   #if FAKE_YAW
-	if(control_status == STARTED && !first_time)
-	   act.yaw = simulate_yaw(yaw_d);  //yaw_d es el del loop anterior
-	uavtalk_updated = true;
-   #endif	
-#endif
-
-#if !FAKE_YAW
-	// Calcula diferencia respecto a cero
-	act.yaw = act.yaw - get_yaw_zero();
-#endif
-
 #if !DISABLE_IMU
 	/// Lectura de datos de la IMU
 //--------------------------------------------------------------------------------------------------------
@@ -494,7 +450,7 @@ int main(int argc, char *argv[])
 	    // Si no estoy calibrando convierto datos para usarlos
 	    if (baro_calibrated) {
 		imu_raw2data(&imu_raw, &imu_data);
-		print_imu_data(&imu_data); //dbg
+		//print_imu_data(&imu_data); //dbg
 	    }
 
 	    imu_updated = true;
@@ -516,7 +472,7 @@ int main(int argc, char *argv[])
 	// Reviso si tengo una trama de datos completa atrasada
 	ioctl(fd_IMU, FIONREAD, &bytes_avail);
 	if(bytes_avail > 33) {
-		printf("todavia quedan datos IMU!\n");
+		//puts("todavia quedan datos IMU!"); //dbg
 		goto leer_IMU_denuevo;
 	}
 
@@ -532,6 +488,51 @@ int main(int argc, char *argv[])
 		goto end_loop; //si estoy calibrando no hago nada mas!
 	}
 //--------------------------------------------------------------------------------------------------------
+#endif
+
+
+	/** loop 50 ms **/
+#if !DISABLE_UAVTALK
+	/// Leo datos de CC3D
+//--------------------------------------------------------------------------------------------------------
+	leer_cc3d:
+	// control de errores - si intento leer 3 veces (15ms) y no hay datos nuevos, cierro
+	if(err_act > 3) {
+		err_log("No hay datos nuevos de actitud, cerrando.");
+		quit(1);
+	} 
+	
+	sem_wait(sem_id); //activo semaforo para evitar que el parser modifique los datos mientras los leo
+	
+	// El parser sobreescribio un dato - //dbg
+	if(shm->flag == 2)
+	   //puts("perdi un dato actitud!"); //dbg
+
+	// si llego al dato antes de que este pronto espero un poco y vuelvo a consultar	
+	if(shm->flag == 0) { 
+	   //puts("llegue muy temprano!"); //dbg
+	   sem_post(sem_id); //desactivo semaforo - no pude leer dato
+	   sleep_ms(4); //doy tiempo a que este pronto el dato //TODO determinar cuanto
+	   err_act++;
+	   goto leer_cc3d;
+	}
+	act = shm->act; // copio de la memoria compartida a la memoria del main
+	shm->flag = 0;  // marco el flag acorde (dato leido)
+	sem_post(sem_id); //desactivo semaforo - (dato leido)
+	err_act = 0;
+	//uav_talk_print_attitude(act); //dbg
+//--------------------------------------------------------------------------------------------------------	
+#else
+   #if FAKE_YAW
+	if(control_status == STARTED && !first_time)
+	   act.yaw = simulate_yaw(yaw_d);  //yaw_d es el del loop anterior
+	uavtalk_updated = true;
+   #endif	
+#endif
+
+#if !FAKE_YAW
+	// Calcula diferencia respecto a cero
+	act.yaw = act.yaw - get_yaw_zero();
 #endif
 
 	++count_50; // control de loop 100ms
@@ -825,7 +826,7 @@ void uquad_sig_handler(int signal_num)
 #if !DISABLE_UAVTALK
       } else if(p == uavtalk_child_pid) {
          err_log_num("WARN: uavtalk_parser died! sig num:", signal_num);
-         quit(0); //exit sin cerrar gpsd
+         quit(3); //exit sin cerrar gpsd
 #endif //!DISABLE_UAVTALK
       } else {
          err_log_num("SIGCHLD desconocido, return:", signal_num);

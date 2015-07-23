@@ -34,6 +34,10 @@ t_CC3D = data(:,1)*1000 + data(:,2)/1000; %timepo CC3D en milisegundos
 t_main = data(:,10)*1000 + data(:,11)/1000; %timepo main en milisegundos
 t_IMU = data(:,17)*1000 + data(:,18)/1000; %timepo main en milisegundos
 
+display('promedio de tiempo del main:');
+display(mean(diff(t_main)));
+
+
 figure
 plot(t_main,data(:,19))
 title('Altura')

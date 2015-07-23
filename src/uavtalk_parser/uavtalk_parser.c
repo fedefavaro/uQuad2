@@ -103,7 +103,7 @@ bool check_read_locks_CC3D(int fd) {
    fd_set rfds;
    struct timeval tv;
    tv.tv_sec = 0;
-   tv.tv_usec = 30000; //TODO detemrinar el timeout en microsegundos
+   tv.tv_usec = 10000; //TODO detemrinar el timeout en microsegundos
    FD_ZERO(&rfds);
    FD_SET(fd, &rfds);
    int retval = select(fd+1, &rfds, NULL, NULL, &tv);
@@ -461,7 +461,7 @@ int uavtalk_parser_start(struct timeval main_start)
    }
 
    //-- -- -- El parent (main) ejecuta el siguiente codigo -- -- --
-   sleep_ms(5);
+   //sleep_ms(5);
    return child_pid;
         
 } 
