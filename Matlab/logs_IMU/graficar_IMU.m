@@ -27,7 +27,7 @@ clc
 
 
 %% Grafica datos obtenidos
-data = importdata('log_todo_1_c',' ');
+data = importdata('log_todo_2',' ');
 % dataB = importdata('log_PD_nuevo_3',' ');
 
 t_CC3D = data(:,1)*1000 + data(:,2)/1000; %timepo CC3D en milisegundos
@@ -35,7 +35,25 @@ t_main = data(:,10)*1000 + data(:,11)/1000; %timepo main en milisegundos
 t_IMU = data(:,17)*1000 + data(:,18)/1000; %timepo main en milisegundos
 
 display('promedio de tiempo del main:');
-display(mean(diff(t_main)));
+display(mean(diff(t_main(162:length(t_main)))));
+
+display('promedio de tiempo de CC3D:');
+display(mean(diff(t_CC3D(162:length(t_CC3D)))));
+
+display('promedio de tiempo de IMU:');
+display(mean(diff(t_IMU(162:length(t_IMU)))));
+
+
+figure
+hold on
+plot(t_main,data(:,3)*180/3.1416,'*r')
+plot(t_main,data(:,4)*180/3.1416,'*b')
+plot(t_main,data(:,5)*180/3.1416,'*g')
+title('Euler angles')
+xlabel('time (ms)')
+legend('roll(deg)','pitch(deg)','yaw(deg)')
+grid on
+hold off
 
 
 figure

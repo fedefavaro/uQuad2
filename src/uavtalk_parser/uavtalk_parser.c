@@ -425,10 +425,11 @@ int uavtalk_parser_start(struct timeval main_start)
 	   {
 		sem_wait(sem_id);
 		shm->act = act;
-		if(shm->flag > 0)
+		if(shm->flag > 0) {
 		   shm->flag = 2;
-		else
+		} else {
 		   shm->flag = 1;
+		}
 		sem_post(sem_id);
 
 		act_updated = 0;
