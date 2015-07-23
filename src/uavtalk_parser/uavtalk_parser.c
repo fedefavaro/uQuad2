@@ -347,12 +347,12 @@ int uavtalk_parser_read_char(int fd_CC3D, actitud_t *act)
                 uquad_timeval_substract(&act->ts, tv_aux, main_start_time);
    		if(retval < 0)
 		   puts("WARN: Absurd timing!");
-		retval = 1; //uavtalk updated!
+		return 1; //uavtalk updated!
 	   }
 	}
    }
 
-   return retval;
+   return 0; //uavtalk not updated.
 }
 
 
