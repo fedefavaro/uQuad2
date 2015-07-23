@@ -85,7 +85,7 @@ clc
 
 
 %% Grafica datos obtenidos
-data = importdata('log_pf_pruebas_5',' ');
+data = importdata('log_prueba_defensa_2',' ');
 % dataB = importdata('log_PD_nuevo_3',' ');
 
 %posicion -xy
