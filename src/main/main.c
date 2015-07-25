@@ -38,6 +38,7 @@
 #include <uavtalk_parser.h>
 #include <imu_comm.h>
 #include <control_yaw.h>
+#include <control_altura.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -136,6 +137,10 @@ int baro_calib_cont = 0;	//contador para determinar cuantas muestras tomar para 
 // Control de yaw
 double u_yaw = 0; //senal de control (setpoint de velocidad angular)
 double yaw_d = 0;
+
+// Control de altura
+double u_h = 0; //senal de control
+double h_d = 0;
 
 // Control activado/desactivado // TODO Mover
 typedef enum {
@@ -594,7 +599,10 @@ int main(int argc, char *argv[])
 #if !DISABLE_IMU
 	   /// Control de Altura
 	   if(imu_updated) {
-	      //TODO...
+	      u_h = control_yaw_calc_input(h_d, imu_data.us_altitude);
+
+	   //Convertir empuje en comando
+	   //ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (u_h); //TODO
 
 	   }
 #endif
@@ -632,7 +640,7 @@ int main(int argc, char *argv[])
 	buff_log_len = uavtalk_to_str(buff_log, act);
 
 	//otros logs
-	buff_log_len += sprintf(buff_log_aux, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf",
+	buff_log_len += sprintf(buff_log_aux, "%u %u %u %u %lu %lu %lf %lf %lf %lf %lf %lf %lf",
 				ch_buff[ROLL_CH_INDEX],
 				ch_buff[PITCH_CH_INDEX],
 				ch_buff[YAW_CH_INDEX],
@@ -643,7 +651,9 @@ int main(int argc, char *argv[])
 				position.y,
 				position.z,
 				yaw_d,
-				u_yaw);
+				u_yaw,
+				h_d,
+				u_h);
 
 	strcat(buff_log, buff_log_aux);
 	
