@@ -65,8 +65,6 @@
 /*********************************************
  ************* Global vars *******************
  *********************************************/
-//Semaphore
-sem_t * sem_id;
 
 // Almacena pids de hijos
 pid_t sbusd_child_pid = 0;
@@ -190,10 +188,20 @@ int main(int argc, char *argv[])
 #endif
 
    int retval;
-   char* log_name;
-   int err_act = 0;		//Aumenta si no hay datos nuevos de actitud
+   
+  
+   int err_imu = 0;		//Aumenta si no hay datos nuevos de imu
    int err_count_no_data = 0; 	//si no tengo datos nuevos varias veces es peligroso
    int no_gps_data = 0;
+
+   // Para log
+   char* log_name;
+   char buff_log[512]; 		//TODO determinar valor
+   char buff_log_aux[512];	//TODO determinar valor
+   int buff_log_len;
+
+   bool first_time = true; // para saber cuando es la primer ejecucion del loop
+   int8_t count_50 = 1; // controla tiempo de loop 100ms
 
    if(argc<3)
    {
@@ -239,7 +247,7 @@ int main(int argc, char *argv[])
 
 #if SOCKET_TEST
    if (socket_comm_wait_client() == -1)
-	quit(1);
+	exit(0);
 #endif
 
    /// Path planning & Following
@@ -251,7 +259,10 @@ int main(int argc, char *argv[])
    lista_way_point = (Lista_wp *)malloc(sizeof(struct ListaIdentificar_wp));
    inicializacion_wp(lista_way_point);
    retval = way_points_input(lista_way_point); //carga waypoints en la lista desde un archivo de texto
-   if (retval < 0) exit(0);
+   if (retval < 0) {
+	puts("No se pudo cargar lista de waypoints, cerrando");
+	exit(0);
+   }
 
    // Generacion de trayectoria
    path_planning(lista_way_point, lista_path);
@@ -261,7 +272,7 @@ int main(int argc, char *argv[])
 
 #if SOCKET_TEST
    if (socket_comm_send_path(lista_path) == -1)
-	quit(1);
+	exit(0);
 #endif
 
    /// Control yaw
@@ -285,7 +296,7 @@ int main(int argc, char *argv[])
    if(log_fd < 0)
    {
       err_log_stderr("Failed to open log file!");
-      quit(1);
+      exit(0);
    }
    bool log_writeOK;
 
@@ -295,7 +306,7 @@ int main(int argc, char *argv[])
    if(retval < 0) 
    {
       err_log("Failed to preconfigure gps!");
-      quit(0);  
+      exit(0);
    } 
      
    /// Ejecuta GPS daemon - proceso independiente
@@ -303,7 +314,7 @@ int main(int argc, char *argv[])
    if(gpsd_child_pid == -1)
    {
       err_log_stderr("Failed to init gps!");
-      quit(0);
+      exit(0);
    }
 #endif //!SIMULATE_GPS
 
@@ -325,15 +336,6 @@ int main(int argc, char *argv[])
    //Doy tiempo a que inicien bien los procesos secundarios
    sleep_ms(500); //TODO verificar cuanto es necesario
 
-/*   /// inicializa IO manager
-   io = io_init();
-   if(io==NULL)
-   {
-      quit_log_if(ERROR_FAIL,"io init failed!");
-   }
-   retval = io_add_dev(io,STDIN_FILENO);  // Se agrega stdin al io manager
-   quit_log_if(retval, "Failed to add stdin to io list"); */
-
 
    /// inicializa UAVTalk
 #if !DISABLE_UAVTALK
@@ -341,7 +343,7 @@ int main(int argc, char *argv[])
    if(uavtalk_child_pid == -1)
    {
       err_log_stderr("Failed to start child process (uavtalk)!"); 
-      quit(1);  
+      quit(3);  
    }
 #endif
 
@@ -353,64 +355,23 @@ int main(int argc, char *argv[])
       err_log("Failed to init IMU!");
       quit(0);  
    } 
-   imu_data_alloc(&imu_data);
-   magn_calib_init(); //Carga parametros de calibracion del magn, baro se calibra en el loop
+   //imu_data_alloc(&imu_data);
+   //magn_calib_init();
+   int bytes_avail = 0; // Para obener bytes disponibles en el RX buffer de IMU
 #endif
    
-   int8_t count_50 = 1; // controla tiempo de loop 100ms
-   //act_last = act;
-
-   char buff_log[512]; //TODO determinar valor
-   char buff_log_aux[512]; //TODO determinar valor
-   int buff_log_len;
-
-#if !DISABLE_UAVTALK  
-   //err_log("Clearing CC3D input buffer...");
-   //serial_flush(fd_CC3D);
-#endif 
-
 #if !DISABLE_IMU
    // Clean IMU serial buffer
    err_log("Clearing IMU input buffer...");
    serial_flush(fd_IMU);
 #endif
 
-   int bytes_avail = 0;
-   bool first_time = true;
-
 #if !DISABLE_UAVTALK 
-//--------------------------------------------------------------
-    typedef struct act_sdata {
-	actitud_t act;
-	int flag;
-    } act_sdata_t;
-
-
-    int shmid;
-    key_t key = 5678;
-    act_sdata_t *shm;
-
-   /**
-    * Semaphore open
-    */
-    sem_id=sem_open("/mysem", O_CREAT, S_IRUSR | S_IWUSR, 1);
-
-    /*
-     * Locate the segment.
-     */
-    if ((shmid = shmget(key, SHMSZ, 0666)) < 0) {
-        perror("shmget");
-        exit(1);
-    }
-
-    /*
-     * Now we attach the segment to our data space.
-     */
-    if ((shm = shmat(shmid, NULL, 0)) == (void *) -1) {
-        perror("shmat");
-        exit(1);
-    }
-//--------------------------------------------------------------
+   retval = uavtalk_init_shm();
+   if (retval < 0) {
+	puts("Error al inicializar shm, cerrando");
+	quit(0);
+   }
 #endif //!DISABLE_UAVTALK 
 
    printf("----------------------\n  Entrando al loop  \n----------------------\n");
@@ -433,17 +394,21 @@ int main(int argc, char *argv[])
 #if !DISABLE_IMU
 	/// Lectura de datos de la IMU
 //--------------------------------------------------------------------------------------------------------
-	// Vuelvo a leer si tengo una trama de datos completa luego de finalizada la lectura
-	leer_IMU_denuevo:
+	leer_imu: // Vuelvo a leer si es necesario
+
+	if(err_imu > 2) {
+		err_log("No hay datos nuevos de IMU, cerrando.");
+		quit(0);
+	} 
 
 	// Reviso si tengo una trama de datos completa antes de leer
 	ioctl(fd_IMU, FIONREAD, &bytes_avail);
 	if(bytes_avail < 34) {
 		//puts("datos no completos IMU!"); //dbg
 		sleep_ms(5);
-		goto leer_IMU_denuevo;
+		err_imu++;
+		goto leer_imu;
 	}
-
 
 	IMU_readOK = check_read_locks(fd_IMU);
 	if (IMU_readOK) {
@@ -451,7 +416,7 @@ int main(int argc, char *argv[])
             // Leo datos
 	    retval = imu_comm_read(fd_IMU);            
  	    if (retval < 0 ) {
-		puts("unable to read IMU data");
+		puts("WARN: unable to read IMU data!");
 	    }
             // Paso los datos del buffer RX a imu_raw.
             imu_comm_parse_frame_binary(&imu_raw);
@@ -465,9 +430,10 @@ int main(int argc, char *argv[])
 
 	    imu_updated = true;
             IMU_readOK = false;
+	    err_imu = 0;
 
         } else {
-	   err_log("imu: read NOT ok");
+	   err_log("IMU: read NOT ok");
 	}
 
 /*	/// Reviso si quedan datos para no atrasarme
@@ -477,14 +443,17 @@ int main(int argc, char *argv[])
 		IMU_readOK = false;
 		ioctl(fd_IMU, FIONREAD, &bytes_avail);
 		//printf("%d\n ",bytes_avail);
-		if(bytes_avail > 33) goto leer_denuevo; //continue;
+		if(bytes_avail > 33) goto leer_imu; //continue;
 	}*/
+
 	// Reviso si tengo una trama de datos completa atrasada
-	ioctl(fd_IMU, FIONREAD, &bytes_avail);
-	if(bytes_avail > 33) {
-		//puts("todavia quedan datos IMU!"); //dbg
-		goto leer_IMU_denuevo;
-	}
+	retval = ioctl(fd_IMU, FIONREAD, &bytes_avail);
+	if (retval == ERROR_OK) {
+		if(bytes_avail > 33) {
+			//puts("todavia quedan datos IMU!"); //dbg
+			goto leer_imu;
+		}	
+	} else puts("FIONREAD failed!");
 
 	if (!baro_calibrated) {
 		if(imu_updated) {		
@@ -500,37 +469,17 @@ int main(int argc, char *argv[])
 //--------------------------------------------------------------------------------------------------------
 #endif
 
-
 	/** loop 50 ms **/
+
 #if !DISABLE_UAVTALK
 	/// Leo datos de CC3D
-//--------------------------------------------------------------------------------------------------------
-	leer_cc3d:
-	// control de errores - si intento leer 3 veces (15ms) y no hay datos nuevos, cierro
-	if(err_act > 3) {
+	retval = uavtalk_read(&act);
+	if(retval < 0) {
 		err_log("No hay datos nuevos de actitud, cerrando.");
-		quit(1);
-	} 
-	
-	sem_wait(sem_id); //activo semaforo para evitar que el parser modifique los datos mientras los leo
-	// El parser sobreescribio un dato - //dbg
-	if(shm->flag == 2)
-	   //puts("perdi un dato actitud!"); //dbg
-
-	// si llego al dato antes de que este pronto espero un poco y vuelvo a consultar	
-	if(shm->flag == 0) { 
-	   //puts("llegue muy temprano!"); //dbg
-	   sem_post(sem_id); //desactivo semaforo - no pude leer dato
-	   sleep_ms(4); //doy tiempo a que este pronto el dato //TODO determinar cuanto
-	   err_act++;
-	   goto leer_cc3d;
+		quit(0);
 	}
-	act = shm->act; // copio de la memoria compartida a la memoria del main
-	shm->flag = 0;  // marco el flag acorde (dato leido)
-	sem_post(sem_id); //desactivo semaforo - (dato leido)
-	err_act = 0;
+	uavtalk_updated = true;
 	//uav_talk_print_attitude(act); //dbg
-//--------------------------------------------------------------------------------------------------------	
 #else
    #if FAKE_YAW
 	if(control_status == STARTED && !first_time)
@@ -583,7 +532,7 @@ int main(int argc, char *argv[])
 	   if (first_time)	
 		first_time = false;
 
-           /// Con datos de actitud hago control de yaw y path following(si tengo gps)
+           /// Con datos de actitud hago control de yaw y path following (si tengo gps)
 	   if(uavtalk_updated)
 	   {
 	      /// Path Follower - si hay datos de gps y de yaw hago carrot chase	      
@@ -620,22 +569,21 @@ int main(int argc, char *argv[])
 		 }
 	      }
 
-	   /// Control Yaw - necesito solo medida de yaw
-	   u_yaw = control_yaw_calc_input(yaw_d, act.yaw);  // TODO PASAR A RADIANES
-	   //printf("senal de control: %lf\n", u); // dbg
+	      /// Control Yaw - necesito solo medida de yaw
+	      u_yaw = control_yaw_calc_input(yaw_d, act.yaw);
+	      //printf("senal de control: %lf\n", u); // dbg
 
-	   //Convertir velocidad en comando
-	   ch_buff[YAW_CH_INDEX] = (uint16_t) (u_yaw*25/11 + 1500);
-	   //printf("  %u\n", ch_buff[YAW_CH_INDEX]); // dbg
+	      //Convertir velocidad en comando
+	      ch_buff[YAW_CH_INDEX] = (uint16_t) (u_yaw*25/11 + 1500);
+	      //printf("  %u\n", ch_buff[YAW_CH_INDEX]); // dbg
 
-           if (err_count_no_data > 0)
-	         err_count_no_data--;
+              if (err_count_no_data > 0)
+	            err_count_no_data--;
 
 	   } else {
 	      err_log("No tengo datos para control de yaw");
 	      err_count_no_data++;
 	   }
-	
 	
 	   /// Control de Velocidad
 	   if(gps_updated) {
@@ -747,6 +695,7 @@ int main(int argc, char *argv[])
 /**
  * Interrumpe ejecucion del programa. Dependiendo del valor del parametro
  * que se le pase interrumpe mas o menos cosas.
+ * Q == 4 : interrupcion por muerte de gpsd, cierra todo menos gpsd
  * Q == 3 : interrupcion por muerte del parser, cierra todo menos parser
  * Q == 2 : interrupcion manual (ctrl-c), cierra todo y avisa que fue manual
  * Q == 1 : interrupcion por muerte del sbusd, cierra todo menos sbusd
@@ -786,7 +735,7 @@ void quit(int Q)
    close(log_fd);
    
 #if !SIMULATE_GPS
-   if(Q != 2) {
+   if(Q != 4) {
       /// cerrar conexiones con GPSD y terminarlo
       retval = deinit_gps();
       if(retval != ERROR_OK)

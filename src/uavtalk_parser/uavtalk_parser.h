@@ -170,6 +170,7 @@ typedef struct actitud {
 	struct timeval ts;
 } actitud_t;
 
+
 /*
  * Estructura para almacenar valor de actitud en memoria compartida
  * entre el main y el proceso uavtalk_parser
@@ -185,8 +186,10 @@ typedef struct act_sdata {
 } act_sdata_t;
 
 int uavtalk_parser_start(struct timeval main_start);
-void uav_talk_print_attitude(actitud_t act);
+void uavtalk_print_attitude(actitud_t act);
 int uavtalk_to_str(char* buf_str, actitud_t act);
+int uavtalk_init_shm(void);
+int uavtalk_read(actitud_t *act);
 
 #endif /* UAVTALK_H_ */
 

@@ -59,7 +59,7 @@ int open_port_CC3D(char *device)
 {
    int fd; /* File descriptor for the port */
 
-   fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+   fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
    if (fd == -1)
    {
       puts("Unable to open port");
@@ -139,8 +139,7 @@ static const uint8_t crc_table[256] = {
 };
 
 
-
-int uav_talk_init(void)
+int uavtalk_init(void)
 {
    /// Puerto Serie Beagle-CC3D
    int fd = open_port_CC3D(CC3D_DEVICE);
@@ -156,7 +155,7 @@ int uav_talk_init(void)
 }
 
 
-int uav_talk_deinit(int fd)
+int uavtalk_deinit(int fd)
 {
    int ret = close(fd);
    if(ret < 0)
@@ -169,7 +168,71 @@ int uav_talk_deinit(int fd)
 }
 
 
-void uav_talk_print_attitude(actitud_t act)
+
+sem_t * sem_id_main;  	//Semaphore
+int shmid_main;	  	//Shared memory id
+act_sdata_t *shm_main;	//Shared memory var
+key_t key_main = 5678;
+
+int uavtalk_init_shm(void)
+{
+
+   //Semaphore open
+   sem_id_main = sem_open("/mysem", O_CREAT, S_IRUSR | S_IWUSR, 1);
+
+   //Locate the segment.
+   if ((shmid_main = shmget(key_main, SHMSZ, 0666)) < 0) {
+        perror("shmget");
+        return -1;
+   }
+
+   //Now we attach the segment to our data space.
+   if ((shm_main = shmat(shmid_main, NULL, 0)) == (void *) -1) {
+       perror("shmat");
+       return -1;
+   }
+   
+   return 0;
+
+}
+
+
+int uavtalk_read(actitud_t *act)
+{
+   int err_act = 0;	//Aumenta si no hay datos nuevos de actitud
+   int wait_data = 1;   //Va a cero si tengo dato nuevo para leer
+
+   while(wait_data) {
+   
+      // control de errores - si intento leer 3 veces (15ms) y no hay datos nuevos, cierro
+      if(err_act > 2) {
+	 return -1;
+      } 
+
+      sem_wait(sem_id_main); //activo semaforo para evitar que el parser modifique los datos mientras los leo
+      
+      // El parser sobreescribio un dato - //dbg
+      if(shm_main->flag == 2)
+         puts("perdi un dato actitud!"); //dbg
+
+      // si llego al dato antes de que este pronto espero un poco y vuelvo a consultar	
+      if(shm_main->flag == 0) { 
+         puts("llegue muy temprano!"); //dbg
+         sem_post(sem_id_main); //desactivo semaforo - no pude leer dato
+         sleep_ms(5); //doy tiempo a que este pronto el dato //TODO determinar cuanto
+         err_act++;
+      } else wait_data = 0; //si flag != 0 tengo dato nuevo!
+   
+   } //end while
+
+   *act = shm_main->act; // copio de la memoria compartida a la memoria del main
+   shm_main->flag = 0;  // marco el flag acorde (dato leido)
+   sem_post(sem_id_main); //desactivo semaforo - (dato leido)
+   
+   return 0; //uavtalk_updated = true;
+}
+
+void uavtalk_print_attitude(actitud_t act)
 {
    printf("Roll: %lf  ", act.roll*180/M_PI); 
    printf("Pitch: %lf  ", act.pitch*180/M_PI);
@@ -384,7 +447,7 @@ int uavtalk_parser_start(struct timeval main_start)
 	// -- -- -- -- -- -- -- -- --
 	// Inicializacion
 	// -- -- -- -- -- -- -- -- --
-	fd_CC3D = uav_talk_init();
+	fd_CC3D = uavtalk_init();
 	if(fd_CC3D < 0) 
 	{
 	   puts("Failed to init UAVTalk!");
@@ -442,7 +505,7 @@ int uavtalk_parser_start(struct timeval main_start)
 	// Deinicializacion //TODO por ahora nunca sale del for
 	// -- -- -- -- -- -- -- -- --
 
-	retval = uav_talk_deinit(fd_CC3D);
+	retval = uavtalk_deinit(fd_CC3D);
 	if(retval != 0)
 	   puts("Could not close UAVTalk correctly!");
 

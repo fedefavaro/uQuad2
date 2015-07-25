@@ -21,8 +21,8 @@ int16_t us_obstacle;
         
 // Matrices calibracion IMU
 // Magn
-static uquad_mat_t *magn_K;
-static uquad_mat_t *magn_b;
+//static uquad_mat_t *magn_K;
+//static uquad_mat_t *magn_b;
 // Baro
 //static double K;
 //static double *pres_K = &K;
@@ -72,12 +72,12 @@ int imu_comm_init(char *device)
 // Inicializacion imu_data
 //
 //*****************************************************************************
-void imu_data_alloc(imu_data_t *imu_data)
+/*void imu_data_alloc(imu_data_t *imu_data)
 {
-    imu_data->magn = uquad_mat_alloc(3,1);
+   // imu_data->magn = uquad_mat_alloc(3,1);
     // initialize data to zeros
-    uquad_mat_zeros(imu_data->magn);
-}
+    //uquad_mat_zeros(imu_data->magn);
+}*/
 
 
 //*****************************************************************************
@@ -93,7 +93,7 @@ int imu_comm_read(int fd)
    int index = 0;
    bool in_sync = false;
 
-   while (!imu_data_ready && check_read_locks(fd))
+   while (!imu_data_ready)// && check_read_locks(fd))
    {				
 	ret = read(fd,&c,1);
 	if (ret <= 0) {
@@ -187,9 +187,9 @@ void print_imu_raw(imu_raw_t *frame)
 void print_imu_data(imu_data_t *data)
 {
     printf("%lf", data->T_us);
-    printf("\t%lf", data->magn->m_full[0]);
-    printf("\t%lf", data->magn->m_full[1]);
-    printf("\t%lf", data->magn->m_full[2]);
+    //printf("\t%lf", data->magn->m_full[0]);
+    //printf("\t%lf", data->magn->m_full[1]);
+    //printf("\t%lf", data->magn->m_full[2]);
     printf("\t%lf", data->alt);
     printf("\t%lf", data->us_obstacle);
     printf("\t%lf\n", data->us_altitude);
@@ -202,6 +202,7 @@ void print_imu_data(imu_data_t *data)
 //
 //*****************************************************************************
 
+#if 0
 void magn_calib_init(void)
 {
     // K
@@ -222,13 +223,12 @@ void magn_calib_init(void)
     magn_b->m_full[1] = -38.911556235825;
     magn_b->m_full[2] = -75.7517190381074;
 }
-
+#endif
 
 /*
  * Recibe como parametro un promedio de la presion ambiente
  * en el momento de encendido
  */
-
 #define PRESS_EXP                  0.191387559808612
 #define PRESS_K                    44330.0
 void pres_calib_init(double po_mean)
@@ -245,10 +245,11 @@ void pres_calib_init(double po_mean)
 //
 //*****************************************************************************
 
-/*void temp_raw2data(imu_raw_t *raw, imu_data_t *data)
+#if 0
+void temp_raw2data(imu_raw_t *raw, imu_data_t *data)
 {
 	data->temp = ((double)(raw->temp))/10;
-}*/
+}
 
 
 void magn_raw2data(imu_raw_t *raw, imu_data_t *data)
@@ -279,7 +280,7 @@ void magn_raw2data(imu_raw_t *raw, imu_data_t *data)
 	uquad_mat_free(C_b);	
 	uquad_mat_free(magn_data);
 }
-
+#endif
 
 void pres_raw2data(imu_raw_t *raw, imu_data_t * data)
 {
@@ -293,11 +294,11 @@ void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 
 	data->T_us = raw->T_us;
 	//temp_raw2data(raw, data);
-	magn_raw2data(raw, data);
+	//magn_raw2data(raw, data);
 	pres_raw2data(raw, data);
 
-	data->us_obstacle = raw->us_obstacle*0.99226 + 3.51228;
-	data->us_altitude = raw->us_altitude*0.99226 + 3.51228;
+	data->us_obstacle = raw->us_obstacle;//*0.99226 + 3.51228;
+	data->us_altitude = raw->us_altitude;//*0.99226 + 3.51228;
 
 	// Timestamp
 	gettimeofday(&tv_aux,NULL);

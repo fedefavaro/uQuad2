@@ -54,7 +54,7 @@ typedef struct imu_frame {
  */
 typedef struct imu_data {
     double T_us;         // us
-    uquad_mat_t *magn;   // rad - Euler angles - {psi/roll,phi/pitch,theta/yaw}
+    //uquad_mat_t *magn;   // rad - Euler angles - {psi/roll,phi/pitch,theta/yaw}
     //double temp;         // °C
     double alt;          // m
     double us_obstacle;   // m
@@ -64,17 +64,18 @@ typedef struct imu_data {
 
 
 int imu_comm_init(char *device);
-void imu_data_alloc(imu_data_t *imu_data);
+//void imu_data_alloc(imu_data_t *imu_data);
 
 void imu_comm_parse_frame_binary(imu_raw_t *frame);
 void print_imu_raw(imu_raw_t *frame);
 void print_imu_data(imu_data_t *data);
+int imu_comm_read(int fd);
 
-void magn_calib_init(void);
+//void magn_calib_init(void);
 void pres_calib_init(double po);
 
 //void temp_raw2data(imu_raw_t *raw, imu_data_t *data);
-void magn_raw2data(imu_raw_t *raw, imu_data_t *data);
+//void magn_raw2data(imu_raw_t *raw, imu_data_t *data);
 void pres_raw2data(imu_raw_t *raw, imu_data_t * data);
 
 void imu_raw2data(imu_raw_t *raw, imu_data_t *data);
