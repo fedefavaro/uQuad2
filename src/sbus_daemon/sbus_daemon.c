@@ -151,12 +151,14 @@ int main(int argc, char *argv[])
 
 	//printf("errores: %d\n",err_count);//dbg
 
+#if !PC_TEST
 	if (err_count > MAX_ERR_SBUSD)
 	{
 	   err_log("error count exceded");
 	   //err_count = 0;
 	   quit();
 	}
+#endif
 
 	ret = uquad_read(&rbuf);
 	if(ret == ERROR_OK)

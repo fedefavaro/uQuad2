@@ -297,8 +297,8 @@ void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 	//magn_raw2data(raw, data);
 	pres_raw2data(raw, data);
 
-	data->us_obstacle = raw->us_obstacle;//*0.99226 + 3.51228;
-	data->us_altitude = raw->us_altitude;//*0.99226 + 3.51228;
+	data->us_obstacle = raw->us_obstacle*1.695;//*0.99226 + 3.51228;
+	data->us_altitude = raw->us_altitude*1.695;//*0.99226 + 3.51228;
 
 	// Timestamp
 	gettimeofday(&tv_aux,NULL);

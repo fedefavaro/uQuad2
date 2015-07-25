@@ -369,6 +369,7 @@ int main(int argc, char *argv[])
    // Clean IMU serial buffer
    err_log("Clearing IMU input buffer...");
    serial_flush(fd_IMU);
+   sleep_ms(40);
 #endif
 
 #if !DISABLE_UAVTALK 
@@ -850,6 +851,7 @@ void read_from_stdin(void)
 #endif //!SIMULATE_GPS
             puts("Comenzando lazo cerrado");
             control_status = STARTED;
+	    h_d = 57.5; //cm
             break;
          case 'P':
             ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
