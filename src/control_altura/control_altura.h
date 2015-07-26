@@ -70,7 +70,7 @@ double control_alt_derivate_error(void);
 /*
  * Calcula la senal de error.
  *
- * Control proporcional o PD segun definido por usuario
+ * Control PD
  */
 double control_alt_calc_input(double alt_d, double alt_measured);
 

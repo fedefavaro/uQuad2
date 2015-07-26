@@ -81,4 +81,6 @@ void pres_raw2data(imu_raw_t *raw, imu_data_t * data);
 void imu_raw2data(imu_raw_t *raw, imu_data_t *data);
 int imu_to_str(char* buf_str, imu_data_t imu_data);
 
+void imu_simulate_altitude(double *h, double u_h, double pitch, double roll);
+
 #endif

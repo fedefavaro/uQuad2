@@ -5,6 +5,8 @@
 #include <uquad_error_codes.h>
 #include <serial_comm.h>
 
+#include <quadcop_types.h>
+
 uint16_t tiempo;
 int16_t accx;
 int16_t accy;
@@ -288,6 +290,25 @@ void pres_raw2data(imu_raw_t *raw, imu_data_t * data)
 }
 
 
+double us_alt_coef = 0.2;
+double us_alt_umbral = 0.1;
+double imu_filter_us_alt(double us_alt)
+{
+	static double y_k_1,x_k_1 = 0; //salida anterior,medida anterior
+	double y_k;
+
+	if (( us_alt > (1+us_alt_umbral)*x_k_1) || (us_alt < (1-us_alt_umbral)*x_k_1 )) {
+	   y_k = y_k_1;
+	} else { 
+	   y_k = us_alt*us_alt_coef + (1-us_alt_coef)*y_k_1;
+	   x_k_1 = us_alt;
+	}
+	y_k_1 = y_k;
+
+	return y_k;
+}
+
+
 void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 {
 	struct timeval tv_aux;
@@ -297,8 +318,8 @@ void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 	//magn_raw2data(raw, data);
 	pres_raw2data(raw, data);
 
-	data->us_obstacle = raw->us_obstacle*1.695;//*0.99226 + 3.51228;
-	data->us_altitude = raw->us_altitude*1.695;//*0.99226 + 3.51228;
+	data->us_obstacle = (raw->us_obstacle*1.695)/100;//*0.99226 + 3.51228;
+	data->us_altitude = imu_filter_us_alt( (raw->us_altitude*1.695/100) );
 
 	// Timestamp
 	gettimeofday(&tv_aux,NULL);
@@ -327,5 +348,32 @@ int imu_to_str(char* buf_str, imu_data_t imu_data)
 
 }
 
+
+/**
+ * Simula movimiento del quad en base a modelo fisico TODO roll pitch
+ *
+ * m*(d^2)z/dt^2 = Th - B*dz/dt - P
+ */
+#define IMU_SAMPLE_TIME 	0.05
+void imu_simulate_altitude(double *h, double u_h, double pitch, double roll)
+{
+   double accel, froz;
+   static double vel = 0;   
+
+   // Aceleracion	
+   accel = u_h/MASA - G;
+
+   int i = 0;
+   for(i=0;i<5;i++) {
+	
+	// Velocidad
+	vel = vel + accel*IMU_SAMPLE_TIME/5;
+	
+	// Altura
+	*h = *h + vel*IMU_SAMPLE_TIME/5;
+  }
+
+   return;
+}
 
 

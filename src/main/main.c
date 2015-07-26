@@ -125,6 +125,7 @@ actitud_t act = {0,0,INITIAL_YAW,{0,0}};	//si estoy en modo fake yaw inicializo 
 bool uavtalk_updated = false;
 
 // IMU
+double h = 0;			//para simular altura
 imu_raw_t imu_raw; 		//datos crudos
 imu_data_t imu_data; 		//datos utiles
 int fd_IMU; 			//file descriptor de la IMU
@@ -139,7 +140,8 @@ double u_yaw = 0; //senal de control (setpoint de velocidad angular)
 double yaw_d = 0;
 
 // Control de altura
-double u_h = 0; //senal de control
+double u_h = 0; //senal de control (peq señal)
+double U_h = 0; //senal de control (gran señal)
 double h_d = 0;
 
 // Control activado/desactivado // TODO Mover
@@ -290,7 +292,7 @@ int main(int argc, char *argv[])
 
    // Se calcula el valor de pitch necesario para alcanzar la velocidad deseada.
    // El signo negativo es para que sea coherente con el sentido de giro de la cc3d (angulo positivo = giro horario)
-   pitch = -atan(B_roz*VEL_DESIRED/MASA/G);
+   pitch = -atan(B_ROZ*VEL_DESIRED/MASA/G);
    //printf("pitch: %lf\n", pitch*180/M_PI); //dbg
 
    /// Control altura
@@ -538,9 +540,11 @@ int main(int argc, char *argv[])
 	   if (first_time)	
 		first_time = false;
 
+#if 0
            /// Con datos de actitud hago control de yaw y path following (si tengo gps)
 	   if(uavtalk_updated)
 	   {
+
 	      /// Path Follower - si hay datos de gps y de yaw hago carrot chase	      
 	      if(gps_updated) {
 #if !SIMULATE_GPS
@@ -596,15 +600,43 @@ int main(int argc, char *argv[])
 	      //TODO...
 
 	   }
+#endif //if 0
+
+#define SIMULATE_ALTITUDE	1
+#if SIMULATE_ALTITUDE
+	   /// Control de Altura
+	   u_h = control_alt_calc_input(h_d, h);
+	   U_h = u_h + 18.1485;
+	   //sim 
+	   imu_simulate_altitude(&h, U_h, 0, 0);
+
+	   //Convertir empuje en comando
+	   if (U_h <= 0.348) {
+	   //if (U_h <= 0.1342) {
+		ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
+	   } else if (U_h > 7.69) {
+	   //} else if (U_h > 2.246) {
+	   	ch_buff[THROTTLE_CH_INDEX] = MAX_COMMAND;
+	   } else {
+		ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-9.7*pow(U_h,2) + 214.1*U_h + 962.7); //TODO
+	   	//ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-152.32*pow(u_h,2) + 836.08*u_h + 890.52);
+	   }
+	   printf("h: %lf\th_d: %lf\tu_h: %lf\tU_h: %lf\tThrot: %u\n",h,h_d,u_h,U_h,ch_buff[THROTTLE_CH_INDEX]);
+
+#endif
 
 #if !DISABLE_IMU
 	   /// Control de Altura
 	   if(imu_updated) {
-	      u_h = control_yaw_calc_input(h_d, imu_data.us_altitude);
+	      u_h = control_alt_calc_input(h_d, imu_data.us_altitude);
 
 	   //Convertir empuje en comando
-	   //ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (u_h); //TODO
-
+	   if (u_h < 0) {
+		ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
+	   } else if (u_h > 7.18) {
+	   	ch_buff[THROTTLE_CH_INDEX] = MAX_COMMAND;
+	   } else {
+		ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-9.7*pow(u_h,2) + 214.1*u_h + 926.7); //TODO
 	   }
 #endif
 
@@ -846,12 +878,13 @@ void read_from_stdin(void)
          {
          case 'S':
             ch_buff[THROTTLE_CH_INDEX] = throttle_inicial; //valor pasado como parametro
+	    //set_alt_zero(double alt_measured);
 #if !SIMULATE_GPS
-	    velocity.module = 4; //TODO esto??
+	    velocity.module = 0; //TODO
 #endif //!SIMULATE_GPS
             puts("Comenzando lazo cerrado");
             control_status = STARTED;
-	    h_d = 57.5; //cm
+	    h_d = 0;//57.5/100; //m
             break;
          case 'P':
             ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
@@ -892,6 +925,33 @@ void read_from_stdin(void)
             ch_buff[THROTTLE_CH_INDEX] = THROTTLE_DISARM;
             puts("Desarmando...");
             break;
+
+	 case '0':
+	    puts("altura deseada 0m");
+            h_d = 0;
+            break;
+         case '1':
+	    puts("altura deseada 0.1m");
+            h_d = 0.1;
+            break;
+         case '2':
+	    puts("altura deseada 0.5m");
+            h_d = 0.5;
+            break;
+         case '3':
+	    puts("altura deseada 1m");
+            h_d = 1;
+            break;
+         case '4':
+	    puts("altura deseada 5m");
+            h_d = 5;
+            break;
+         case '5':
+	    puts("altura deseada 10m");
+            h_d = 10;
+            break;	
+
+
 #ifdef SETANDO_CC3D
 	// Para setear maximos y minimos en CC3D
          case 'M':
