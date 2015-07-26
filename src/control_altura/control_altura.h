@@ -40,7 +40,7 @@
 #define CONTROL_ALT_ADD_ZERO		0 // Agrega un cero al filtro de u. Ver control_alt_filter_input() //No USAR!
 
 #define TAKEOFF_ALTITUDE		1 //1m
-#define LANDING_ALTITUDE		0.25 //25cm
+#define LANDING_ALTITUDE		0.20 //20cm
 #define PORCENTAGE_UPDATE_TA		0.05 //5%
 
 typedef struct error_alt {
