@@ -137,7 +137,7 @@ void control_alt_filter_input(double *u)
 
 
 /*
- * Los parametros de entrada son en radianes pero el control es en grados
+ * 
  */
 double control_alt_calc_input(double alt_d, double alt_measured) 
 {
@@ -153,6 +153,29 @@ double control_alt_calc_input(double alt_d, double alt_measured)
 
    return u;
 }
+
+
+/*
+ * 
+ */
+double ki = 24.5; //N/m
+double alpha_alt_i = 0.001; //promedio de 200 muestras
+double control_alt_integral(double alt_d, double alt_measured) 
+{
+
+   static double y_k_1 = 0;
+   double x_k = alt_d - alt_measured; //senal de error
+   double y_k = alpha_alt_i*x_k + (1-alpha_alt_i)*y_k_1;
+   if (y_k > 0.1)
+	y_k = 0.1;
+   if (y_k < -0.1)
+	y_k = -0.1;
+
+   y_k_1 = y_k;
+
+   return y_k*ki;
+}
+
 
 
 static double alt_zero = 0;

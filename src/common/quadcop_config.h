@@ -33,9 +33,9 @@
 #endif //PC_TEST
 
 #define SIMULATE_GPS		1
-#define DISABLE_UAVTALK		0
-#define DISABLE_IMU		0
-#define SIMULATE_ALTITUDE	0
+#define DISABLE_UAVTALK		1
+#define DISABLE_IMU		1
+#define SIMULATE_ALTITUDE	1
 #define FAKE_YAW		1
 #define SOCKET_TEST		0
 

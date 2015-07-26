@@ -34,7 +34,8 @@
 //double masa = 1.85; // kg
 //double g = 9.81; // m/s*s
 //double B = 1; // coef friccion
-#define MASA	1.85
+//#define MASA	1.85
+#define MASA	2.25
 #define G	9.81
 #define B_ROZ	0.7
 

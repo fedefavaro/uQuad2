@@ -362,7 +362,7 @@ void imu_simulate_altitude(double *h, double u_h, double pitch, double roll)
 
    // Aceleracion	
    accel = u_h/MASA - G;
-
+   
    int i = 0;
    for(i=0;i<5;i++) {
 	

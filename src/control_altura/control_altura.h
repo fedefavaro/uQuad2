@@ -31,12 +31,12 @@
 #include <stdlib.h>
 
 
-#define CONTROL_ALT_BUFF_SIZE		4 //usar numeros pares
+#define CONTROL_ALT_BUFF_SIZE		2 //usar numeros pares
 #define ALT_SAMPLE_TIME			0.05 //en segundos
 
 #define INITIAL_ALT			0
 
-#define CONTROL_ALT_MEAN_ENABLE		1 // Realiza promedio antes de derivar. Ver control_alt_derivate_error()
+#define CONTROL_ALT_MEAN_ENABLE		0 // Realiza promedio antes de derivar. Ver control_alt_derivate_error()
 #define CONTROL_ALT_ADD_ZERO		0 // Agrega un cero al filtro de u. Ver control_alt_filter_input() //No USAR!
 
 #define TAKEOFF_ALTITUDE		1 //1m
@@ -75,6 +75,8 @@ double control_alt_derivate_error(void);
  * Control PD
  */
 double control_alt_calc_input(double alt_d, double alt_measured);
+
+double control_alt_integral(double alt_d, double alt_measured); 
 
 void set_alt_zero(double alt_measured);
 

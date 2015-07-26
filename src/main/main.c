@@ -643,7 +643,7 @@ int main(int argc, char *argv[])
 	   /// Control de Altura
 	   u_h = control_alt_calc_input(h_d, h);
 	   //U_h = u_h + 18.1485;
-	   U_h = u_h + thrust_hovering;
+	   U_h = u_h + thrust_hovering + control_alt_integral(h_d, h);
 
 	   //sim 
 	   imu_simulate_altitude(&h, U_h, 0, 0);
@@ -664,9 +664,9 @@ int main(int argc, char *argv[])
 
 #if !DISABLE_IMU
 	   /// Control de Altura
-	   u_h = control_alt_calc_input(h_d, h);
+	   u_h = control_alt_calc_input(h_d, imu_data.us_altitude);
 	   //U_h = u_h + 18.1485;
-	   U_h = u_h + thrust_hovering;
+	   U_h = u_h + thrust_hovering + control_alt_integral(h_d, imu_data.us_altitude);
 	   
 	   //Convertir empuje en comando
 	   if (U_h <= 0) {
