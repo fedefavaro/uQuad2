@@ -294,10 +294,11 @@ double us_alt_coef = 0.2;
 double us_alt_umbral = 0.1;
 double imu_filter_us_alt(double us_alt)
 {
-	static double y_k_1,x_k_1 = 0; //salida anterior, medida anterior
+	static double y_k_1,x_k_1 = 0.15; //salida anterior, medida anterior
 	double y_k;
 
-	if (( us_alt > (1+us_alt_umbral)*x_k_1) || (us_alt < (1-us_alt_umbral)*x_k_1 )) {
+	//if (( us_alt > (1+us_alt_umbral)*x_k_1) || (us_alt < (1-us_alt_umbral)*x_k_1 )) {
+	if ( (us_alt - x_k_1 > us_alt_umbral) || (us_alt - x_k_1 < - us_alt_umbral ) ) {
 	   y_k = y_k_1;
 	} else { 
 	   y_k = us_alt*us_alt_coef + (1-us_alt_coef)*y_k_1;

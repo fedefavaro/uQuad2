@@ -29,7 +29,7 @@ clc
 
 
 %% Grafica datos obtenidos
-data = importdata('log_todo_colgado_5',' ');
+data = importdata('log_canetigiro2_3',' ');
 
 t_CC3D = data(:,1)*1000 + data(:,2)/1000; %timepo CC3D en milisegundos
 t_main = data(:,10)*1000 + data(:,11)/1000; %timepo main en milisegundos
@@ -118,21 +118,21 @@ xlabel('t(ms)')
 ylabel('d(m)')
 grid on
 
-alpha=0.25;  %coef del filtro
-umbral = 0.08; %umbral para descartar muestras
-datos_filtrados = zeros(length(data(:,23)),1);
-datos_filtrados(1) = data(1,23);
-for i=2:length(data(:,23))
-    if ( data(i,23) > (1+umbral)*data(i-1,23) ) ||  ( data(i,23) < (1-umbral)*data(i-1,23) )
-        data(i,23) = data(i-1,23);
-        datos_filtrados(i) = datos_filtrados(i-1); 
-    else
-        datos_filtrados(i) = data(i,23)*alpha+(1-alpha)*datos_filtrados(i-1);    
-    end
-end
-plot(t_main,datos_filtrados,'r')
-legend('datos reales','datos filtrados')
-hold off
+% alpha=0.25;  %coef del filtro
+% umbral = 0.08; %umbral para descartar muestras
+% datos_filtrados = zeros(length(data(:,23)),1);
+% datos_filtrados(1) = data(1,23);
+% for i=2:length(data(:,23))
+%     if ( data(i,23) > (1+umbral)*data(i-1,23) ) ||  ( data(i,23) < (1-umbral)*data(i-1,23) )
+%         data(i,23) = data(i-1,23);
+%         datos_filtrados(i) = datos_filtrados(i-1); 
+%     else
+%         datos_filtrados(i) = data(i,23)*alpha+(1-alpha)*datos_filtrados(i-1);    
+%     end
+% end
+% plot(t_main,datos_filtrados,'r')
+% legend('datos reales','datos filtrados')
+% hold off
 
 figure
 plot(t_CC3D)
