@@ -72,8 +72,8 @@ pid_t sbusd_child_pid = 0;
 pid_t gpsd_child_pid = 0;
 pid_t uavtalk_child_pid = 0;
 
-// Para prueba yaw
-uint16_t throttle_inicial = 0;
+//
+uint16_t throttle_hovering = 0;
 
 // Path planning
 Lista_path* lista_path;
@@ -143,6 +143,8 @@ double yaw_d = 0;
 double u_h = 0; //senal de control (peq señal)
 double U_h = 0; //senal de control (gran señal)
 double h_d = 0;
+int takeoff = 0;
+double thrust_hovering;
 
 // Control activado/desactivado // TODO Mover
 typedef enum {
@@ -175,6 +177,13 @@ uint16_t convert_yaw2pwm(double yaw); // Convierte angulo de yaw a senal de pwm 
 /*********************************************/
 int main(int argc, char *argv[])
 {
+#if !DISABLE_IMU
+	#if SIMULATE_ALTITUDE
+		#error No se puede simular altura con la IMU activada!
+	#endif
+#endif
+
+
    /// mensajes al usuario
 #if PC_TEST
    printf("----------------------\n  WARN: Modo 'PC test' - Ver common/quadcop_config.h  \n----------------------\n");
@@ -186,6 +195,10 @@ int main(int argc, char *argv[])
 #endif
 #if DISABLE_UAVTALK
    printf("----------------------\n  WARN: UAVTalk desabilitado - Ver common/quadcop_config.h  \n----------------------\n");
+   sleep_ms(500);
+#endif
+#if DISABLE_IMU
+   printf("----------------------\n  WARN: IMU desabilitada - Ver common/quadcop_config.h  \n----------------------\n");
    sleep_ms(500);
 #endif
 
@@ -212,14 +225,18 @@ int main(int argc, char *argv[])
 
    if(argc<3)
    {
-	err_log("USAGE: ./auto_pilot log_name throttle_inicial");
+	err_log("USAGE: ./auto_pilot log_name throttle_hovering");
 	exit(1);
    }
    else
    {
 	log_name = argv[1];
-	throttle_inicial = atoi(argv[2]);
-	printf("Throttle inicial: %u\n", throttle_inicial);
+	throttle_hovering = atoi(argv[2]);
+	if( throttle_hovering < 1500 || throttle_hovering > 1600) {
+	   puts("Con este throttle dudo que hagas hovering, cerrando");
+	   exit(0);
+	}
+	printf("Throttle hovering: %u\n", throttle_hovering);
     }
 
     // Configurar pin de uart1 tx
@@ -297,6 +314,8 @@ int main(int argc, char *argv[])
 
    /// Control altura
    control_alt_init_error_buff();
+   thrust_hovering = throttle_hovering*0.0694-88.81;
+   printf("Thrust hovering: %lf\n", thrust_hovering);
 
    /// Log
    log_fd = open(log_name, O_RDWR | O_CREAT | O_NONBLOCK );
@@ -602,41 +621,60 @@ int main(int argc, char *argv[])
 	   }
 #endif //if 0
 
-#define SIMULATE_ALTITUDE	1
+	   /// Despegue
+	   if (takeoff == 1) {
+		retval = control_altitude_takeoff(&h_d);
+		if (retval > 0)
+		   takeoff = 0;		
+	   }
+
+	   /// Aterrizaje
+	   if (takeoff == -1) {
+		retval = control_altitude_land(&h_d);
+		if (retval > 0) {
+		   takeoff = 0;
+		   ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
+	    	   puts("Deteniendo motores");
+            	   control_status = STOPPED;
+		}	
+	   }
+
 #if SIMULATE_ALTITUDE
 	   /// Control de Altura
 	   u_h = control_alt_calc_input(h_d, h);
-	   U_h = u_h + 18.1485;
+	   //U_h = u_h + 18.1485;
+	   U_h = u_h + thrust_hovering;
+
 	   //sim 
 	   imu_simulate_altitude(&h, U_h, 0, 0);
 
 	   //Convertir empuje en comando
-	   if (U_h <= 0.348) {
-	   //if (U_h <= 0.1342) {
-		ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
-	   } else if (U_h > 7.69) {
-	   //} else if (U_h > 2.246) {
+	   if (U_h <= 0) {
+	  	ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
+	   } else if (U_h > 43.6) {
 	   	ch_buff[THROTTLE_CH_INDEX] = MAX_COMMAND;
 	   } else {
-		ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-9.7*pow(U_h,2) + 214.1*U_h + 962.7); //TODO
-	   	//ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-152.32*pow(u_h,2) + 836.08*u_h + 890.52);
+	   	ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-0.2984*pow(U_h,2) + 26.0289*U_h + 1168.8);
 	   }
-	   printf("h: %lf\th_d: %lf\tu_h: %lf\tU_h: %lf\tThrot: %u\n",h,h_d,u_h,U_h,ch_buff[THROTTLE_CH_INDEX]);
+	   
+
+	   printf("h: %lf\th_d: %lf\tu_h: %lf\tU_h: %lf\tThrot: %u\n",h,h_d,u_h,U_h,ch_buff[THROTTLE_CH_INDEX]); // dbg
 
 #endif
 
 #if !DISABLE_IMU
 	   /// Control de Altura
-	   if(imu_updated) {
-	      u_h = control_alt_calc_input(h_d, imu_data.us_altitude);
-
+	   u_h = control_alt_calc_input(h_d, h);
+	   //U_h = u_h + 18.1485;
+	   U_h = u_h + thrust_hovering;
+	   
 	   //Convertir empuje en comando
-	   if (u_h < 0) {
-		ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
-	   } else if (u_h > 7.18) {
+	   if (U_h <= 0) {
+	  	ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
+	   } else if (U_h > 43.6) {
 	   	ch_buff[THROTTLE_CH_INDEX] = MAX_COMMAND;
 	   } else {
-		ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-9.7*pow(u_h,2) + 214.1*u_h + 926.7); //TODO
+	   	ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-0.2984*pow(U_h,2) + 26.0289*U_h + 1168.8);
 	   }
 #endif
 
@@ -877,19 +915,17 @@ void read_from_stdin(void)
          switch(tmp_buff[0])
          {
          case 'S':
-            ch_buff[THROTTLE_CH_INDEX] = throttle_inicial; //valor pasado como parametro
+            //ch_buff[THROTTLE_CH_INDEX] = throttle_inicial; //No va ahora
 	    //set_alt_zero(double alt_measured);
-#if !SIMULATE_GPS
-	    velocity.module = 0; //TODO
-#endif //!SIMULATE_GPS
-            puts("Comenzando lazo cerrado");
+	    takeoff = 1; //true
+            puts("Despegando!");
             control_status = STARTED;
-	    h_d = 0;//57.5/100; //m
             break;
          case 'P':
-            ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
-            puts("Deteniendo");
-            control_status = STOPPED;
+            //ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL; //No va ahora
+	    takeoff = -1; //aterrizando
+            puts("Aterrizando");
+            //control_status = STOPPED;
             break;
          case 'F':
             puts("WARN: Failsafe set");
@@ -926,32 +962,15 @@ void read_from_stdin(void)
             puts("Desarmando...");
             break;
 
-	 case '0':
-	    puts("altura deseada 0m");
-            h_d = 0;
-            break;
-         case '1':
-	    puts("altura deseada 0.1m");
-            h_d = 0.1;
-            break;
-         case '2':
-	    puts("altura deseada 0.5m");
-            h_d = 0.5;
+	 case '1':
+	    puts("Bajando 10cm");
+            h_d = h_d - 0.1;
             break;
          case '3':
-	    puts("altura deseada 1m");
-            h_d = 1;
+	    puts("Subiendo 10cm");
+            h_d = h_d + 0.1;
             break;
-         case '4':
-	    puts("altura deseada 5m");
-            h_d = 5;
-            break;
-         case '5':
-	    puts("altura deseada 10m");
-            h_d = 10;
-            break;	
-
-
+         
 #ifdef SETANDO_CC3D
 	// Para setear maximos y minimos en CC3D
          case 'M':

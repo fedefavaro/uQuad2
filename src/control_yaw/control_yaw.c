@@ -99,10 +99,11 @@ double control_yaw_derivate_error(void)
 	err_mean_sup += error_yaw_buff[CONTROL_YAW_BUFF_SIZE-1-i].error;
 	err_mean_inf += error_yaw_buff[i].error; 
    }
-   // calculo la derivada como diferencia de promedios. Los elementos mas nuevos estan en
-   // los indices mas chicos.
-   // err_dot = ( (err_inf - err_sup)*(CONTROL_YAW_BUFF_SIZE/2) )/( mean_time*(CONTROL_YAW_BUFF_SIZE/2) );
-   err_dot = ( err_mean_inf - err_mean_sup )/ mean_time;
+   err_mean_sup = err_mean_sup/(CONTROL_YAW_BUFF_SIZE/2);
+   err_mean_inf = err_mean_inf/(CONTROL_YAW_BUFF_SIZE/2);
+   // calculo la derivada como diferencia de promedios. Los elementos mas nuevos estan en los indices mas chicos.
+   // e_dot = e_mean_inf - e_mean_sup / (n/2)*T
+   err_dot = ( err_mean_inf - err_mean_sup )/(mean_time*CONTROL_YAW_BUFF_SIZE/2);
 #else
    err_dot = ( error_yaw_buff[0].error - error_yaw_buff[CONTROL_YAW_BUFF_SIZE-1].error )/( mean_time*(CONTROL_YAW_BUFF_SIZE-1) );
 #endif

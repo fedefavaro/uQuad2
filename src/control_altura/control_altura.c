@@ -30,9 +30,9 @@
 
 double Kp_alt = 1.85;     
 double Td_alt = 2.0;
-double alpha_alt = 0.25;
-//double a = 0.5;
-//double b = 0.5;
+double alpha_alt = 0.3;
+double a_alt = 0.5;
+double b_alt = 0.5;
 
 /**
  * Buffer para almacenar senales de error
@@ -99,10 +99,11 @@ double control_alt_derivate_error(void)
 	err_mean_sup += error_alt_buff[CONTROL_ALT_BUFF_SIZE-1-i].error;
 	err_mean_inf += error_alt_buff[i].error; 
    }
-   // calculo la derivada como diferencia de promedios. Los elementos mas nuevos estan en
-   // los indices mas chicos.
-   // err_dot = ( (err_inf - err_sup)*(CONTROL_ALT_BUFF_SIZE/2) )/( mean_time*(CONTROL_ALT_BUFF_SIZE/2) );
-   err_dot = ( err_mean_inf - err_mean_sup )/ mean_time;
+   err_mean_sup = err_mean_sup/(CONTROL_ALT_BUFF_SIZE/2);
+   err_mean_inf = err_mean_inf/(CONTROL_ALT_BUFF_SIZE/2);
+   // calculo la derivada como diferencia de promedios. Los elementos mas nuevos estan en los indices mas chicos.
+   // e_dot = e_mean_inf - e_mean_sup / (n/2)*T
+   err_dot = ( err_mean_inf - err_mean_sup )/(mean_time*CONTROL_ALT_BUFF_SIZE/2);
 #else
    err_dot = ( error_alt_buff[0].error - error_alt_buff[CONTROL_ALT_BUFF_SIZE-1].error )/( mean_time*(CONTROL_ALT_BUFF_SIZE-1) );
 #endif
@@ -123,8 +124,8 @@ void control_alt_filter_input(double *u)
    //y_{k} = alpha_alt*x_{k} + (1-alpha_alt)*y_{k-1}
    double y_k = alpha_alt*x_k + (1-alpha_alt)*y_k_1;
 #else
-   //y_{k} = x_{k} + a*x_{k} - b*y_{k-1}
-   double y_k = x_k + a*x_k_1 - b*y_k_1;
+   //y_{k} = x_{k} + a_alt*x_{k} - b_alt*y_{k-1}
+   double y_k = x_k + a_alt*x_k_1 - b_alt*y_k_1;
    x_k_1 = x_k;
 #endif
 
@@ -168,7 +169,34 @@ double get_alt_zero(void)
 }
 
 
+/* Regula la altura deseada durante el despegue
+ *
+ * retorna 0 mientras la altura no haya sido alcanzada y 1
+ * cuando esta ha sido alcanzada.
+ */
+int control_altitude_takeoff(double *h_d)
+{
+   *h_d = *h_d + TAKEOFF_ALTITUDE*PORCENTAGE_UPDATE_TA;
+   if (*h_d >= TAKEOFF_ALTITUDE)
+	return 1;
+   else
+	return 0;
+}
 
 
+
+/* Regula la altura deseada durante el aterrizaje
+ *
+ * retorna 0 mientras la altura no haya sido alcanzada y 1
+ * cuando esta ha sido alcanzada.
+ */
+int control_altitude_land(double *h_d)
+{
+   *h_d = *h_d - LANDING_ALTITUDE*PORCENTAGE_UPDATE_TA;
+   if (*h_d <= LANDING_ALTITUDE)
+	return 1;
+   else
+	return 0;
+}
 
 

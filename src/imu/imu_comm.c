@@ -294,7 +294,7 @@ double us_alt_coef = 0.2;
 double us_alt_umbral = 0.1;
 double imu_filter_us_alt(double us_alt)
 {
-	static double y_k_1,x_k_1 = 0; //salida anterior,medida anterior
+	static double y_k_1,x_k_1 = 0; //salida anterior, medida anterior
 	double y_k;
 
 	if (( us_alt > (1+us_alt_umbral)*x_k_1) || (us_alt < (1-us_alt_umbral)*x_k_1 )) {
@@ -319,7 +319,7 @@ void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 	pres_raw2data(raw, data);
 
 	data->us_obstacle = (raw->us_obstacle*1.695)/100;//*0.99226 + 3.51228;
-	data->us_altitude = imu_filter_us_alt( (raw->us_altitude*1.695/100) );
+	data->us_altitude = imu_filter_us_alt( raw->us_altitude*1.695/100 );
 
 	// Timestamp
 	gettimeofday(&tv_aux,NULL);
@@ -334,7 +334,6 @@ void imu_raw2data(imu_raw_t *raw, imu_data_t *data)
 int imu_to_str(char* buf_str, imu_data_t imu_data)
 {
    char* buf_ptr = buf_str;
-   //int ret;
    
    // Timestamp
    buf_ptr += sprintf(buf_ptr, " %04lu %06lu", (unsigned long)imu_data.ts.tv_sec, (unsigned long)imu_data.ts.tv_usec);

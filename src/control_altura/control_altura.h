@@ -36,10 +36,12 @@
 
 #define INITIAL_ALT			0
 
-//#define CONTROL_ALT_ADD_DERIVATIVE	1 //Este control debe ser PD!
-
 #define CONTROL_ALT_MEAN_ENABLE		1 // Realiza promedio antes de derivar. Ver control_alt_derivate_error()
-#define CONTROL_ALT_ADD_ZERO		0 // Agrega un cero al filtro de u. Ver control_alt_filter_input() TODO ES COMPATIBLE CON DERIVAR EL ERROR??
+#define CONTROL_ALT_ADD_ZERO		0 // Agrega un cero al filtro de u. Ver control_alt_filter_input() //No USAR!
+
+#define TAKEOFF_ALTITUDE		1 //1m
+#define LANDING_ALTITUDE		0.25 //25cm
+#define PORCENTAGE_UPDATE_TA		0.05 //5%
 
 typedef struct error_alt {
 	double error;
@@ -77,6 +79,9 @@ double control_alt_calc_input(double alt_d, double alt_measured);
 void set_alt_zero(double alt_measured);
 
 double get_alt_zero(void);
+
+int control_altitude_takeoff(double *h_d);
+int control_altitude_land(double *h_d);
 
 #endif // CONTROL_ALT_H
 
