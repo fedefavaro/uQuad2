@@ -225,18 +225,18 @@ int main(int argc, char *argv[])
 
    if(argc<3)
    {
-	err_log("USAGE: ./auto_pilot log_name throttle_hovering");
+	err_log("USAGE: ./auto_pilot log_name thrust_hovering");
 	exit(1);
    }
    else
    {
 	log_name = argv[1];
-	throttle_hovering = atoi(argv[2]);
-	if( throttle_hovering < 1500 || throttle_hovering > 1600) {
+	thrust_hovering = atoi(argv[2]);
+	if( thrust_hovering < 16 || thrust_hovering > 40) {
 	   puts("Con este throttle dudo que hagas hovering, cerrando");
 	   exit(0);
 	}
-	printf("Throttle hovering: %u\n", throttle_hovering);
+	printf("Throttle hovering: %u\n", (uint16_t) (thrust_hovering*17.41+1212.53) );
     }
 
     // Configurar pin de uart1 tx
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 
    /// Control altura
    control_alt_init_error_buff();
-   thrust_hovering = throttle_hovering*0.0694-88.81;
+   //thrust_hovering = throttle_hovering*0.0694-88.81;
    printf("Thrust hovering: %lf\n", thrust_hovering);
 
    /// Log
@@ -633,9 +633,9 @@ int main(int argc, char *argv[])
 		retval = control_altitude_land(&h_d);
 		if (retval > 0) {
 		   takeoff = 0;
-		   ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
-	    	   puts("Deteniendo motores");
-            	   control_status = STOPPED;
+		   //ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
+	    	   puts("Pronto para aterrizar!");
+            	   //control_status = STOPPED;
 		}	
 	   }
 
@@ -671,8 +671,8 @@ int main(int argc, char *argv[])
 	   //Convertir empuje en comando
 	   if (U_h <= 0) {
 	  	ch_buff[THROTTLE_CH_INDEX] = THROTTLE_NEUTRAL;
-	   } else if (U_h > 43.6) {
-	   	ch_buff[THROTTLE_CH_INDEX] = MAX_COMMAND;
+	   } else if (U_h > 22) {
+	   	ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (17.41*U_h+1212.53);
 	   } else {
 	   	ch_buff[THROTTLE_CH_INDEX] = (uint16_t) (-0.2984*pow(U_h,2) + 26.0289*U_h + 1168.8);
 	   }
@@ -724,7 +724,7 @@ int main(int argc, char *argv[])
 				yaw_d,
 				u_yaw,
 				h_d,
-				u_h);
+				U_h);
 
 	strcat(buff_log, buff_log_aux);
 	

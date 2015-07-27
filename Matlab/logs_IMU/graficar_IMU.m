@@ -29,7 +29,7 @@ clc
 
 
 %% Grafica datos obtenidos
-data = importdata('log_canetigiro2_3',' ');
+data = importdata('log_canetigiro2_10',' ');
 
 t_CC3D = data(:,1)*1000 + data(:,2)/1000; %timepo CC3D en milisegundos
 t_main = data(:,10)*1000 + data(:,11)/1000; %timepo main en milisegundos
@@ -53,6 +53,15 @@ plot(t_main,data(:,5)*180/3.1416,'*g')
 title('Euler angles')
 xlabel('time (ms)')
 legend('roll(deg)','pitch(deg)','yaw(deg)')
+grid on
+hold off
+
+
+figure
+hold on
+plot(t_main,data(:,9),'*r')
+title('Throttle')
+xlabel('time (ms)')
 grid on
 hold off
 
