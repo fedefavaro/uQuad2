@@ -29,7 +29,7 @@ clc
 
 
 %% Grafica datos obtenidos
-data = importdata('log_canetigiro2_10',' ');
+data = importdata('log_canetigiro2_13',' ');
 
 t_CC3D = data(:,1)*1000 + data(:,2)/1000; %timepo CC3D en milisegundos
 t_main = data(:,10)*1000 + data(:,11)/1000; %timepo main en milisegundos
