@@ -291,7 +291,7 @@ void pres_raw2data(imu_raw_t *raw, imu_data_t * data)
 
 
 double us_alt_coef = 0.2;
-double us_alt_umbral = 0.1;
+double us_alt_umbral = 0.25;
 double imu_filter_us_alt(double us_alt)
 {
 	static double y_k_1,x_k_1 = 0.15; //salida anterior, medida anterior

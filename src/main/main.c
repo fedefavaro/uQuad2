@@ -507,18 +507,10 @@ int main(int argc, char *argv[])
 	}
 	uavtalk_updated = true;
 	//uav_talk_print_attitude(act); //dbg
-#else
-   #if FAKE_YAW
-	if(control_status == STARTED && !first_time)
-	   act.yaw = simulate_yaw(yaw_d);  //yaw_d es el del loop anterior
-	uavtalk_updated = true;
-   #endif	
 #endif
 
-#if !FAKE_YAW
 	// Calcula diferencia respecto a cero
 	act.yaw = act.yaw - get_yaw_zero();
-#endif
 
 	++count_50; // control de loop 100ms
 
@@ -559,7 +551,7 @@ int main(int argc, char *argv[])
 	   if (first_time)	
 		first_time = false;
 
-#if 0
+//#if 0
            /// Con datos de actitud hago control de yaw y path following (si tengo gps)
 	   if(uavtalk_updated)
 	   {
@@ -619,7 +611,7 @@ int main(int argc, char *argv[])
 	      //TODO...
 
 	   }
-#endif //if 0
+//#endif //if 0
 
 	   /// Despegue
 	   if (takeoff == 1) {
