@@ -26,17 +26,17 @@ cp way_points_in.txt build/main/way_points_in.txt
 if [ $1 ];
 then
     log_name=$1
-else
-    echo No se especifico archivo de logeo, cerrando...
-    exit
+#else
+#    echo No se especifico archivo de logeo, cerrando...
+#    exit
 fi
 
 if [ $2 ];
 then
     throttle_inicial=$2
-else
-    echo No se especifico throttle inicial, cerrando...
-    exit
+#else
+#    echo No se especifico throttle inicial, cerrando...
+#    exit
 fi
 
 cd build/main
