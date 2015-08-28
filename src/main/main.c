@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
 	thrust_hovering = atoi(argv[2]);
 	if( thrust_hovering < 16 || thrust_hovering > 40) {
 	   puts("Con este throttle dudo que hagas hovering, cerrando");
-	   exit(0);
+	   //exit(0);
 	}
 	printf("Throttle hovering: %u\n", (uint16_t) (thrust_hovering*17.41+1212.53) );
     }
@@ -650,8 +650,7 @@ int main(int argc, char *argv[])
 	   }
 	   
 
-	   printf("h: %lf\th_d: %lf\tu_h: %lf\tU_h: %lf\tThrot: %u\n",h,h_d,u_h,U_h,ch_buff[THROTTLE_CH_INDEX]); // dbg
-
+	   //printf("h: %lf\th_d: %lf\tu_h: %lf\tU_h: %lf\tThrot: %u\n",h,h_d,u_h,U_h,ch_buff[THROTTLE_CH_INDEX]); // dbg
 #endif
 
 #if !DISABLE_IMU

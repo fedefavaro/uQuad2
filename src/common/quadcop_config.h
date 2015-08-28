@@ -32,11 +32,11 @@
    #define SBUS_LOG_TO_FILE	0 //sbus logea en un archivo en lugar de imprimir en stdout
 #endif //PC_TEST
 
-#define SIMULATE_GPS		1
+#define SIMULATE_GPS		0	
 #define DISABLE_UAVTALK		1
 #define DISABLE_IMU		1
 #define SIMULATE_ALTITUDE	1
-#define FAKE_YAW		0
+#define FAKE_YAW		1
 #define SOCKET_TEST		0
 
 #define DEBUG                   1
