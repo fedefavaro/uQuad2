@@ -279,7 +279,7 @@ int gps_send_command(int fd, const char *command)
    return 0;
 }
 
-
+#if SIMULATE_GPS
 /**
  * Simula movimiento del quad en base a modelo fisico
  */
@@ -311,5 +311,5 @@ void gps_simulate_position(position_t* pos, velocity_t* vel, double yaw_measured
 
    return;
 }
-
+#endif
 
